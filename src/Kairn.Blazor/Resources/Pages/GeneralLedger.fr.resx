@@ -1,7 +1,43 @@
-﻿<?xml version="1.0" encoding="utf-8"?>
+<?xml version="1.0" encoding="utf-8"?>
 <root>
   <resheader name="resmimetype"><value>text/microsoft-resx</value></resheader>
   <resheader name="version"><value>2.0</value></resheader>
   <data name="Title" xml:space="preserve"><value>Grand livre</value></data>
-  <data name="ComingSoon" xml:space="preserve"><value>Ce module sera bientôt disponible.</value></data>
+  <data name="NewEntry" xml:space="preserve"><value>Nouvelle écriture</value></data>
+  <data name="Search" xml:space="preserve"><value>Rechercher une référence ou une description…</value></data>
+  <data name="Filter_From" xml:space="preserve"><value>Du</value></data>
+  <data name="Filter_To" xml:space="preserve"><value>Au</value></data>
+  <data name="Col_Date" xml:space="preserve"><value>Date</value></data>
+  <data name="Col_Reference" xml:space="preserve"><value>Référence</value></data>
+  <data name="Col_Description" xml:space="preserve"><value>Description</value></data>
+  <data name="Col_Debit" xml:space="preserve"><value>Débit</value></data>
+  <data name="Col_Credit" xml:space="preserve"><value>Crédit</value></data>
+  <data name="Col_CreatedBy" xml:space="preserve"><value>Créé par</value></data>
+  <data name="Col_Attachment" xml:space="preserve"><value>Pièce jointe</value></data>
+  <data name="CreateTitle" xml:space="preserve"><value>Nouvelle écriture comptable</value></data>
+  <data name="EditTitle" xml:space="preserve"><value>Modifier l'écriture comptable</value></data>
+  <data name="Lbl_Date" xml:space="preserve"><value>Date</value></data>
+  <data name="Lbl_Description" xml:space="preserve"><value>Description</value></data>
+  <data name="Lbl_Reference" xml:space="preserve"><value>Référence (auto)</value></data>
+  <data name="Lbl_Account" xml:space="preserve"><value>Compte</value></data>
+  <data name="Lbl_Debit" xml:space="preserve"><value>Débit</value></data>
+  <data name="Lbl_Credit" xml:space="preserve"><value>Crédit</value></data>
+  <data name="Lbl_Currency" xml:space="preserve"><value>Devise</value></data>
+  <data name="Lbl_Memo" xml:space="preserve"><value>Libellé</value></data>
+  <data name="Lbl_Attachment" xml:space="preserve"><value>Pièce jointe (PDF/image, max 10 Mo)</value></data>
+  <data name="AddLine" xml:space="preserve"><value>Ajouter une ligne</value></data>
+  <data name="RemoveLine" xml:space="preserve"><value>Supprimer</value></data>
+  <data name="Balance_OK" xml:space="preserve"><value>Équilibrée</value></data>
+  <data name="Balance_NOK" xml:space="preserve"><value>Déséquilibrée</value></data>
+  <data name="Balance_Diff" xml:space="preserve"><value>Différence : {0:N2}</value></data>
+  <data name="Save" xml:space="preserve"><value>Enregistrer</value></data>
+  <data name="Cancel" xml:space="preserve"><value>Annuler</value></data>
+  <data name="Locked" xml:space="preserve"><value>Verrouillée</value></data>
+  <data name="Err_MinLines" xml:space="preserve"><value>Une écriture comptable nécessite au moins 2 lignes.</value></data>
+  <data name="Err_Unbalanced" xml:space="preserve"><value>Les débits et crédits doivent être égaux.</value></data>
+  <data name="Err_FileTooLarge" xml:space="preserve"><value>Le fichier dépasse la limite de 10 Mo.</value></data>
+  <data name="Err_FileType" xml:space="preserve"><value>Seuls les fichiers PDF et image sont autorisés.</value></data>
+  <data name="Snack_Created" xml:space="preserve"><value>Écriture {0} créée.</value></data>
+  <data name="Snack_Updated" xml:space="preserve"><value>Écriture {0} mise à jour.</value></data>
+  <data name="NoEntries" xml:space="preserve"><value>Aucune écriture comptable trouvée.</value></data>
 </root>

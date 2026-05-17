@@ -1,0 +1,287 @@
+@inject IJournalEntryService JournalEntryService
+@inject IAccountService AccountService
+@inject ICurrentUserContext CurrentUser
+@inject IStringLocalizer<GeneralLedger> L
+
+<MudDialog Style="min-width:900px">
+    <DialogContent>
+        <MudStack Spacing="3">
+
+            @* Header row: date + description *@
+            <MudGrid Spacing="2">
+                <MudItem xs="12" sm="4">
+                    <MudDatePicker @bind-Date="_date" Label="@L["Lbl_Date"]"
+                                   DateFormat="dd/MM/yyyy" Required="true"
+                                   Editable="true" />
+                </MudItem>
+                <MudItem xs="12" sm="5">
+                    <MudTextField @bind-Value="_description" Label="@L["Lbl_Description"]"
+                                  Required="true" Immediate="true" />
+                </MudItem>
+                <MudItem xs="12" sm="3">
+                    <MudTextField Value="@_reference" Label="@L["Lbl_Reference"]"
+                                  ReadOnly="true" Variant="Variant.Outlined" />
+                </MudItem>
+            </MudGrid>
+
+            @* Lines table *@
+            <MudTable Items="_lines" Dense="true" Hover="false" Elevation="0"
+                      Style="border:1px solid var(--mud-palette-lines-default)">
+                <HeaderContent>
+                    <MudTh>@L["Lbl_Account"]</MudTh>
+                    <MudTh Style="width:130px">@L["Lbl_Debit"]</MudTh>
+                    <MudTh Style="width:130px">@L["Lbl_Credit"]</MudTh>
+                    <MudTh Style="width:80px">@L["Lbl_Currency"]</MudTh>
+                    <MudTh>@L["Lbl_Memo"]</MudTh>
+                    <MudTh Style="width:60px"></MudTh>
+                </HeaderContent>
+                <RowTemplate>
+                    <MudTd>
+                        <MudAutocomplete T="Kairn.Domain.Entities.Account"
+                                         Value="@GetAccount(context.AccountId)"
+                                         ValueChanged="@(a => context.AccountId = a?.Id ?? Guid.Empty)"
+                                         SearchFunc="SearchAccounts"
+                                         ToStringFunc="@(a => a is null ? "" : $"{a.Code} – {a.Name}")"
+                                         Dense="true" Margin="Margin.Dense"
+                                         ResetValueOnEmptyText="false"
+                                         CoerceText="true"
+                                         MinCharacters="0" />
+                    </MudTd>
+                    <MudTd>
+                        <MudNumericField T="decimal" @bind-Value="context.Debit"
+                                         Format="N2" HideSpinButtons="true"
+                                         Margin="Margin.Dense" />
+                    </MudTd>
+                    <MudTd>
+                        <MudNumericField T="decimal" @bind-Value="context.Credit"
+                                         Format="N2" HideSpinButtons="true"
+                                         Margin="Margin.Dense" />
+                    </MudTd>
+                    <MudTd>
+                        <MudTextField @bind-Value="context.Currency"
+                                      MaxLength="3" Margin="Margin.Dense" />
+                    </MudTd>
+                    <MudTd>
+                        <MudTextField @bind-Value="context.Memo"
+                                      Margin="Margin.Dense" />
+                    </MudTd>
+                    <MudTd>
+                        <MudIconButton Icon="@Icons.Material.Filled.Delete"
+                                       Size="Size.Small"
+                                       Disabled="@(_lines.Count <= 2)"
+                                       OnClick="@(() => RemoveLine(context))" />
+                    </MudTd>
+                </RowTemplate>
+                <FooterContent>
+                    <MudTd colspan="6">
+                        <MudButton StartIcon="@Icons.Material.Filled.Add"
+                                   Size="Size.Small" OnClick="AddLine">
+                            @L["AddLine"]
+                        </MudButton>
+                    </MudTd>
+                </FooterContent>
+            </MudTable>
+
+            @* Balance indicator *@
+            <MudStack Row="true" AlignItems="AlignItems.Center" Spacing="2">
+                @{
+                    var diff = Math.Abs(TotalDebit - TotalCredit);
+                    var balanced = diff < 0.0001m;
+                    var balColor = balanced ? "#3A9463" : "#C2492A";
+                    var balIcon  = balanced ? Icons.Material.Filled.CheckCircle : Icons.Material.Filled.Error;
+                    var balLabel = balanced ? L["Balance_OK"].Value : string.Format(L["Balance_Diff"].Value, diff);
+                }
+                <MudIcon Icon="@balIcon" Style="@($"color:{balColor}")" />
+                <MudText Style="@($"color:{balColor}")">@balLabel</MudText>
+                <MudSpacer />
+                <MudText Typo="Typo.caption">
+                    @L["Lbl_Debit"]: @TotalDebit.ToString("N2") &nbsp;|&nbsp;
+                    @L["Lbl_Credit"]: @TotalCredit.ToString("N2")
+                </MudText>
+            </MudStack>
+
+            @* Attachment *@
+            <MudFileUpload T="IBrowserFile" FilesChanged="OnFileChanged"
+                           Accept=".pdf,.png,.jpg,.jpeg,.gif,.webp">
+                <ActivatorContent>
+                    <MudButton HtmlTag="label" StartIcon="@Icons.Material.Filled.AttachFile"
+                               Variant="Variant.Outlined" Size="Size.Small">
+                        @L["Lbl_Attachment"]
+                    </MudButton>
+                </ActivatorContent>
+            </MudFileUpload>
+            @if (_attachmentFileName is not null)
+            {
+                <MudChip T="string" Icon="@Icons.Material.Filled.InsertDriveFile"
+                         OnClose="@(() => { _attachmentFileName = null; _attachmentPath = null; })">
+                    @_attachmentFileName
+                </MudChip>
+            }
+
+            @if (_errorMessage is not null)
+            {
+                <MudAlert Severity="Severity.Error" Dense="true">@_errorMessage</MudAlert>
+            }
+
+        </MudStack>
+    </DialogContent>
+    <DialogActions>
+        <MudButton OnClick="Cancel">@L["Cancel"]</MudButton>
+        <MudButton OnClick="Submit" Color="Color.Primary" Variant="Variant.Filled"
+                   Disabled="@(_saving || TotalDebit == 0)">
+            @if (_saving)
+            {
+                <MudProgressCircular Size="Size.Small" Indeterminate="true" Class="mr-2" />
+            }
+            @L["Save"]
+        </MudButton>
+    </DialogActions>
+</MudDialog>
+
+@code {
+    [CascadingParameter] private IMudDialogInstance MudDialog { get; set; } = null!;
+    [Parameter] public JournalEntryDto? Entry { get; set; }
+
+    private bool _saving;
+    private bool _isEdit;
+    private string? _errorMessage;
+    private string _description = "";
+    private string _reference = "";
+    private DateTime? _date = DateTime.Today;
+    private string? _attachmentPath;
+    private string? _attachmentFileName;
+    private List<LineModel> _lines = [];
+    private List<Kairn.Domain.Entities.Account> _accounts = [];
+
+    private decimal TotalDebit  => _lines.Sum(l => l.Debit);
+    private decimal TotalCredit => _lines.Sum(l => l.Credit);
+
+    protected override async Task OnInitializedAsync()
+    {
+        _accounts = await AccountService.GetAllAsync(CurrentUser.TenantId);
+        _isEdit = Entry is not null;
+
+        if (_isEdit)
+        {
+            _date        = Entry!.Date.ToDateTime(TimeOnly.MinValue);
+            _description = Entry.Description;
+            _reference   = Entry.Reference;
+            _attachmentFileName = Entry.AttachmentFileName;
+            _lines = Entry.Lines.Select(l => new LineModel
+            {
+                AccountId = l.AccountId,
+                Debit     = l.Debit,
+                Credit    = l.Credit,
+                Currency  = l.Currency,
+                Memo      = l.Memo,
+            }).ToList();
+        }
+        else
+        {
+            var today = DateOnly.FromDateTime(DateTime.Today);
+            _reference = await JournalEntryService.GenerateReferenceAsync(CurrentUser.TenantId, today);
+            _lines = [new LineModel(), new LineModel()];
+        }
+    }
+
+    private void AddLine() => _lines.Add(new LineModel());
+    private void RemoveLine(LineModel line) => _lines.Remove(line);
+
+    private Kairn.Domain.Entities.Account? GetAccount(Guid id) =>
+        _accounts.FirstOrDefault(a => a.Id == id);
+
+    private Task<IEnumerable<Kairn.Domain.Entities.Account>> SearchAccounts(string text, CancellationToken ct)
+    {
+        if (string.IsNullOrWhiteSpace(text))
+            return Task.FromResult<IEnumerable<Kairn.Domain.Entities.Account>>(_accounts);
+
+        var lower = text.Trim().ToLowerInvariant();
+        return Task.FromResult<IEnumerable<Kairn.Domain.Entities.Account>>(
+            _accounts.Where(a =>
+                a.Code.Contains(lower, StringComparison.OrdinalIgnoreCase) ||
+                a.Name.Contains(lower, StringComparison.OrdinalIgnoreCase)));
+    }
+
+    private async Task OnFileChanged(IBrowserFile file)
+    {
+        const long maxBytes = 10 * 1024 * 1024;
+        var allowed = new[] { "application/pdf", "image/png", "image/jpeg", "image/gif", "image/webp" };
+
+        if (file.Size > maxBytes) { _errorMessage = L["Err_FileTooLarge"]; return; }
+        if (!allowed.Contains(file.ContentType)) { _errorMessage = L["Err_FileType"]; return; }
+
+        _errorMessage = null;
+
+        var uploadsDir = Path.Combine("uploads", "attachments");
+        Directory.CreateDirectory(uploadsDir);
+        var ext = Path.GetExtension(file.Name);
+        var safeName = $"{Guid.NewGuid()}{ext}";
+        var fullPath = Path.Combine(uploadsDir, safeName);
+
+        await using var fs = File.Create(fullPath);
+        await using var stream = file.OpenReadStream(maxBytes);
+        await stream.CopyToAsync(fs);
+
+        _attachmentPath = fullPath;
+        _attachmentFileName = file.Name;
+    }
+
+    private void Cancel() => MudDialog.Cancel();
+
+    private async Task Submit()
+    {
+        _errorMessage = null;
+
+        var lineInputs = _lines
+            .Where(l => l.AccountId != Guid.Empty)
+            .Select(l => new JournalLineInput(l.AccountId, l.Debit, l.Credit, l.Currency, 1m, l.Memo))
+            .ToList();
+
+        if (lineInputs.Count < 2)
+        {
+            _errorMessage = L["Err_MinLines"];
+            return;
+        }
+
+        var diff = Math.Abs(lineInputs.Sum(l => l.Debit) - lineInputs.Sum(l => l.Credit));
+        if (diff >= 0.0001m)
+        {
+            _errorMessage = L["Err_Unbalanced"];
+            return;
+        }
+
+        _saving = true;
+        Result<JournalEntryDto> result;
+        var date = DateOnly.FromDateTime(_date ?? DateTime.Today);
+
+        if (_isEdit)
+        {
+            result = await JournalEntryService.UpdateAsync(new UpdateJournalEntryCommand(
+                Entry!.Id, CurrentUser.TenantId, date, _description,
+                lineInputs, _attachmentPath, _attachmentFileName));
+        }
+        else
+        {
+            result = await JournalEntryService.CreateAsync(new CreateJournalEntryCommand(
+                CurrentUser.TenantId, date, _description,
+                CurrentUser.UserId, CurrentUser.UserName,
+                lineInputs, _attachmentPath, _attachmentFileName));
+        }
+
+        _saving = false;
+
+        if (result.IsSuccess)
+            MudDialog.Close(DialogResult.Ok(result.Value));
+        else
+            _errorMessage = result.Error;
+    }
+
+    private class LineModel
+    {
+        public Guid AccountId { get; set; }
+        public decimal Debit { get; set; }
+        public decimal Credit { get; set; }
+        public string Currency { get; set; } = "EUR";
+        public string? Memo { get; set; }
+    }
+}

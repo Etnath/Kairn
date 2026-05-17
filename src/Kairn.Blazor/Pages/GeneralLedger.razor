@@ -1,7 +1,166 @@
 @page "/ledger"
 @attribute [Authorize]
+@rendermode InteractiveServer
+@inject IJournalEntryService JournalEntryService
+@inject ICurrentUserContext CurrentUser
 @inject IStringLocalizer<GeneralLedger> L
+@inject IDialogService DialogService
+@inject ISnackbar Snackbar
 
 <PageTitle>@L["Title"] – Kairn</PageTitle>
-<MudText Typo="Typo.h5" Class="mb-4">@L["Title"]</MudText>
-<MudText Color="Color.Secondary">@L["ComingSoon"]</MudText>
+
+<MudStack Row="true" AlignItems="AlignItems.Center" Class="mb-4">
+    <MudText Typo="Typo.h5">@L["Title"]</MudText>
+    <MudSpacer />
+    <AuthorizeView Roles="Admin,Bookkeeper">
+        <MudButton StartIcon="@Icons.Material.Filled.Add" Variant="Variant.Filled"
+                   Color="Color.Primary" OnClick="OpenCreate">
+            @L["NewEntry"]
+        </MudButton>
+    </AuthorizeView>
+</MudStack>
+
+@* Filters *@
+<MudPaper Class="pa-3 mb-4" Elevation="0" Outlined="true">
+    <MudGrid Spacing="2">
+        <MudItem xs="12" sm="4">
+            <MudTextField Value="@_search" Label="@L["Search"]"
+                          Immediate="true" DebounceInterval="300"
+                          Adornment="Adornment.Start" AdornmentIcon="@Icons.Material.Filled.Search"
+                          Clearable="true"
+                          ValueChanged="@((string v) => OnSearchChanged(v))" />
+        </MudItem>
+        <MudItem xs="6" sm="2">
+            <MudDatePicker Date="_filterFrom" Label="@L["Filter_From"]"
+                           DateFormat="dd/MM/yyyy" Editable="true"
+                           DateChanged="@OnFromChanged" />
+        </MudItem>
+        <MudItem xs="6" sm="2">
+            <MudDatePicker Date="_filterTo" Label="@L["Filter_To"]"
+                           DateFormat="dd/MM/yyyy" Editable="true"
+                           DateChanged="@OnToChanged" />
+        </MudItem>
+    </MudGrid>
+</MudPaper>
+
+@* Table *@
+<MudTable ServerData="LoadData" @ref="_table" Dense="true" Hover="true"
+          RowClass="cursor-pointer"
+          OnRowClick="OnRowClick"
+          T="JournalEntryDto">
+    <HeaderContent>
+        <MudTh>@L["Col_Date"]</MudTh>
+        <MudTh>@L["Col_Reference"]</MudTh>
+        <MudTh>@L["Col_Description"]</MudTh>
+        <MudTh Style="text-align:right">@L["Col_Debit"]</MudTh>
+        <MudTh Style="text-align:right">@L["Col_Credit"]</MudTh>
+        <MudTh>@L["Col_CreatedBy"]</MudTh>
+        <MudTh Style="width:40px">@L["Col_Attachment"]</MudTh>
+    </HeaderContent>
+    <RowTemplate>
+        <MudTd DataLabel="@L["Col_Date"]">@context.Date.ToString("dd/MM/yyyy")</MudTd>
+        <MudTd DataLabel="@L["Col_Reference"]">
+            <MudText Typo="Typo.body2">@context.Reference</MudText>
+            @if (context.IsLocked)
+            {
+                <MudChip T="string" Size="Size.Small" Icon="@Icons.Material.Filled.Lock"
+                         Color="Color.Default">@L["Locked"]</MudChip>
+            }
+        </MudTd>
+        <MudTd DataLabel="@L["Col_Description"]">@context.Description</MudTd>
+        <MudTd DataLabel="@L["Col_Debit"]" Style="text-align:right">
+            @context.TotalDebit.ToString("N2")
+        </MudTd>
+        <MudTd DataLabel="@L["Col_Credit"]" Style="text-align:right">
+            @context.TotalCredit.ToString("N2")
+        </MudTd>
+        <MudTd DataLabel="@L["Col_CreatedBy"]">@context.CreatedByName</MudTd>
+        <MudTd>
+            @if (context.AttachmentFileName is not null)
+            {
+                <MudIcon Icon="@Icons.Material.Filled.AttachFile" Size="Size.Small"
+                         Title="@context.AttachmentFileName" />
+            }
+        </MudTd>
+    </RowTemplate>
+    <NoRecordsContent>
+        <MudText Color="Color.Secondary">@L["NoEntries"]</MudText>
+    </NoRecordsContent>
+    <PagerContent>
+        <MudTablePager PageSizeOptions="new[] { 25, 50, 100 }" />
+    </PagerContent>
+</MudTable>
+
+@code {
+    private MudTable<JournalEntryDto> _table = null!;
+    private string _search = "";
+    private DateTime? _filterFrom;
+    private DateTime? _filterTo;
+
+    private async Task<TableData<JournalEntryDto>> LoadData(TableState state, CancellationToken ct)
+    {
+        var query = new JournalEntryQuery(
+            CurrentUser.TenantId,
+            From: _filterFrom.HasValue ? DateOnly.FromDateTime(_filterFrom.Value) : null,
+            To:   _filterTo.HasValue   ? DateOnly.FromDateTime(_filterTo.Value)   : null,
+            Search: string.IsNullOrWhiteSpace(_search) ? null : _search,
+            Page: state.Page + 1,
+            PageSize: state.PageSize);
+
+        var result = await JournalEntryService.GetPagedAsync(query, ct);
+        return new TableData<JournalEntryDto>
+        {
+            Items = result.Items,
+            TotalItems = result.TotalCount,
+        };
+    }
+
+    private void OnSearchChanged(string value) { _search = value; ResetAndLoad(); }
+    private void OnFromChanged(DateTime? value) { _filterFrom = value; ResetAndLoad(); }
+    private void OnToChanged(DateTime? value)   { _filterTo = value;   ResetAndLoad(); }
+
+    private void ResetAndLoad()
+    {
+        if (_table is not null)
+            _ = _table.ReloadServerData();
+    }
+
+    private async Task OpenCreate()
+    {
+        var dialog = await DialogService.ShowAsync<Kairn.Blazor.Pages.GL.JournalEntryDialog>(
+            L["CreateTitle"],
+            new DialogParameters<Kairn.Blazor.Pages.GL.JournalEntryDialog>
+            {
+                { x => x.Entry, null },
+            },
+            new DialogOptions { MaxWidth = MaxWidth.Large, FullWidth = true });
+
+        var result = await dialog.Result;
+        if (result is { Canceled: false, Data: JournalEntryDto dto })
+        {
+            Snackbar.Add(string.Format(L["Snack_Created"].Value, dto.Reference), Severity.Success);
+            await _table.ReloadServerData();
+        }
+    }
+
+    private async Task OnRowClick(TableRowClickEventArgs<JournalEntryDto> args)
+    {
+        var entry = args.Item;
+        if (entry is null || entry.IsLocked) return;
+
+        var dialog = await DialogService.ShowAsync<Kairn.Blazor.Pages.GL.JournalEntryDialog>(
+            L["EditTitle"],
+            new DialogParameters<Kairn.Blazor.Pages.GL.JournalEntryDialog>
+            {
+                { x => x.Entry, entry },
+            },
+            new DialogOptions { MaxWidth = MaxWidth.Large, FullWidth = true });
+
+        var result = await dialog.Result;
+        if (result is { Canceled: false, Data: JournalEntryDto dto })
+        {
+            Snackbar.Add(string.Format(L["Snack_Updated"].Value, dto.Reference), Severity.Success);
+            await _table.ReloadServerData();
+        }
+    }
+}

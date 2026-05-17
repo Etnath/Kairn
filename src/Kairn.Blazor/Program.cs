@@ -102,6 +102,7 @@ try
     // ── Application services ─────────────────────────────────────────────────
     builder.Services.AddScoped<ThemeService>();
     builder.Services.AddScoped<IAccountService, AccountService>();
+    builder.Services.AddScoped<IJournalEntryService, JournalEntryService>();
 
     // ── Health checks ────────────────────────────────────────────────────────
     builder.Services.AddHealthChecks();

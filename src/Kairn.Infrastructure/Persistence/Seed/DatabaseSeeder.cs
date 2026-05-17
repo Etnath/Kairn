@@ -55,81 +55,88 @@ public static class DatabaseSeeder
         if (await context.Accounts.AnyAsync())
             return;
 
-        var tenantId = Guid.Empty; // default tenant for seed
+        var tenantId = Guid.Empty;
         var now = DateTimeOffset.UtcNow;
 
         var accounts = new List<Account>
         {
-            // ── Assets (1xxx) ──────────────────────────────────────────────
-            Acct("1000", "Cash / Petty Cash",                  AccountType.Asset,   tenantId, now, isCurrent: true),
-            Acct("1020", "Bank Account CHF",                   AccountType.Asset,   tenantId, now, isCurrent: true),
-            Acct("1021", "Bank Account EUR",                   AccountType.Asset,   tenantId, now, isCurrent: true),
-            Acct("1100", "Accounts Receivable",                AccountType.Asset,   tenantId, now, isCurrent: true),
-            Acct("1170", "VAT Input Tax Recoverable",          AccountType.Asset,   tenantId, now, isCurrent: true),
-            Acct("1200", "Prepaid Expenses",                   AccountType.Asset,   tenantId, now, isCurrent: true),
-            Acct("1500", "Inventory / Merchandise",            AccountType.Asset,   tenantId, now, isCurrent: true),
-            Acct("1510", "Raw Materials",                      AccountType.Asset,   tenantId, now, isCurrent: true),
-            // Fixed Assets (non-current)
-            Acct("1700", "Machinery & Equipment",              AccountType.Asset,   tenantId, now, isCurrent: false),
-            Acct("1710", "Accum. Depreciation – Machinery",   AccountType.Asset,   tenantId, now, isCurrent: false),
-            Acct("1740", "Vehicles",                           AccountType.Asset,   tenantId, now, isCurrent: false),
-            Acct("1741", "Accum. Depreciation – Vehicles",    AccountType.Asset,   tenantId, now, isCurrent: false),
-            Acct("1770", "IT Equipment",                       AccountType.Asset,   tenantId, now, isCurrent: false),
-            Acct("1771", "Accum. Depreciation – IT",          AccountType.Asset,   tenantId, now, isCurrent: false),
-            Acct("1800", "Land",                               AccountType.Asset,   tenantId, now, isCurrent: false),
-            Acct("1840", "Buildings",                          AccountType.Asset,   tenantId, now, isCurrent: false),
-            Acct("1841", "Accum. Depreciation – Buildings",   AccountType.Asset,   tenantId, now, isCurrent: false),
+            // ── Classe 1 – Capitaux ───────────────────────────────────────
+            Acct("101000", "Capital social",                           AccountType.Equity,    tenantId, now),
+            Acct("106100", "Réserve légale",                           AccountType.Equity,    tenantId, now),
+            Acct("106800", "Autres réserves",                          AccountType.Equity,    tenantId, now),
+            Acct("110000", "Report à nouveau (solde créditeur)",       AccountType.Equity,    tenantId, now),
+            Acct("119000", "Report à nouveau (solde débiteur)",        AccountType.Equity,    tenantId, now),
+            Acct("120000", "Résultat de l'exercice (bénéfice)",        AccountType.Equity,    tenantId, now),
+            Acct("129000", "Résultat de l'exercice (perte)",           AccountType.Equity,    tenantId, now),
+            Acct("164000", "Emprunts auprès des établissements de crédit", AccountType.Liability, tenantId, now, isCurrent: false),
+            Acct("168000", "Autres emprunts et dettes assimilées",     AccountType.Liability, tenantId, now, isCurrent: false),
 
-            // ── Liabilities (2xxx) ────────────────────────────────────────
-            Acct("2000", "Accounts Payable",                   AccountType.Liability, tenantId, now, isCurrent: true),
-            Acct("2100", "Bank Loan (Short-Term)",             AccountType.Liability, tenantId, now, isCurrent: true),
-            Acct("2200", "VAT Payable",                        AccountType.Liability, tenantId, now, isCurrent: true),
-            Acct("2270", "Social Security Payable (AVS/AI)",   AccountType.Liability, tenantId, now, isCurrent: true),
-            Acct("2300", "Accrued Liabilities",                AccountType.Liability, tenantId, now, isCurrent: true),
-            Acct("2400", "Deferred Revenue",                   AccountType.Liability, tenantId, now, isCurrent: true),
-            Acct("2500", "Bank Loan (Long-Term)",              AccountType.Liability, tenantId, now, isCurrent: false),
+            // ── Classe 2 – Immobilisations ────────────────────────────────
+            Acct("211000", "Terrains",                                 AccountType.Asset,     tenantId, now, isCurrent: false),
+            Acct("213100", "Constructions – bâtiments industriels",    AccountType.Asset,     tenantId, now, isCurrent: false),
+            Acct("215400", "Matériel industriel",                      AccountType.Asset,     tenantId, now, isCurrent: false),
+            Acct("218200", "Matériel de transport",                    AccountType.Asset,     tenantId, now, isCurrent: false),
+            Acct("218300", "Matériel de bureau et informatique",       AccountType.Asset,     tenantId, now, isCurrent: false),
+            Acct("281310", "Amortissements – constructions",           AccountType.Asset,     tenantId, now, isCurrent: false),
+            Acct("281540", "Amortissements – matériel industriel",     AccountType.Asset,     tenantId, now, isCurrent: false),
+            Acct("281820", "Amortissements – matériel de transport",   AccountType.Asset,     tenantId, now, isCurrent: false),
+            Acct("281830", "Amortissements – matériel informatique",   AccountType.Asset,     tenantId, now, isCurrent: false),
 
-            // ── Equity (28xx–29xx) ────────────────────────────────────────
-            Acct("2800", "Share Capital",                      AccountType.Equity, tenantId, now),
-            Acct("2850", "Legal Reserves",                     AccountType.Equity, tenantId, now),
-            Acct("2900", "Retained Earnings",                  AccountType.Equity, tenantId, now),
-            Acct("2950", "Current Year Earnings",              AccountType.Equity, tenantId, now),
-            Acct("2960", "Owner Drawings",                     AccountType.Equity, tenantId, now),
+            // ── Classe 3 – Stocks ─────────────────────────────────────────
+            Acct("370000", "Stocks de marchandises",                   AccountType.Asset,     tenantId, now, isCurrent: true),
+            Acct("371000", "Stocks de matières premières",             AccountType.Asset,     tenantId, now, isCurrent: true),
 
-            // ── Revenue (3xxx) ────────────────────────────────────────────
-            Acct("3000", "Sales Revenue – Products",           AccountType.Revenue, tenantId, now),
-            Acct("3200", "Sales Revenue – Services",           AccountType.Revenue, tenantId, now),
-            Acct("3400", "Other Operating Revenue",            AccountType.Revenue, tenantId, now),
-            Acct("3800", "Financial Income",                   AccountType.Revenue, tenantId, now),
-            Acct("3900", "Extraordinary Income",               AccountType.Revenue, tenantId, now),
+            // ── Classe 4 – Tiers ──────────────────────────────────────────
+            // Actifs
+            Acct("411000", "Clients",                                  AccountType.Asset,     tenantId, now, isCurrent: true),
+            Acct("416000", "Clients douteux ou litigieux",             AccountType.Asset,     tenantId, now, isCurrent: true),
+            Acct("445660", "TVA déductible sur autres biens et services", AccountType.Asset,  tenantId, now, isCurrent: true),
+            Acct("486000", "Charges constatées d'avance",              AccountType.Asset,     tenantId, now, isCurrent: true),
+            // Passifs
+            Acct("401000", "Fournisseurs",                             AccountType.Liability, tenantId, now, isCurrent: true),
+            Acct("419000", "Clients créditeurs – avances et acomptes", AccountType.Liability, tenantId, now, isCurrent: true),
+            Acct("431000", "Sécurité sociale",                         AccountType.Liability, tenantId, now, isCurrent: true),
+            Acct("437000", "Autres organismes sociaux",                AccountType.Liability, tenantId, now, isCurrent: true),
+            Acct("444000", "État – Impôts sur les bénéfices",          AccountType.Liability, tenantId, now, isCurrent: true),
+            Acct("445710", "TVA collectée",                            AccountType.Liability, tenantId, now, isCurrent: true),
+            Acct("445820", "TVA à décaisser",                          AccountType.Liability, tenantId, now, isCurrent: true),
+            Acct("487000", "Produits constatés d'avance",              AccountType.Liability, tenantId, now, isCurrent: true),
 
-            // ── Cost of Goods Sold (4xxx) ─────────────────────────────────
-            Acct("4000", "Cost of Goods Sold",                 AccountType.Expense, tenantId, now),
-            Acct("4200", "Direct Labour",                      AccountType.Expense, tenantId, now),
-            Acct("4400", "Subcontractors",                     AccountType.Expense, tenantId, now),
+            // ── Classe 5 – Comptes financiers ────────────────────────────
+            Acct("512000", "Banque – compte principal",                AccountType.Asset,     tenantId, now, isCurrent: true),
+            Acct("512100", "Banque – compte secondaire",               AccountType.Asset,     tenantId, now, isCurrent: true),
+            Acct("530000", "Caisse",                                   AccountType.Asset,     tenantId, now, isCurrent: true),
+            Acct("519000", "Concours bancaires courants",              AccountType.Liability, tenantId, now, isCurrent: true),
 
-            // ── Operating Expenses (5xxx–6xxx) ────────────────────────────
-            Acct("5000", "Wages & Salaries",                   AccountType.Expense, tenantId, now),
-            Acct("5700", "Social Insurance Contributions",     AccountType.Expense, tenantId, now),
-            Acct("5800", "Staff Training & Development",       AccountType.Expense, tenantId, now),
-            Acct("6000", "Rent",                               AccountType.Expense, tenantId, now),
-            Acct("6100", "Utilities (Electricity, Water, Gas)",AccountType.Expense, tenantId, now),
-            Acct("6200", "Office Supplies",                    AccountType.Expense, tenantId, now),
-            Acct("6300", "IT & Software",                      AccountType.Expense, tenantId, now),
-            Acct("6400", "Travel & Entertainment",             AccountType.Expense, tenantId, now),
-            Acct("6500", "Marketing & Advertising",            AccountType.Expense, tenantId, now),
-            Acct("6600", "Professional Services (Fees)",       AccountType.Expense, tenantId, now),
-            Acct("6700", "Insurance",                          AccountType.Expense, tenantId, now),
-            Acct("6800", "Depreciation & Amortisation",        AccountType.Expense, tenantId, now),
-            Acct("6900", "Other Operating Expenses",           AccountType.Expense, tenantId, now),
+            // ── Classe 6 – Charges ────────────────────────────────────────
+            Acct("601000", "Achats de matières premières",             AccountType.Expense,   tenantId, now),
+            Acct("607000", "Achats de marchandises",                   AccountType.Expense,   tenantId, now),
+            Acct("611000", "Sous-traitance générale",                  AccountType.Expense,   tenantId, now),
+            Acct("613000", "Locations",                                AccountType.Expense,   tenantId, now),
+            Acct("615000", "Entretien et réparations",                 AccountType.Expense,   tenantId, now),
+            Acct("616000", "Primes d'assurances",                      AccountType.Expense,   tenantId, now),
+            Acct("622600", "Honoraires",                               AccountType.Expense,   tenantId, now),
+            Acct("623000", "Publicité, publications, relations publiques", AccountType.Expense, tenantId, now),
+            Acct("625100", "Voyages et déplacements",                  AccountType.Expense,   tenantId, now),
+            Acct("625700", "Réceptions",                               AccountType.Expense,   tenantId, now),
+            Acct("626000", "Frais postaux et de télécommunications",   AccountType.Expense,   tenantId, now),
+            Acct("627000", "Services bancaires et assimilés",          AccountType.Expense,   tenantId, now),
+            Acct("641000", "Rémunérations du personnel",               AccountType.Expense,   tenantId, now),
+            Acct("645000", "Charges de sécurité sociale et de prévoyance", AccountType.Expense, tenantId, now),
+            Acct("651000", "Redevances pour concessions, brevets, licences (charges)", AccountType.Expense, tenantId, now),
+            Acct("661100", "Intérêts des emprunts et dettes",          AccountType.Expense,   tenantId, now),
+            Acct("681100", "Dotations aux amortissements – immobilisations corporelles", AccountType.Expense, tenantId, now),
+            Acct("695000", "Impôts sur les bénéfices",                 AccountType.Expense,   tenantId, now),
 
-            // ── Financial Expenses (7xxx) ─────────────────────────────────
-            Acct("7500", "Interest Expense",                   AccountType.Expense, tenantId, now),
-            Acct("7600", "Bank Charges",                       AccountType.Expense, tenantId, now),
-            Acct("7700", "Foreign Exchange Loss",              AccountType.Expense, tenantId, now),
-
-            // ── Tax (8xxx) ────────────────────────────────────────────────
-            Acct("8000", "Income Tax Expense",                 AccountType.Expense, tenantId, now),
+            // ── Classe 7 – Produits ───────────────────────────────────────
+            Acct("701000", "Ventes de produits finis",                 AccountType.Revenue,   tenantId, now),
+            Acct("706000", "Prestations de services",                  AccountType.Revenue,   tenantId, now),
+            Acct("707000", "Ventes de marchandises",                   AccountType.Revenue,   tenantId, now),
+            Acct("740000", "Subventions d'exploitation",               AccountType.Revenue,   tenantId, now),
+            Acct("751000", "Redevances pour concessions, brevets, licences (produits)", AccountType.Revenue, tenantId, now),
+            Acct("758000", "Produits divers de gestion courante",      AccountType.Revenue,   tenantId, now),
+            Acct("761000", "Produits de participations",               AccountType.Revenue,   tenantId, now),
+            Acct("775000", "Produits des cessions d'éléments d'actif", AccountType.Revenue,   tenantId, now),
         };
 
         context.Accounts.AddRange(accounts);
@@ -144,7 +151,7 @@ public static class DatabaseSeeder
         Code = code,
         Name = name,
         Type = type,
-        Currency = "CHF",
+        Currency = "EUR",
         IsActive = true,
         IsCurrent = isCurrent,
         CreatedAt = now,

@@ -18,6 +18,8 @@ public class AppDbContext : IdentityDbContext<ApplicationUser>
 
     public DbSet<Account> Accounts => Set<Account>();
     public DbSet<AuditLog> AuditLogs => Set<AuditLog>();
+    public DbSet<JournalEntry> JournalEntries => Set<JournalEntry>();
+    public DbSet<JournalLine> JournalLines => Set<JournalLine>();
 
     protected override void OnConfiguring(DbContextOptionsBuilder optionsBuilder)
     {
