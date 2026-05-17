@@ -40,4 +40,47 @@
   <data name="Snack_Created" xml:space="preserve"><value>Entry {0} created.</value></data>
   <data name="Snack_Updated" xml:space="preserve"><value>Entry {0} updated.</value></data>
   <data name="NoEntries" xml:space="preserve"><value>No journal entries found.</value></data>
+  <data name="ShowDeleted" xml:space="preserve"><value>Show deleted</value></data>
+  <data name="DeletedCount" xml:space="preserve"><value>{0} deleted</value></data>
+  <data name="Delete" xml:space="preserve"><value>Delete</value></data>
+  <data name="Restore" xml:space="preserve"><value>Restore</value></data>
+  <data name="Deleted" xml:space="preserve"><value>Deleted</value></data>
+  <data name="Confirm_Delete" xml:space="preserve"><value>Delete entry {0}?</value></data>
+  <data name="Confirm_Delete_Body" xml:space="preserve"><value>The entry will be soft-deleted and can be restored later.</value></data>
+  <data name="Snack_Deleted" xml:space="preserve"><value>Entry {0} deleted.</value></data>
+  <data name="Snack_Restored" xml:space="preserve"><value>Entry {0} restored.</value></data>
+  <data name="Reconcile" xml:space="preserve"><value>Reconcile</value></data>
+  <data name="Tab_Entries" xml:space="preserve"><value>Journal Entries</value></data>
+  <data name="Tab_Recurring" xml:space="preserve"><value>Recurring</value></data>
+  <data name="IsRecurring" xml:space="preserve"><value>Recurring</value></data>
+  <data name="Rec_NewTemplate" xml:space="preserve"><value>New Template</value></data>
+  <data name="Rec_Col_Name" xml:space="preserve"><value>Name</value></data>
+  <data name="Rec_Col_Frequency" xml:space="preserve"><value>Frequency</value></data>
+  <data name="Rec_Col_StartDate" xml:space="preserve"><value>Start date</value></data>
+  <data name="Rec_Col_EndDate" xml:space="preserve"><value>End date</value></data>
+  <data name="Rec_Col_LastPosted" xml:space="preserve"><value>Last posted</value></data>
+  <data name="Rec_Col_NextDue" xml:space="preserve"><value>Next due</value></data>
+  <data name="Rec_Col_Status" xml:space="preserve"><value>Status</value></data>
+  <data name="Rec_Active" xml:space="preserve"><value>Active</value></data>
+  <data name="Rec_Inactive" xml:space="preserve"><value>Inactive</value></data>
+  <data name="Rec_PostNow" xml:space="preserve"><value>Post now</value></data>
+  <data name="Rec_Deactivate" xml:space="preserve"><value>Deactivate</value></data>
+  <data name="Rec_Activate" xml:space="preserve"><value>Activate</value></data>
+  <data name="Rec_NoTemplates" xml:space="preserve"><value>No recurring templates defined.</value></data>
+  <data name="Rec_Snack_Posted" xml:space="preserve"><value>Posted entry {0} from template '{1}'.</value></data>
+  <data name="Rec_Snack_Deactivated" xml:space="preserve"><value>Template '{0}' deactivated.</value></data>
+  <data name="Rec_Snack_Activated" xml:space="preserve"><value>Template '{0}' activated.</value></data>
+  <data name="Rec_Snack_Created" xml:space="preserve"><value>Recurring template '{0}' created.</value></data>
+  <data name="Rec_Snack_Updated" xml:space="preserve"><value>Recurring template '{0}' updated.</value></data>
+  <data name="Rec_Confirm_Deactivate" xml:space="preserve"><value>Deactivate template '{0}'?</value></data>
+  <data name="Rec_Confirm_Deactivate_Body" xml:space="preserve"><value>No further entries will be posted until the template is re-activated.</value></data>
+  <data name="Rec_RecentErrors" xml:space="preserve"><value>Recent posting errors</value></data>
+  <data name="Lbl_Rate" xml:space="preserve"><value>Rate</value></data>
+  <data name="Warn_CachedRate" xml:space="preserve"><value>Using cached exchange rate from {0}.</value></data>
+  <data name="Lbl_BaseCcyEquiv" xml:space="preserve"><value>Base equiv.</value></data>
+  <data name="Col_RunningBalance" xml:space="preserve"><value>Balance</value></data>
+  <data name="Filter_Accounts" xml:space="preserve"><value>Accounts</value></data>
+  <data name="Filter_DateRange" xml:space="preserve"><value>Date range</value></data>
+  <data name="Filter_CreatedBy" xml:space="preserve"><value>Created by</value></data>
+  <data name="ExportCsv" xml:space="preserve"><value>Export CSV</value></data>
 </root>

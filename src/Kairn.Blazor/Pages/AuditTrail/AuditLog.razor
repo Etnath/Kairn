@@ -1,0 +1,136 @@
+@page "/settings/audit-log"
+@attribute [Authorize(Roles = "Admin")]
+@rendermode InteractiveServer
+@inject IAuditLogService AuditLogService
+@inject IStringLocalizer<AuditLog> L
+
+<PageTitle>@L["Title"] – Kairn</PageTitle>
+
+<MudText Typo="Typo.h5" Class="mb-4">@L["Title"]</MudText>
+
+@* Filters *@
+<MudPaper Class="pa-3 mb-4" Elevation="0" Outlined="true">
+    <MudGrid Spacing="2">
+        <MudItem xs="12" sm="3">
+            <MudSelect T="string" Value="_entityType" ValueChanged="OnEntityTypeChanged"
+                       Label="@L["Filter_EntityType"]" Clearable="true">
+                <MudSelectItem T="string" Value="@("")">@L["Filter_All"]</MudSelectItem>
+                @foreach (var et in _entityTypes)
+                {
+                    <MudSelectItem T="string" Value="@et">@et</MudSelectItem>
+                }
+            </MudSelect>
+        </MudItem>
+        <MudItem xs="6" sm="2">
+            <MudDatePicker Date="_filterFrom" Label="@L["Filter_From"]"
+                           DateFormat="dd/MM/yyyy" Editable="true"
+                           DateChanged="@OnFromChanged" />
+        </MudItem>
+        <MudItem xs="6" sm="2">
+            <MudDatePicker Date="_filterTo" Label="@L["Filter_To"]"
+                           DateFormat="dd/MM/yyyy" Editable="true"
+                           DateChanged="@OnToChanged" />
+        </MudItem>
+        <MudItem xs="12" sm="3">
+            <MudTextField Value="@_changedBy" Label="@L["Filter_ChangedBy"]"
+                          Immediate="true" DebounceInterval="300"
+                          ValueChanged="@((string v) => OnChangedByChanged(v))" />
+        </MudItem>
+    </MudGrid>
+</MudPaper>
+
+@* Table *@
+<MudTable ServerData="LoadData" @ref="_table" Dense="true" Hover="true" T="AuditLogDto">
+    <HeaderContent>
+        <MudTh>@L["Col_Timestamp"]</MudTh>
+        <MudTh>@L["Col_EntityType"]</MudTh>
+        <MudTh>@L["Col_RecordId"]</MudTh>
+        <MudTh>@L["Col_Action"]</MudTh>
+        <MudTh>@L["Col_ChangedBy"]</MudTh>
+        <MudTh>@L["Col_OldValues"]</MudTh>
+        <MudTh>@L["Col_NewValues"]</MudTh>
+    </HeaderContent>
+    <RowTemplate>
+        <MudTd DataLabel="@L["Col_Timestamp"]">
+            @context.ChangedAt.LocalDateTime.ToString("dd/MM/yyyy HH:mm:ss")
+        </MudTd>
+        <MudTd DataLabel="@L["Col_EntityType"]">@context.EntityType</MudTd>
+        <MudTd DataLabel="@L["Col_RecordId"]">
+            <MudText Typo="Typo.caption" Style="font-family:monospace">
+                @context.RecordId[..Math.Min(8, context.RecordId.Length)]…
+            </MudText>
+        </MudTd>
+        <MudTd DataLabel="@L["Col_Action"]">
+            <MudChip T="string" Size="Size.Small" Color="@ActionColor(context.Action)">
+                @ActionLabel(context.Action)
+            </MudChip>
+        </MudTd>
+        <MudTd DataLabel="@L["Col_ChangedBy"]">@context.ChangedBy</MudTd>
+        <MudTd DataLabel="@L["Col_OldValues"]">
+            <ValuesCell Json="@context.OldValues" EmptyLabel="@L["Values_Empty"]" />
+        </MudTd>
+        <MudTd DataLabel="@L["Col_NewValues"]">
+            <ValuesCell Json="@context.NewValues" EmptyLabel="@L["Values_Empty"]" />
+        </MudTd>
+    </RowTemplate>
+    <NoRecordsContent>
+        <MudText Color="Color.Secondary">@L["NoEntries"]</MudText>
+    </NoRecordsContent>
+    <PagerContent>
+        <MudTablePager PageSizeOptions="new[] { 50, 100, 200 }" />
+    </PagerContent>
+</MudTable>
+
+@code {
+    private MudTable<AuditLogDto> _table = null!;
+    private IReadOnlyList<string> _entityTypes = [];
+    private string _entityType = "";
+    private DateTime? _filterFrom;
+    private DateTime? _filterTo;
+    private string _changedBy = "";
+
+    protected override async Task OnInitializedAsync() =>
+        _entityTypes = await AuditLogService.GetEntityTypesAsync();
+
+    private async Task<TableData<AuditLogDto>> LoadData(TableState state, CancellationToken ct)
+    {
+        var query = new AuditLogQuery(
+            EntityType: string.IsNullOrEmpty(_entityType) ? null : _entityType,
+            From: _filterFrom.HasValue ? DateOnly.FromDateTime(_filterFrom.Value) : null,
+            To:   _filterTo.HasValue   ? DateOnly.FromDateTime(_filterTo.Value)   : null,
+            ChangedBy: string.IsNullOrWhiteSpace(_changedBy) ? null : _changedBy,
+            Page: state.Page + 1,
+            PageSize: state.PageSize);
+
+        var result = await AuditLogService.GetPagedAsync(query, ct);
+        return new TableData<AuditLogDto> { Items = result.Items, TotalItems = result.TotalCount };
+    }
+
+    private void OnEntityTypeChanged(string value) { _entityType = value; Reload(); }
+    private void OnFromChanged(DateTime? value) { _filterFrom = value; Reload(); }
+    private void OnToChanged(DateTime? value)   { _filterTo = value;   Reload(); }
+    private void OnChangedByChanged(string value) { _changedBy = value; Reload(); }
+
+    private void Reload()
+    {
+        if (_table is not null) _ = _table.ReloadServerData();
+    }
+
+    private Color ActionColor(string action) => action switch
+    {
+        "Created"  => Color.Success,
+        "Updated"  => Color.Info,
+        "Deleted"  => Color.Error,
+        "Restored" => Color.Warning,
+        _          => Color.Default,
+    };
+
+    private string ActionLabel(string action) => action switch
+    {
+        "Created"  => L["Action_Created"],
+        "Updated"  => L["Action_Updated"],
+        "Deleted"  => L["Action_Deleted"],
+        "Restored" => L["Action_Restored"],
+        _          => action,
+    };
+}

@@ -1,0 +1,156 @@
+@inject IStringLocalizer<Reconciliation> L
+
+<MudDialog Style="min-width:700px">
+    <DialogContent>
+        <MudStack Spacing="3">
+
+            <MudGrid Spacing="2">
+                <MudItem xs="12" sm="4">
+                    <MudSelect T="string" @bind-Value="_delimiter" Label="@L["Csv_Delimiter"]">
+                        <MudSelectItem Value="@(",")">Comma (,)</MudSelectItem>
+                        <MudSelectItem Value="@(";")">Semicolon (;)</MudSelectItem>
+                        <MudSelectItem Value="@("\t")">Tab</MudSelectItem>
+                        <MudSelectItem Value="@("|")">Pipe (|)</MudSelectItem>
+                    </MudSelect>
+                </MudItem>
+                <MudItem xs="12" sm="4">
+                    <MudSwitch T="bool" @bind-Value="_hasHeader" Label="@L["Csv_HasHeader"]"
+                               Color="Color.Primary" />
+                </MudItem>
+            </MudGrid>
+
+            @* Preview *@
+            @if (_headers.Length > 0)
+            {
+                <MudText Typo="Typo.subtitle2">@L["Csv_Preview"]</MudText>
+                <div style="overflow-x:auto">
+                    <MudTable Items="_previewRows" Dense="true" Elevation="0"
+                              Style="border:1px solid var(--mud-palette-lines-default)">
+                        <HeaderContent>
+                            @foreach (var h in _headers)
+                            {
+                                <MudTh>@h</MudTh>
+                            }
+                        </HeaderContent>
+                        <RowTemplate>
+                            @foreach (var cell in context)
+                            {
+                                <MudTd>@cell</MudTd>
+                            }
+                        </RowTemplate>
+                    </MudTable>
+                </div>
+            }
+
+            @* Column mapping *@
+            <MudText Typo="Typo.subtitle2">Column mapping</MudText>
+            <MudGrid Spacing="2">
+                <MudItem xs="12" sm="4">
+                    <MudSelect T="int" @bind-Value="_dateCol" Label="@L["Csv_DateCol"]">
+                        @ColumnItems()
+                    </MudSelect>
+                </MudItem>
+                <MudItem xs="12" sm="4">
+                    <MudTextField @bind-Value="_dateFormat" Label="@L["Csv_DateFormat"]"
+                                  Placeholder="dd/MM/yyyy" />
+                </MudItem>
+                <MudItem xs="12" sm="4">
+                    <MudSelect T="int" @bind-Value="_descCol" Label="@L["Csv_DescCol"]">
+                        @ColumnItems()
+                    </MudSelect>
+                </MudItem>
+                <MudItem xs="12">
+                    <MudSwitch T="bool" @bind-Value="_separateDebitCredit"
+                               Label="@L["Csv_SeparateDebitCredit"]" Color="Color.Primary" />
+                </MudItem>
+                @if (_separateDebitCredit)
+                {
+                    <MudItem xs="12" sm="4">
+                        <MudSelect T="int" @bind-Value="_debitCol" Label="@L["Csv_DebitCol"]">
+                            @ColumnItems()
+                        </MudSelect>
+                    </MudItem>
+                    <MudItem xs="12" sm="4">
+                        <MudSelect T="int" @bind-Value="_creditCol" Label="@L["Csv_CreditCol"]">
+                            @ColumnItems()
+                        </MudSelect>
+                    </MudItem>
+                }
+                else
+                {
+                    <MudItem xs="12" sm="4">
+                        <MudSelect T="int" @bind-Value="_amountCol" Label="@L["Csv_AmountCol"]">
+                            @ColumnItems()
+                        </MudSelect>
+                    </MudItem>
+                }
+            </MudGrid>
+
+        </MudStack>
+    </DialogContent>
+    <DialogActions>
+        <MudButton OnClick="Cancel">@L["Cancel"]</MudButton>
+        <MudButton Color="Color.Primary" Variant="Variant.Filled" OnClick="Confirm">
+            @L["Csv_Import"]
+        </MudButton>
+    </DialogActions>
+</MudDialog>
+
+@code {
+    [CascadingParameter] private IMudDialogInstance MudDialog { get; set; } = null!;
+    [Parameter] public string[] InitialHeaders { get; set; } = [];
+    [Parameter] public string[][] InitialRows { get; set; } = [];
+
+    private string _delimiter = ",";
+    private bool _hasHeader = true;
+    private bool _separateDebitCredit;
+    private string _dateFormat = "dd/MM/yyyy";
+    private int _dateCol;
+    private int _descCol = 1;
+    private int _amountCol = 2;
+    private int _debitCol = 2;
+    private int _creditCol = 3;
+    private string[] _headers = [];
+    private string[][] _previewRows = [];
+
+    protected override void OnParametersSet()
+    {
+        _headers = InitialHeaders;
+        _previewRows = InitialRows;
+    }
+
+    private RenderFragment ColumnItems() => builder =>
+    {
+        var cols = _headers.Length > 0
+            ? _headers.Select((h, i) => (Label: $"{i}: {h}", Index: i)).ToList()
+            : Enumerable.Range(0, Math.Max(5, _amountCol + 1))
+                        .Select(i => (Label: $"Column {i}", Index: i)).ToList();
+
+        var seq = 0;
+        foreach (var (label, index) in cols)
+        {
+            builder.OpenComponent<MudSelectItem<int>>(seq++);
+            builder.AddAttribute(seq++, "Value", index);
+            builder.AddAttribute(seq++, "ChildContent",
+                (RenderFragment)(b => { b.AddContent(0, label); }));
+            builder.CloseComponent();
+        }
+    };
+
+    private void Cancel() => MudDialog.Cancel();
+
+    private void Confirm()
+    {
+        var mapping = new CsvColumnMapping(
+            DateColumnIndex: _dateCol,
+            DescriptionColumnIndex: _descCol,
+            AmountColumnIndex: _separateDebitCredit ? 0 : _amountCol,
+            DebitColumnIndex: _separateDebitCredit ? _debitCol : null,
+            CreditColumnIndex: _separateDebitCredit ? _creditCol : null,
+            Delimiter: _delimiter,
+            HasHeaderRow: _hasHeader,
+            DateFormat: _dateFormat);
+
+        MudDialog.Close(DialogResult.Ok(mapping));
+    }
+}

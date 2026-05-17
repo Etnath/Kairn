@@ -1,0 +1,63 @@
+<?xml version="1.0" encoding="utf-8"?>
+<root>
+  <resheader name="resmimetype"><value>text/microsoft-resx</value></resheader>
+  <resheader name="version"><value>2.0</value></resheader>
+  <data name="Title" xml:space="preserve"><value>Bank Reconciliation</value></data>
+  <data name="Setup_Account" xml:space="preserve"><value>Bank account</value></data>
+  <data name="Setup_From" xml:space="preserve"><value>Statement start</value></data>
+  <data name="Setup_To" xml:space="preserve"><value>Statement end</value></data>
+  <data name="Setup_Upload" xml:space="preserve"><value>Upload statement (OFX, QFX, CSV)</value></data>
+  <data name="Setup_Start" xml:space="preserve"><value>Start reconciliation</value></data>
+  <data name="Setup_History" xml:space="preserve"><value>Previous reconciliations</value></data>
+  <data name="Panel_Bank" xml:space="preserve"><value>Bank statement</value></data>
+  <data name="Panel_Ledger" xml:space="preserve"><value>Unreconciled ledger lines</value></data>
+  <data name="Col_Date" xml:space="preserve"><value>Date</value></data>
+  <data name="Col_Description" xml:space="preserve"><value>Description</value></data>
+  <data name="Col_Amount" xml:space="preserve"><value>Amount</value></data>
+  <data name="Col_Reference" xml:space="preserve"><value>Reference</value></data>
+  <data name="Col_Debit" xml:space="preserve"><value>Debit</value></data>
+  <data name="Col_Credit" xml:space="preserve"><value>Credit</value></data>
+  <data name="Col_Status" xml:space="preserve"><value>Status</value></data>
+  <data name="Col_Account" xml:space="preserve"><value>Account</value></data>
+  <data name="Col_Matched" xml:space="preserve"><value>Matched</value></data>
+  <data name="Status_InProgress" xml:space="preserve"><value>In progress</value></data>
+  <data name="Status_Completed" xml:space="preserve"><value>Completed</value></data>
+  <data name="Btn_Match" xml:space="preserve"><value>Match</value></data>
+  <data name="Btn_Unmatch" xml:space="preserve"><value>Unmatch</value></data>
+  <data name="Btn_CreateEntry" xml:space="preserve"><value>Create entry</value></data>
+  <data name="Btn_Complete" xml:space="preserve"><value>Complete reconciliation</value></data>
+  <data name="Btn_Back" xml:space="preserve"><value>Back</value></data>
+  <data name="Lbl_UnmatchedBalance" xml:space="preserve"><value>Unmatched balance</value></data>
+  <data name="Lbl_MatchedCount" xml:space="preserve"><value>Matched</value></data>
+  <data name="Lbl_Unmatched" xml:space="preserve"><value>Unmatched</value></data>
+  <data name="Lbl_BankTotal" xml:space="preserve"><value>Bank total</value></data>
+  <data name="Complete_Confirm" xml:space="preserve"><value>Complete reconciliation?</value></data>
+  <data name="Complete_Body" xml:space="preserve"><value>All matched journal lines will be marked as reconciled. This cannot be undone.</value></data>
+  <data name="Complete_Yes" xml:space="preserve"><value>Complete</value></data>
+  <data name="Snack_Matched" xml:space="preserve"><value>Match created.</value></data>
+  <data name="Snack_Unmatched" xml:space="preserve"><value>Match removed.</value></data>
+  <data name="Snack_Completed" xml:space="preserve"><value>Reconciliation completed.</value></data>
+  <data name="Err_SelectBankLine" xml:space="preserve"><value>Select a bank statement line first.</value></data>
+  <data name="Err_SelectLedgerLines" xml:space="preserve"><value>Select at least one ledger line.</value></data>
+  <data name="Err_ParseFailed" xml:space="preserve"><value>Could not parse the file. Check the format and try again.</value></data>
+  <data name="Err_NoLines" xml:space="preserve"><value>No transactions found in the file.</value></data>
+  <data name="Csv_Title" xml:space="preserve"><value>Map CSV columns</value></data>
+  <data name="Csv_Delimiter" xml:space="preserve"><value>Delimiter</value></data>
+  <data name="Csv_HasHeader" xml:space="preserve"><value>First row is header</value></data>
+  <data name="Csv_DateCol" xml:space="preserve"><value>Date column</value></data>
+  <data name="Csv_DateFormat" xml:space="preserve"><value>Date format</value></data>
+  <data name="Csv_DescCol" xml:space="preserve"><value>Description column</value></data>
+  <data name="Csv_AmountCol" xml:space="preserve"><value>Amount column</value></data>
+  <data name="Csv_DebitCol" xml:space="preserve"><value>Debit column</value></data>
+  <data name="Csv_CreditCol" xml:space="preserve"><value>Credit column</value></data>
+  <data name="Csv_SeparateDebitCredit" xml:space="preserve"><value>Separate debit/credit columns</value></data>
+  <data name="Csv_Preview" xml:space="preserve"><value>File preview</value></data>
+  <data name="Csv_Import" xml:space="preserve"><value>Import</value></data>
+  <data name="Cancel" xml:space="preserve"><value>Cancel</value></data>
+  <data name="History_Account" xml:space="preserve"><value>Account</value></data>
+  <data name="History_Period" xml:space="preserve"><value>Period</value></data>
+  <data name="History_Status" xml:space="preserve"><value>Status</value></data>
+  <data name="History_Pairs" xml:space="preserve"><value>Matched pairs</value></data>
+  <data name="History_CompletedAt" xml:space="preserve"><value>Completed</value></data>
+  <data name="History_Open" xml:space="preserve"><value>Open</value></data>
+</root>

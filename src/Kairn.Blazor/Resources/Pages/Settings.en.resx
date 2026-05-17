@@ -7,4 +7,6 @@
   <data name="COA.Title" xml:space="preserve"><value>Chart of Accounts</value></data>
   <data name="COA.Description" xml:space="preserve"><value>Manage your accounts hierarchy</value></data>
   <data name="Open" xml:space="preserve"><value>Open</value></data>
+  <data name="AuditLog.Title" xml:space="preserve"><value>Audit Log</value></data>
+  <data name="AuditLog.Description" xml:space="preserve"><value>Immutable record of all data changes</value></data>
 </root>

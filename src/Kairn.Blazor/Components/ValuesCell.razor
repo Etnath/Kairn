@@ -1,0 +1,27 @@
+@if (Json is null)
+{
+    <MudText Typo="Typo.caption" Color="Color.Secondary">@EmptyLabel</MudText>
+}
+else if (_expanded)
+{
+    <MudStack Spacing="0">
+        <pre style="font-size:0.7rem;white-space:pre-wrap;word-break:break-all;max-width:300px">@Json</pre>
+        <MudLink Typo="Typo.caption" OnClick="@(() => _expanded = false)">▲</MudLink>
+    </MudStack>
+}
+else
+{
+    <MudStack Row="true" AlignItems="AlignItems.Center" Spacing="1">
+        <MudText Typo="Typo.caption" Style="font-family:monospace;max-width:200px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap">
+            @Json
+        </MudText>
+        <MudLink Typo="Typo.caption" OnClick="@(() => _expanded = true)">▼</MudLink>
+    </MudStack>
+}
+
+@code {
+    [Parameter] public string? Json { get; set; }
+    [Parameter] public string EmptyLabel { get; set; } = "—";
+
+    private bool _expanded;
+}

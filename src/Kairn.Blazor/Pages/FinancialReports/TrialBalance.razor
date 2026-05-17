@@ -1,0 +1,184 @@
+@page "/reports/trial-balance"
+@attribute [Authorize]
+@using Kairn.Domain.Entities
+@inject IStringLocalizer<TrialBalance> L
+@inject ITrialBalanceService TrialBalanceSvc
+@inject ITrialBalanceExporter Exporter
+@inject IJSRuntime JS
+@inject ICurrentUserContext CurrentUser
+
+<PageTitle>@L["Title"] – Kairn</PageTitle>
+
+<MudStack Row="true" AlignItems="AlignItems.Center" Class="mb-6" Spacing="2">
+    <MudIconButton Icon="@Icons.Material.Filled.ArrowBack" Href="/reports" />
+    <MudText Typo="Typo.h5">@L["Title"]</MudText>
+</MudStack>
+
+<MudPaper Class="pa-4 mb-4" Elevation="1">
+    <MudStack Row="true" AlignItems="AlignItems.End" Spacing="3" Wrap="Wrap.Wrap">
+        <MudDatePicker Label="@L["AsOf"]"
+                       Date="_asOf"
+                       DateChanged="OnAsOfChanged"
+                       DateFormat="yyyy-MM-dd"
+                       MaxDate="DateTime.Today"
+                       Style="max-width:200px" />
+        <MudSwitch @bind-Value="_hideZero" Label="@L["HideZero"]" Color="Color.Primary" />
+        <MudSpacer />
+        <MudButton Variant="Variant.Filled" Color="Color.Primary"
+                   StartIcon="@Icons.Material.Filled.Refresh"
+                   OnClick="GenerateAsync" Disabled="_loading">
+            @L["Generate"]
+        </MudButton>
+        @if (_report is not null)
+        {
+            <MudButton Variant="Variant.Outlined" Color="Color.Primary"
+                       StartIcon="@Icons.Material.Filled.PictureAsPdf"
+                       OnClick="ExportPdfAsync" Disabled="_loading">
+                @L["ExportPdf"]
+            </MudButton>
+            <MudButton Variant="Variant.Outlined" Color="Color.Primary"
+                       StartIcon="@Icons.Material.Filled.TableChart"
+                       OnClick="ExportCsvAsync" Disabled="_loading">
+                @L["ExportCsv"]
+            </MudButton>
+        }
+    </MudStack>
+</MudPaper>
+
+@if (_loading)
+{
+    <MudProgressLinear Indeterminate="true" Color="Color.Primary" Class="mb-4" />
+}
+
+@if (_report is not null)
+{
+    @if (!_report.IsBalanced)
+    {
+        <MudAlert Severity="Severity.Error" Class="mb-4">@L["Warn_Unbalanced"]</MudAlert>
+    }
+    else
+    {
+        <MudAlert Severity="Severity.Success" Class="mb-4">@L["Info_Balanced"]</MudAlert>
+    }
+
+    @if (!DisplayedRows.Any())
+    {
+        <MudAlert Severity="Severity.Info">@L["NoData"]</MudAlert>
+    }
+    else
+    {
+        @foreach (var group in GroupedRows)
+        {
+            <MudText Typo="Typo.subtitle1" Class="mt-4 mb-1" Style="font-weight:600">
+                @GroupLabel(group.Key)
+            </MudText>
+            <MudTable Items="group" Dense="true" Hover="true" Striped="true"
+                      Elevation="1" Class="mb-2">
+                <HeaderContent>
+                    <MudTh>@L["Col_Code"]</MudTh>
+                    <MudTh>@L["Col_Name"]</MudTh>
+                    <MudTh Style="text-align:right">@L["Col_Debit"]</MudTh>
+                    <MudTh Style="text-align:right">@L["Col_Credit"]</MudTh>
+                </HeaderContent>
+                <RowTemplate>
+                    <MudTd>@context.AccountCode</MudTd>
+                    <MudTd>@context.AccountName</MudTd>
+                    <MudTd Style="text-align:right;font-variant-numeric:tabular-nums">
+                        @(context.DebitBalance > 0 ? context.DebitBalance.ToString("N2") : "")
+                    </MudTd>
+                    <MudTd Style="text-align:right;font-variant-numeric:tabular-nums">
+                        @(context.CreditBalance > 0 ? context.CreditBalance.ToString("N2") : "")
+                    </MudTd>
+                </RowTemplate>
+            </MudTable>
+        }
+
+        <MudDivider Class="mt-4 mb-2" />
+        <MudStack Row="true" Spacing="0">
+            <MudText Style="flex:1;font-weight:700">@L["Footer_Total"]</MudText>
+            <MudText Style="width:150px;text-align:right;font-weight:700;font-variant-numeric:tabular-nums">
+                @_report.TotalDebit.ToString("N2")
+            </MudText>
+            <MudText Style="width:150px;text-align:right;font-weight:700;font-variant-numeric:tabular-nums">
+                @_report.TotalCredit.ToString("N2")
+            </MudText>
+        </MudStack>
+    }
+}
+
+@code {
+    private DateTime? _asOf = DateTime.Today;
+    private bool _hideZero;
+    private bool _loading;
+    private TrialBalanceReport? _report;
+
+    private IReadOnlyList<TrialBalanceRow> DisplayedRows =>
+        _report is null
+            ? []
+            : _hideZero
+                ? _report.Rows.Where(r => r.DebitBalance > 0 || r.CreditBalance > 0).ToList()
+                : _report.Rows;
+
+    private IEnumerable<IGrouping<AccountType, TrialBalanceRow>> GroupedRows =>
+        DisplayedRows
+            .GroupBy(r => r.AccountType)
+            .OrderBy(g => g.Key);
+
+    private void OnAsOfChanged(DateTime? date) => _asOf = date;
+
+    private async Task GenerateAsync()
+    {
+        if (_asOf is null) return;
+        _loading = true;
+        try
+        {
+            var asOf = DateOnly.FromDateTime(_asOf.Value);
+            _report = await TrialBalanceSvc.GenerateAsync(CurrentUser.TenantId, asOf, CancellationToken.None);
+        }
+        finally
+        {
+            _loading = false;
+        }
+    }
+
+    private async Task ExportPdfAsync()
+    {
+        if (_report is null) return;
+        _loading = true;
+        try
+        {
+            var bytes = Exporter.ToPdf(_report);
+            await JS.InvokeVoidAsync("kairn.downloadFile",
+                $"trial-balance-{_report.AsOf:yyyy-MM-dd}.pdf",
+                "application/pdf",
+                bytes);
+        }
+        finally { _loading = false; }
+    }
+
+    private async Task ExportCsvAsync()
+    {
+        if (_report is null) return;
+        _loading = true;
+        try
+        {
+            var csv = Exporter.ToCsv(_report);
+            var bytes = System.Text.Encoding.UTF8.GetBytes(csv);
+            await JS.InvokeVoidAsync("kairn.downloadFile",
+                $"trial-balance-{_report.AsOf:yyyy-MM-dd}.csv",
+                "text/csv",
+                bytes);
+        }
+        finally { _loading = false; }
+    }
+
+    private string GroupLabel(AccountType type) => type switch
+    {
+        AccountType.Asset     => L["Group_Asset"],
+        AccountType.Liability => L["Group_Liability"],
+        AccountType.Equity    => L["Group_Equity"],
+        AccountType.Revenue   => L["Group_Revenue"],
+        AccountType.Expense   => L["Group_Expense"],
+        _                     => type.ToString()
+    };
+}

@@ -6,7 +6,8 @@ public record JournalLineInput(
     decimal Credit,
     string Currency,
     decimal ExchangeRate,
-    string? Memo);
+    string? Memo,
+    decimal? SystemRate = null);
 
 public record CreateJournalEntryCommand(
     Guid TenantId,
@@ -16,7 +17,9 @@ public record CreateJournalEntryCommand(
     string CreatedByName,
     IReadOnlyList<JournalLineInput> Lines,
     string? AttachmentPath,
-    string? AttachmentFileName);
+    string? AttachmentFileName,
+    bool IsRecurring = false,
+    Guid? RecurringEntryId = null);
 
 public record UpdateJournalEntryCommand(
     Guid Id,
@@ -33,4 +36,5 @@ public record JournalEntryQuery(
     DateOnly? To = null,
     string? Search = null,
     int Page = 1,
-    int PageSize = 25);
+    int PageSize = 25,
+    bool ShowDeleted = false);

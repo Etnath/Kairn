@@ -1,0 +1,25 @@
+<?xml version="1.0" encoding="utf-8"?>
+<root>
+  <resheader name="resmimetype"><value>text/microsoft-resx</value></resheader>
+  <resheader name="version"><value>2.0</value></resheader>
+  <data name="Title" xml:space="preserve"><value>Audit Log</value></data>
+  <data name="Filter_EntityType" xml:space="preserve"><value>Entity type</value></data>
+  <data name="Filter_From" xml:space="preserve"><value>From</value></data>
+  <data name="Filter_To" xml:space="preserve"><value>To</value></data>
+  <data name="Filter_ChangedBy" xml:space="preserve"><value>Changed by</value></data>
+  <data name="Filter_All" xml:space="preserve"><value>All</value></data>
+  <data name="Col_Timestamp" xml:space="preserve"><value>Timestamp</value></data>
+  <data name="Col_EntityType" xml:space="preserve"><value>Entity</value></data>
+  <data name="Col_RecordId" xml:space="preserve"><value>Record ID</value></data>
+  <data name="Col_Action" xml:space="preserve"><value>Action</value></data>
+  <data name="Col_ChangedBy" xml:space="preserve"><value>Changed by</value></data>
+  <data name="Col_OldValues" xml:space="preserve"><value>Before</value></data>
+  <data name="Col_NewValues" xml:space="preserve"><value>After</value></data>
+  <data name="NoEntries" xml:space="preserve"><value>No audit log entries found.</value></data>
+  <data name="Action_Created" xml:space="preserve"><value>Created</value></data>
+  <data name="Action_Updated" xml:space="preserve"><value>Updated</value></data>
+  <data name="Action_Deleted" xml:space="preserve"><value>Deleted</value></data>
+  <data name="Action_Restored" xml:space="preserve"><value>Restored</value></data>
+  <data name="Values_Empty" xml:space="preserve"><value>—</value></data>
+  <data name="Expand" xml:space="preserve"><value>Show values</value></data>
+</root>

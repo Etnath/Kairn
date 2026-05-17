@@ -11,6 +11,8 @@ public class JournalEntry : BaseEntity
     public string CreatedByName { get; set; } = string.Empty;
     public bool IsLocked { get; set; }
     public bool IsDeleted { get; set; }
+    public bool IsRecurring { get; set; }
+    public Guid? RecurringEntryId { get; set; }
     public string? AttachmentPath { get; set; }
     public string? AttachmentFileName { get; set; }
 

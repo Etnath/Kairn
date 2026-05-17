@@ -43,8 +43,9 @@ public class AuditLogInterceptor : SaveChangesInterceptor
 
                 case EntityState.Modified:
                     entry.Entity.UpdatedAt = now;
+                    var action = DetermineModifiedAction(entry);
                     WriteAuditLog(context, entry.Entity.GetType().Name,
-                        entry.Entity.Id.ToString(), "Updated", userId,
+                        entry.Entity.Id.ToString(), action, userId,
                         Serialize(entry.OriginalValues.ToObject()),
                         Serialize(entry.CurrentValues.ToObject()));
                     break;
@@ -56,6 +57,19 @@ public class AuditLogInterceptor : SaveChangesInterceptor
                     break;
             }
         }
+    }
+
+    private static string DetermineModifiedAction(Microsoft.EntityFrameworkCore.ChangeTracking.EntityEntry<BaseEntity> entry)
+    {
+        var prop = entry.Properties.FirstOrDefault(p => p.Metadata.Name == "IsDeleted");
+        if (prop is not null)
+        {
+            var wasDeleted = prop.OriginalValue is true;
+            var isDeleted  = prop.CurrentValue  is true;
+            if (!wasDeleted && isDeleted) return "Deleted";
+            if (wasDeleted && !isDeleted) return "Restored";
+        }
+        return "Updated";
     }
 
     private static void WriteAuditLog(DbContext context, string entityType, string recordId,

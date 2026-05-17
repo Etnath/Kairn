@@ -1,0 +1,63 @@
+<?xml version="1.0" encoding="utf-8"?>
+<root>
+  <resheader name="resmimetype"><value>text/microsoft-resx</value></resheader>
+  <resheader name="version"><value>2.0</value></resheader>
+  <data name="Title" xml:space="preserve"><value>Rapprochement bancaire</value></data>
+  <data name="Setup_Account" xml:space="preserve"><value>Compte bancaire</value></data>
+  <data name="Setup_From" xml:space="preserve"><value>Début de relevé</value></data>
+  <data name="Setup_To" xml:space="preserve"><value>Fin de relevé</value></data>
+  <data name="Setup_Upload" xml:space="preserve"><value>Importer un relevé (OFX, QFX, CSV)</value></data>
+  <data name="Setup_Start" xml:space="preserve"><value>Démarrer le rapprochement</value></data>
+  <data name="Setup_History" xml:space="preserve"><value>Rapprochements précédents</value></data>
+  <data name="Panel_Bank" xml:space="preserve"><value>Relevé bancaire</value></data>
+  <data name="Panel_Ledger" xml:space="preserve"><value>Lignes non rapprochées</value></data>
+  <data name="Col_Date" xml:space="preserve"><value>Date</value></data>
+  <data name="Col_Description" xml:space="preserve"><value>Description</value></data>
+  <data name="Col_Amount" xml:space="preserve"><value>Montant</value></data>
+  <data name="Col_Reference" xml:space="preserve"><value>Référence</value></data>
+  <data name="Col_Debit" xml:space="preserve"><value>Débit</value></data>
+  <data name="Col_Credit" xml:space="preserve"><value>Crédit</value></data>
+  <data name="Col_Status" xml:space="preserve"><value>Statut</value></data>
+  <data name="Col_Account" xml:space="preserve"><value>Compte</value></data>
+  <data name="Col_Matched" xml:space="preserve"><value>Rapproché</value></data>
+  <data name="Status_InProgress" xml:space="preserve"><value>En cours</value></data>
+  <data name="Status_Completed" xml:space="preserve"><value>Terminé</value></data>
+  <data name="Btn_Match" xml:space="preserve"><value>Rapprocher</value></data>
+  <data name="Btn_Unmatch" xml:space="preserve"><value>Annuler</value></data>
+  <data name="Btn_CreateEntry" xml:space="preserve"><value>Créer une écriture</value></data>
+  <data name="Btn_Complete" xml:space="preserve"><value>Finaliser le rapprochement</value></data>
+  <data name="Btn_Back" xml:space="preserve"><value>Retour</value></data>
+  <data name="Lbl_UnmatchedBalance" xml:space="preserve"><value>Solde non rapproché</value></data>
+  <data name="Lbl_MatchedCount" xml:space="preserve"><value>Rapprochés</value></data>
+  <data name="Lbl_Unmatched" xml:space="preserve"><value>Non rapprochés</value></data>
+  <data name="Lbl_BankTotal" xml:space="preserve"><value>Total relevé</value></data>
+  <data name="Complete_Confirm" xml:space="preserve"><value>Finaliser le rapprochement ?</value></data>
+  <data name="Complete_Body" xml:space="preserve"><value>Toutes les lignes rapprochées seront marquées comme réconciliées. Cette action est irréversible.</value></data>
+  <data name="Complete_Yes" xml:space="preserve"><value>Finaliser</value></data>
+  <data name="Snack_Matched" xml:space="preserve"><value>Rapprochement créé.</value></data>
+  <data name="Snack_Unmatched" xml:space="preserve"><value>Rapprochement annulé.</value></data>
+  <data name="Snack_Completed" xml:space="preserve"><value>Rapprochement finalisé.</value></data>
+  <data name="Err_SelectBankLine" xml:space="preserve"><value>Sélectionnez d'abord une ligne du relevé bancaire.</value></data>
+  <data name="Err_SelectLedgerLines" xml:space="preserve"><value>Sélectionnez au moins une ligne du grand livre.</value></data>
+  <data name="Err_ParseFailed" xml:space="preserve"><value>Impossible de lire le fichier. Vérifiez le format et réessayez.</value></data>
+  <data name="Err_NoLines" xml:space="preserve"><value>Aucune transaction trouvée dans le fichier.</value></data>
+  <data name="Csv_Title" xml:space="preserve"><value>Mapper les colonnes CSV</value></data>
+  <data name="Csv_Delimiter" xml:space="preserve"><value>Séparateur</value></data>
+  <data name="Csv_HasHeader" xml:space="preserve"><value>Première ligne = en-tête</value></data>
+  <data name="Csv_DateCol" xml:space="preserve"><value>Colonne date</value></data>
+  <data name="Csv_DateFormat" xml:space="preserve"><value>Format de date</value></data>
+  <data name="Csv_DescCol" xml:space="preserve"><value>Colonne description</value></data>
+  <data name="Csv_AmountCol" xml:space="preserve"><value>Colonne montant</value></data>
+  <data name="Csv_DebitCol" xml:space="preserve"><value>Colonne débit</value></data>
+  <data name="Csv_CreditCol" xml:space="preserve"><value>Colonne crédit</value></data>
+  <data name="Csv_SeparateDebitCredit" xml:space="preserve"><value>Colonnes débit/crédit séparées</value></data>
+  <data name="Csv_Preview" xml:space="preserve"><value>Aperçu du fichier</value></data>
+  <data name="Csv_Import" xml:space="preserve"><value>Importer</value></data>
+  <data name="Cancel" xml:space="preserve"><value>Annuler</value></data>
+  <data name="History_Account" xml:space="preserve"><value>Compte</value></data>
+  <data name="History_Period" xml:space="preserve"><value>Période</value></data>
+  <data name="History_Status" xml:space="preserve"><value>Statut</value></data>
+  <data name="History_Pairs" xml:space="preserve"><value>Paires rapprochées</value></data>
+  <data name="History_CompletedAt" xml:space="preserve"><value>Finalisé le</value></data>
+  <data name="History_Open" xml:space="preserve"><value>Ouvrir</value></data>
+</root>

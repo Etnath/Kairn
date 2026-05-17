@@ -20,6 +20,13 @@ public class AppDbContext : IdentityDbContext<ApplicationUser>
     public DbSet<AuditLog> AuditLogs => Set<AuditLog>();
     public DbSet<JournalEntry> JournalEntries => Set<JournalEntry>();
     public DbSet<JournalLine> JournalLines => Set<JournalLine>();
+    public DbSet<ReconciliationSession> ReconciliationSessions => Set<ReconciliationSession>();
+    public DbSet<BankStatementLine> BankStatementLines => Set<BankStatementLine>();
+    public DbSet<ReconciliationMatch> ReconciliationMatches => Set<ReconciliationMatch>();
+    public DbSet<RecurringEntry> RecurringEntries => Set<RecurringEntry>();
+    public DbSet<RecurringEntryLine> RecurringEntryLines => Set<RecurringEntryLine>();
+    public DbSet<RecurringJobLog> RecurringJobLogs => Set<RecurringJobLog>();
+    public DbSet<CurrencyRate> CurrencyRates => Set<CurrencyRate>();
 
     protected override void OnConfiguring(DbContextOptionsBuilder optionsBuilder)
     {

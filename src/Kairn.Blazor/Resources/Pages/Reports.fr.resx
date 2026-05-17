@@ -1,7 +1,9 @@
-﻿<?xml version="1.0" encoding="utf-8"?>
+<?xml version="1.0" encoding="utf-8"?>
 <root>
   <resheader name="resmimetype"><value>text/microsoft-resx</value></resheader>
   <resheader name="version"><value>2.0</value></resheader>
   <data name="Title" xml:space="preserve"><value>Rapports</value></data>
-  <data name="ComingSoon" xml:space="preserve"><value>Ce module sera bientôt disponible.</value></data>
+  <data name="TrialBalance.Title" xml:space="preserve"><value>Balance des comptes</value></data>
+  <data name="TrialBalance.Description" xml:space="preserve"><value>Vérifiez que les débits égalent les crédits sur tous les comptes à une date donnée</value></data>
+  <data name="Open" xml:space="preserve"><value>Ouvrir</value></data>
 </root>

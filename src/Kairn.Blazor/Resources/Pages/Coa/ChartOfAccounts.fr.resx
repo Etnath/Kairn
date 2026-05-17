@@ -23,4 +23,5 @@
   <data name="Type_Revenue" xml:space="preserve"><value>Produits</value></data>
   <data name="Type_Expense" xml:space="preserve"><value>Charges</value></data>
   <data name="InactiveNote" xml:space="preserve"><value>Les comptes inactifs sont masqués lors de la saisie de nouvelles transactions.</value></data>
+  <data name="ViewLedger" xml:space="preserve"><value>Voir grand livre</value></data>
 </root>

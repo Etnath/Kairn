@@ -1,20 +1,30 @@
 @inject IJournalEntryService JournalEntryService
 @inject IAccountService AccountService
+@inject IExchangeRateService ExRateSvc
 @inject ICurrentUserContext CurrentUser
 @inject IStringLocalizer<GeneralLedger> L
 
-<MudDialog Style="min-width:900px">
+<MudDialog Style="min-width:1000px">
     <DialogContent>
         <MudStack Spacing="3">
 
-            @* Header row: date + description *@
+            @* Cached-rate warning *@
+            @if (_lines.Any(l => l.IsRateCached))
+            {
+                var oldest = _lines.Where(l => l.IsRateCached).Min(l => l.RateDate);
+                <MudAlert Severity="Severity.Warning" Dense="true">
+                    @string.Format(L["Warn_CachedRate"].Value, oldest?.ToString("dd/MM/yyyy"))
+                </MudAlert>
+            }
+
+            @* Header row: date + description + reference *@
             <MudGrid Spacing="2">
-                <MudItem xs="12" sm="4">
-                    <MudDatePicker @bind-Date="_date" Label="@L["Lbl_Date"]"
-                                   DateFormat="dd/MM/yyyy" Required="true"
-                                   Editable="true" />
+                <MudItem xs="12" sm="3">
+                    <MudDatePicker Date="_date" Label="@L["Lbl_Date"]"
+                                   DateFormat="dd/MM/yyyy" Required="true" Editable="true"
+                                   DateChanged="OnDateChanged" />
                 </MudItem>
-                <MudItem xs="12" sm="5">
+                <MudItem xs="12" sm="6">
                     <MudTextField @bind-Value="_description" Label="@L["Lbl_Description"]"
                                   Required="true" Immediate="true" />
                 </MudItem>
@@ -31,49 +41,91 @@
                     <MudTh>@L["Lbl_Account"]</MudTh>
                     <MudTh Style="width:130px">@L["Lbl_Debit"]</MudTh>
                     <MudTh Style="width:130px">@L["Lbl_Credit"]</MudTh>
-                    <MudTh Style="width:80px">@L["Lbl_Currency"]</MudTh>
+                    <MudTh Style="width:90px">@L["Lbl_Currency"]</MudTh>
+                    <MudTh Style="width:110px">@L["Lbl_Rate"]</MudTh>
+                    <MudTh Style="width:90px">@L["Lbl_BaseCcyEquiv"]</MudTh>
                     <MudTh>@L["Lbl_Memo"]</MudTh>
-                    <MudTh Style="width:60px"></MudTh>
+                    <MudTh Style="width:50px"></MudTh>
                 </HeaderContent>
                 <RowTemplate>
                     <MudTd>
                         <MudAutocomplete T="Kairn.Domain.Entities.Account"
                                          Value="@GetAccount(context.AccountId)"
-                                         ValueChanged="@(a => context.AccountId = a?.Id ?? Guid.Empty)"
+                                         ValueChanged="@(a => OnAccountSelected(context, a))"
                                          SearchFunc="SearchAccounts"
                                          ToStringFunc="@(a => a is null ? "" : $"{a.Code} – {a.Name}")"
                                          Dense="true" Margin="Margin.Dense"
-                                         ResetValueOnEmptyText="false"
-                                         CoerceText="true"
+                                         ResetValueOnEmptyText="false" CoerceText="true"
                                          MinCharacters="0" />
                     </MudTd>
                     <MudTd>
                         <MudNumericField T="decimal" @bind-Value="context.Debit"
-                                         Format="N2" HideSpinButtons="true"
-                                         Margin="Margin.Dense" />
+                                         Format="N2" HideSpinButtons="true" Margin="Margin.Dense" />
                     </MudTd>
                     <MudTd>
                         <MudNumericField T="decimal" @bind-Value="context.Credit"
-                                         Format="N2" HideSpinButtons="true"
-                                         Margin="Margin.Dense" />
+                                         Format="N2" HideSpinButtons="true" Margin="Margin.Dense" />
                     </MudTd>
                     <MudTd>
-                        <MudTextField @bind-Value="context.Currency"
-                                      MaxLength="3" Margin="Margin.Dense" />
+                        <MudSelect T="string" Value="@context.Currency"
+                                   ValueChanged="@(v => OnCurrencyChanged(context, v))"
+                                   Dense="true" Margin="Margin.Dense">
+                            @foreach (var ccy in ExRateSvc.SupportedCurrencies)
+                            {
+                                <MudSelectItem Value="@ccy">@ccy</MudSelectItem>
+                            }
+                        </MudSelect>
                     </MudTd>
                     <MudTd>
-                        <MudTextField @bind-Value="context.Memo"
-                                      Margin="Margin.Dense" />
+                        @if (!IsBaseCurrency(context.Currency))
+                        {
+                            <MudStack Spacing="0">
+                                <MudNumericField T="decimal" @bind-Value="context.ExchangeRate"
+                                                 Format="N6" HideSpinButtons="true" Margin="Margin.Dense" />
+                                @if (context.SystemRate.HasValue &&
+                                     Math.Abs(context.ExchangeRate - context.SystemRate.Value) > 0.000001m)
+                                {
+                                    <MudText Typo="Typo.caption" Color="Color.Warning">
+                                        API: @context.SystemRate.Value.ToString("N6")
+                                    </MudText>
+                                }
+                            </MudStack>
+                        }
+                        else
+                        {
+                            <MudText Typo="Typo.caption" Color="Color.Tertiary">1.000000</MudText>
+                        }
                     </MudTd>
                     <MudTd>
-                        <MudIconButton Icon="@Icons.Material.Filled.Delete"
-                                       Size="Size.Small"
+                        @{
+                            var baseDebit  = context.Debit  * context.ExchangeRate;
+                            var baseCredit = context.Credit * context.ExchangeRate;
+                        }
+                        @if (!IsBaseCurrency(context.Currency))
+                        {
+                            <MudStack Spacing="0">
+                                @if (baseDebit > 0)
+                                {
+                                    <MudText Typo="Typo.caption">@baseDebit.ToString("N2") @ExRateSvc.BaseCurrency</MudText>
+                                }
+                                @if (baseCredit > 0)
+                                {
+                                    <MudText Typo="Typo.caption">@baseCredit.ToString("N2") @ExRateSvc.BaseCurrency</MudText>
+                                }
+                            </MudStack>
+                        }
+                    </MudTd>
+                    <MudTd>
+                        <MudTextField @bind-Value="context.Memo" Margin="Margin.Dense" />
+                    </MudTd>
+                    <MudTd>
+                        <MudIconButton Icon="@Icons.Material.Filled.Delete" Size="Size.Small"
                                        Disabled="@(_lines.Count <= 2)"
                                        OnClick="@(() => RemoveLine(context))" />
                     </MudTd>
                 </RowTemplate>
                 <FooterContent>
-                    <MudTd colspan="6">
+                    <MudTd colspan="8">
                         <MudButton StartIcon="@Icons.Material.Filled.Add"
                                    Size="Size.Small" OnClick="AddLine">
                             @L["AddLine"]
@@ -82,11 +134,11 @@
                 </FooterContent>
             </MudTable>
 
-            @* Balance indicator *@
+            @* Balance indicator — uses base-currency totals *@
             <MudStack Row="true" AlignItems="AlignItems.Center" Spacing="2">
                 @{
-                    var diff = Math.Abs(TotalDebit - TotalCredit);
-                    var balanced = diff < 0.0001m;
+                    var diff = Math.Abs(TotalBaseDebit - TotalBaseCredit);
+                    var balanced = diff < 0.01m;
                     var balColor = balanced ? "#3A9463" : "#C2492A";
                     var balIcon  = balanced ? Icons.Material.Filled.CheckCircle : Icons.Material.Filled.Error;
                     var balLabel = balanced ? L["Balance_OK"].Value : string.Format(L["Balance_Diff"].Value, diff);
@@ -95,8 +147,8 @@
                 <MudText Style="@($"color:{balColor}")">@balLabel</MudText>
                 <MudSpacer />
                 <MudText Typo="Typo.caption">
-                    @L["Lbl_Debit"]: @TotalDebit.ToString("N2") &nbsp;|&nbsp;
-                    @L["Lbl_Credit"]: @TotalCredit.ToString("N2")
+                    @ExRateSvc.BaseCurrency @L["Lbl_Debit"]: @TotalBaseDebit.ToString("N2") &nbsp;|&nbsp;
+                    @ExRateSvc.BaseCurrency @L["Lbl_Credit"]: @TotalBaseCredit.ToString("N2")
                 </MudText>
             </MudStack>
 
@@ -128,7 +180,7 @@
     <DialogActions>
         <MudButton OnClick="Cancel">@L["Cancel"]</MudButton>
         <MudButton OnClick="Submit" Color="Color.Primary" Variant="Variant.Filled"
-                   Disabled="@(_saving || TotalDebit == 0)">
+                   Disabled="@(_saving || TotalBaseDebit == 0)">
             @if (_saving)
             {
                 <MudProgressCircular Size="Size.Small" Indeterminate="true" Class="mr-2" />
@@ -141,6 +193,9 @@
 @code {
     [CascadingParameter] private IMudDialogInstance MudDialog { get; set; } = null!;
     [Parameter] public JournalEntryDto? Entry { get; set; }
+    [Parameter] public BankEntryPreFill? PreFill { get; set; }
+
+    public record BankEntryPreFill(string Description, DateTime Date, Guid BankAccountId, decimal Amount);
 
     private bool _saving;
     private bool _isEdit;
@@ -153,8 +208,11 @@
     private List<LineModel> _lines = [];
     private List<Kairn.Domain.Entities.Account> _accounts = [];
 
-    private decimal TotalDebit  => _lines.Sum(l => l.Debit);
-    private decimal TotalCredit => _lines.Sum(l => l.Credit);
+    private decimal TotalBaseDebit  => _lines.Sum(l => l.Debit  * l.ExchangeRate);
+    private decimal TotalBaseCredit => _lines.Sum(l => l.Credit * l.ExchangeRate);
+
+    private bool IsBaseCurrency(string ccy) =>
+        string.Equals(ccy, ExRateSvc.BaseCurrency, StringComparison.OrdinalIgnoreCase);
 
     protected override async Task OnInitializedAsync()
     {
@@ -163,18 +221,35 @@
 
         if (_isEdit)
         {
-            _date        = Entry!.Date.ToDateTime(TimeOnly.MinValue);
+            _date = Entry!.Date.ToDateTime(TimeOnly.MinValue);
             _description = Entry.Description;
-            _reference   = Entry.Reference;
+            _reference = Entry.Reference;
             _attachmentFileName = Entry.AttachmentFileName;
             _lines = Entry.Lines.Select(l => new LineModel
             {
-                AccountId = l.AccountId,
-                Debit     = l.Debit,
-                Credit    = l.Credit,
-                Currency  = l.Currency,
-                Memo      = l.Memo,
+                AccountId    = l.AccountId,
+                Debit        = l.Debit,
+                Credit       = l.Credit,
+                Currency     = l.Currency,
+                ExchangeRate = l.ExchangeRate,
+                SystemRate   = l.SystemRate,
+                Memo         = l.Memo,
             }).ToList();
+        }
+        else if (PreFill is not null)
+        {
+            _date = PreFill.Date;
+            _description = PreFill.Description;
+            var today = DateOnly.FromDateTime(PreFill.Date);
+            _reference = await JournalEntryService.GenerateReferenceAsync(CurrentUser.TenantId, today);
+            var (debit, credit) = PreFill.Amount >= 0
+                ? (PreFill.Amount, 0m)
+                : (0m, Math.Abs(PreFill.Amount));
+            _lines =
+            [
+                new LineModel { AccountId = PreFill.BankAccountId, Debit = debit, Credit = credit },
+                new LineModel(),
+            ];
         }
         else
         {
@@ -184,8 +259,55 @@
         }
     }
 
-    private void AddLine() => _lines.Add(new LineModel());
+    private void AddLine() => _lines.Add(new LineModel { Currency = ExRateSvc.BaseCurrency });
     private void RemoveLine(LineModel line) => _lines.Remove(line);
+
+    private async Task OnDateChanged(DateTime? date)
+    {
+        _date = date;
+        // Re-fetch rates for all non-base-currency lines
+        var tasks = _lines
+            .Where(l => !IsBaseCurrency(l.Currency))
+            .Select(l => RefreshRateForLineAsync(l));
+        await Task.WhenAll(tasks);
+        StateHasChanged();
+    }
+
+    private async Task OnAccountSelected(LineModel line, Kairn.Domain.Entities.Account? account)
+    {
+        line.AccountId = account?.Id ?? Guid.Empty;
+        if (account is not null && line.Currency != account.Currency)
+        {
+            line.Currency = account.Currency;
+            await RefreshRateForLineAsync(line);
+            StateHasChanged();
+        }
+    }
+
+    private async Task OnCurrencyChanged(LineModel line, string currency)
+    {
+        line.Currency = currency;
+        await RefreshRateForLineAsync(line);
+        StateHasChanged();
+    }
+
+    private async Task RefreshRateForLineAsync(LineModel line)
+    {
+        if (IsBaseCurrency(line.Currency))
+        {
+            line.ExchangeRate = 1m;
+            line.SystemRate = null;
+            line.RateDate = null;
+            line.IsRateCached = false;
+            return;
+        }
+        var date = DateOnly.FromDateTime(_date ?? DateTime.Today);
+        var result = await ExRateSvc.GetRateAsync(line.Currency, date);
+        line.SystemRate = result.Rate;
+        line.ExchangeRate = result.Rate;
+        line.RateDate = result.RateDate;
+        line.IsRateCached = result.IsFromCache;
+    }
 
     private Kairn.Domain.Entities.Account? GetAccount(Guid id) =>
         _accounts.FirstOrDefault(a => a.Id == id);
@@ -234,7 +356,9 @@
 
         var lineInputs = _lines
             .Where(l => l.AccountId != Guid.Empty)
-            .Select(l => new JournalLineInput(l.AccountId, l.Debit, l.Credit, l.Currency, 1m, l.Memo))
+            .Select(l => new JournalLineInput(
+                l.AccountId, l.Debit, l.Credit, l.Currency,
+                l.ExchangeRate, l.Memo, l.SystemRate))
             .ToList();
 
         if (lineInputs.Count < 2)
@@ -243,8 +367,9 @@
             return;
         }
 
-        var diff = Math.Abs(lineInputs.Sum(l => l.Debit) - lineInputs.Sum(l => l.Credit));
-        if (diff >= 0.0001m)
+        var baseDebit  = lineInputs.Sum(i => i.Debit  * i.ExchangeRate);
+        var baseCredit = lineInputs.Sum(i => i.Credit * i.ExchangeRate);
+        if (Math.Abs(baseDebit - baseCredit) >= 0.01m)
         {
             _errorMessage = L["Err_Unbalanced"];
             return;
@@ -281,7 +406,11 @@
         public Guid AccountId { get; set; }
         public decimal Debit { get; set; }
         public decimal Credit { get; set; }
-        public string Currency { get; set; } = "EUR";
+        public string Currency { get; set; } = "CHF";
+        public decimal ExchangeRate { get; set; } = 1m;
+        public decimal? SystemRate { get; set; }
+        public DateOnly? RateDate { get; set; }
+        public bool IsRateCached { get; set; }
         public string? Memo { get; set; }
     }
 }

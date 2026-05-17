@@ -40,4 +40,47 @@
   <data name="Snack_Created" xml:space="preserve"><value>Écriture {0} créée.</value></data>
   <data name="Snack_Updated" xml:space="preserve"><value>Écriture {0} mise à jour.</value></data>
   <data name="NoEntries" xml:space="preserve"><value>Aucune écriture comptable trouvée.</value></data>
+  <data name="ShowDeleted" xml:space="preserve"><value>Afficher les supprimées</value></data>
+  <data name="DeletedCount" xml:space="preserve"><value>{0} supprimée(s)</value></data>
+  <data name="Delete" xml:space="preserve"><value>Supprimer</value></data>
+  <data name="Restore" xml:space="preserve"><value>Restaurer</value></data>
+  <data name="Deleted" xml:space="preserve"><value>Supprimée</value></data>
+  <data name="Confirm_Delete" xml:space="preserve"><value>Supprimer l'écriture {0} ?</value></data>
+  <data name="Confirm_Delete_Body" xml:space="preserve"><value>L'écriture sera supprimée logiquement et pourra être restaurée ultérieurement.</value></data>
+  <data name="Snack_Deleted" xml:space="preserve"><value>Écriture {0} supprimée.</value></data>
+  <data name="Snack_Restored" xml:space="preserve"><value>Écriture {0} restaurée.</value></data>
+  <data name="Reconcile" xml:space="preserve"><value>Rapprocher</value></data>
+  <data name="Tab_Entries" xml:space="preserve"><value>Écritures</value></data>
+  <data name="Tab_Recurring" xml:space="preserve"><value>Récurrents</value></data>
+  <data name="IsRecurring" xml:space="preserve"><value>Récurrent</value></data>
+  <data name="Rec_NewTemplate" xml:space="preserve"><value>Nouveau modèle</value></data>
+  <data name="Rec_Col_Name" xml:space="preserve"><value>Nom</value></data>
+  <data name="Rec_Col_Frequency" xml:space="preserve"><value>Fréquence</value></data>
+  <data name="Rec_Col_StartDate" xml:space="preserve"><value>Date de début</value></data>
+  <data name="Rec_Col_EndDate" xml:space="preserve"><value>Date de fin</value></data>
+  <data name="Rec_Col_LastPosted" xml:space="preserve"><value>Dernier envoi</value></data>
+  <data name="Rec_Col_NextDue" xml:space="preserve"><value>Prochain envoi</value></data>
+  <data name="Rec_Col_Status" xml:space="preserve"><value>Statut</value></data>
+  <data name="Rec_Active" xml:space="preserve"><value>Actif</value></data>
+  <data name="Rec_Inactive" xml:space="preserve"><value>Inactif</value></data>
+  <data name="Rec_PostNow" xml:space="preserve"><value>Passer maintenant</value></data>
+  <data name="Rec_Deactivate" xml:space="preserve"><value>Désactiver</value></data>
+  <data name="Rec_Activate" xml:space="preserve"><value>Activer</value></data>
+  <data name="Rec_NoTemplates" xml:space="preserve"><value>Aucun modèle récurrent défini.</value></data>
+  <data name="Rec_Snack_Posted" xml:space="preserve"><value>Écriture {0} passée depuis le modèle « {1} ».</value></data>
+  <data name="Rec_Snack_Deactivated" xml:space="preserve"><value>Modèle « {0} » désactivé.</value></data>
+  <data name="Rec_Snack_Activated" xml:space="preserve"><value>Modèle « {0} » activé.</value></data>
+  <data name="Rec_Snack_Created" xml:space="preserve"><value>Modèle récurrent « {0} » créé.</value></data>
+  <data name="Rec_Snack_Updated" xml:space="preserve"><value>Modèle récurrent « {0} » mis à jour.</value></data>
+  <data name="Rec_Confirm_Deactivate" xml:space="preserve"><value>Désactiver le modèle « {0} » ?</value></data>
+  <data name="Rec_Confirm_Deactivate_Body" xml:space="preserve"><value>Aucune écriture ne sera passée tant que le modèle n'est pas réactivé.</value></data>
+  <data name="Rec_RecentErrors" xml:space="preserve"><value>Erreurs de passage récentes</value></data>
+  <data name="Lbl_Rate" xml:space="preserve"><value>Taux</value></data>
+  <data name="Warn_CachedRate" xml:space="preserve"><value>Taux de change en cache depuis le {0}.</value></data>
+  <data name="Lbl_BaseCcyEquiv" xml:space="preserve"><value>Équiv. base</value></data>
+  <data name="Col_RunningBalance" xml:space="preserve"><value>Solde</value></data>
+  <data name="Filter_Accounts" xml:space="preserve"><value>Comptes</value></data>
+  <data name="Filter_DateRange" xml:space="preserve"><value>Période</value></data>
+  <data name="Filter_CreatedBy" xml:space="preserve"><value>Créé par</value></data>
+  <data name="ExportCsv" xml:space="preserve"><value>Exporter CSV</value></data>
 </root>

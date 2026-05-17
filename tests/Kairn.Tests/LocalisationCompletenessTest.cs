@@ -27,6 +27,10 @@ public class LocalisationCompletenessTest
         "Kairn.Blazor.Resources.Pages.Budgets",
         "Kairn.Blazor.Resources.Pages.Settings",
         "Kairn.Blazor.Resources.Pages.Coa.ChartOfAccounts",
+        "Kairn.Blazor.Resources.Pages.AuditTrail.AuditLog",
+        "Kairn.Blazor.Resources.Pages.GL.Reconciliation",
+        "Kairn.Blazor.Resources.Pages.FinancialReports.TrialBalance",
+        "Kairn.Blazor.Resources.Pages.GL.RecurringEntryDialog",
         "Kairn.Blazor.Resources.Pages.Account.LoginModel",
     ];
 

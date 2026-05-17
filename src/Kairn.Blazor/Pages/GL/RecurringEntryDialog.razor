@@ -1,0 +1,238 @@
+@inject IRecurringEntryService RecurringSvc
+@inject IAccountService AccountService
+@inject IExchangeRateService ExRateSvc
+@inject ICurrentUserContext CurrentUser
+@inject IStringLocalizer<RecurringEntryDialog> L
+@using Kairn.Domain.Entities
+
+<MudDialog Style="min-width:900px">
+    <DialogContent>
+        <MudStack Spacing="3">
+
+            @* Header *@
+            <MudGrid Spacing="2">
+                <MudItem xs="12" sm="6">
+                    <MudTextField @bind-Value="_name" Label="@L["Lbl_Name"]"
+                                  Required="true" Immediate="true" />
+                </MudItem>
+                <MudItem xs="12" sm="6">
+                    <MudTextField @bind-Value="_entryDescription" Label="@L["Lbl_EntryDescription"]"
+                                  Required="true" Immediate="true" />
+                </MudItem>
+                <MudItem xs="12" sm="3">
+                    <MudSelect T="RecurringFrequency" @bind-Value="_frequency" Label="@L["Lbl_Frequency"]">
+                        <MudSelectItem Value="RecurringFrequency.Daily">@L["Freq_Daily"]</MudSelectItem>
+                        <MudSelectItem Value="RecurringFrequency.Weekly">@L["Freq_Weekly"]</MudSelectItem>
+                        <MudSelectItem Value="RecurringFrequency.Monthly">@L["Freq_Monthly"]</MudSelectItem>
+                        <MudSelectItem Value="RecurringFrequency.Quarterly">@L["Freq_Quarterly"]</MudSelectItem>
+                        <MudSelectItem Value="RecurringFrequency.Annually">@L["Freq_Annually"]</MudSelectItem>
+                    </MudSelect>
+                </MudItem>
+                <MudItem xs="12" sm="3">
+                    <MudDatePicker @bind-Date="_startDate" Label="@L["Lbl_StartDate"]"
+                                   DateFormat="dd/MM/yyyy" Editable="true" Required="true" />
+                </MudItem>
+                <MudItem xs="12" sm="3">
+                    <MudDatePicker @bind-Date="_endDate" Label="@L["Lbl_EndDate"]"
+                                   DateFormat="dd/MM/yyyy" Editable="true" Clearable="true" />
+                </MudItem>
+            </MudGrid>
+
+            @* Lines *@
+            <MudTable Items="_lines" Dense="true" Hover="false" Elevation="0"
+                      Style="border:1px solid var(--mud-palette-lines-default)">
+                <HeaderContent>
+                    <MudTh>@L["Lbl_Account"]</MudTh>
+                    <MudTh Style="width:130px">@L["Lbl_Debit"]</MudTh>
+                    <MudTh Style="width:130px">@L["Lbl_Credit"]</MudTh>
+                    <MudTh Style="width:80px">@L["Lbl_Currency"]</MudTh>
+                    <MudTh>@L["Lbl_Memo"]</MudTh>
+                    <MudTh Style="width:60px"></MudTh>
+                </HeaderContent>
+                <RowTemplate>
+                    <MudTd>
+                        <MudAutocomplete T="Account"
+                                         Value="@GetAccount(context.AccountId)"
+                                         ValueChanged="@(a => context.AccountId = a?.Id ?? Guid.Empty)"
+                                         SearchFunc="SearchAccounts"
+                                         ToStringFunc="@(a => a is null ? "" : $"{a.Code} – {a.Name}")"
+                                         Dense="true" Margin="Margin.Dense"
+                                         ResetValueOnEmptyText="false" CoerceText="true"
+                                         MinCharacters="0" />
+                    </MudTd>
+                    <MudTd>
+                        <MudNumericField T="decimal" @bind-Value="context.Debit"
+                                         Format="N2" HideSpinButtons="true" Margin="Margin.Dense" />
+                    </MudTd>
+                    <MudTd>
+                        <MudNumericField T="decimal" @bind-Value="context.Credit"
+                                         Format="N2" HideSpinButtons="true" Margin="Margin.Dense" />
+                    </MudTd>
+                    <MudTd>
+                        <MudSelect T="string" @bind-Value="context.Currency" Dense="true" Margin="Margin.Dense">
+                            @foreach (var ccy in ExRateSvc.SupportedCurrencies)
+                            {
+                                <MudSelectItem Value="@ccy">@ccy</MudSelectItem>
+                            }
+                        </MudSelect>
+                    </MudTd>
+                    <MudTd>
+                        <MudTextField @bind-Value="context.Memo" Margin="Margin.Dense" />
+                    </MudTd>
+                    <MudTd>
+                        <MudIconButton Icon="@Icons.Material.Filled.Delete" Size="Size.Small"
+                                       Disabled="@(_lines.Count <= 2)"
+                                       OnClick="@(() => _lines.Remove(context))" />
+                    </MudTd>
+                </RowTemplate>
+                <FooterContent>
+                    <MudTd colspan="6">
+                        <MudButton StartIcon="@Icons.Material.Filled.Add" Size="Size.Small"
+                                   OnClick="@(() => _lines.Add(new LineModel()))">
+                            @L["AddLine"]
+                        </MudButton>
+                    </MudTd>
+                </FooterContent>
+            </MudTable>
+
+            @* Balance indicator *@
+            <MudStack Row="true" AlignItems="AlignItems.Center" Spacing="2">
+                @{
+                    var diff = Math.Abs(TotalDebit - TotalCredit);
+                    var balanced = diff < 0.0001m;
+                    var balColor = balanced ? "#3A9463" : "#C2492A";
+                    var balIcon  = balanced ? Icons.Material.Filled.CheckCircle : Icons.Material.Filled.Error;
+                    var balLabel = balanced ? L["Balance_OK"].Value : string.Format(L["Balance_Diff"].Value, diff);
+                }
+                <MudIcon Icon="@balIcon" Style="@($"color:{balColor}")" />
+                <MudText Style="@($"color:{balColor}")">@balLabel</MudText>
+                <MudSpacer />
+                <MudText Typo="Typo.caption">
+                    @L["Lbl_Debit"]: @TotalDebit.ToString("N2") &nbsp;|&nbsp;
+                    @L["Lbl_Credit"]: @TotalCredit.ToString("N2")
+                </MudText>
+            </MudStack>
+
+            @if (_errorMessage is not null)
+            {
+                <MudAlert Severity="Severity.Error" Dense="true">@_errorMessage</MudAlert>
+            }
+        </MudStack>
+    </DialogContent>
+    <DialogActions>
+        <MudButton OnClick="@(() => MudDialog.Cancel())">@L["Cancel"]</MudButton>
+        <MudButton OnClick="Submit" Color="Color.Primary" Variant="Variant.Filled"
+                   Disabled="@(_saving || TotalDebit == 0)">
+            @if (_saving)
+            {
+                <MudProgressCircular Size="Size.Small" Indeterminate="true" Class="mr-2" />
+            }
+            @L["Save"]
+        </MudButton>
+    </DialogActions>
+</MudDialog>
+
+@code {
+    [CascadingParameter] private IMudDialogInstance MudDialog { get; set; } = null!;
+    [Parameter] public RecurringEntryDto? Template { get; set; }
+
+    private bool _saving;
+    private string? _errorMessage;
+    private string _name = "";
+    private string _entryDescription = "";
+    private RecurringFrequency _frequency = RecurringFrequency.Monthly;
+    private DateTime? _startDate = DateTime.Today;
+    private DateTime? _endDate;
+    private List<LineModel> _lines = [];
+    private List<Account> _accounts = [];
+
+    private decimal TotalDebit  => _lines.Sum(l => l.Debit);
+    private decimal TotalCredit => _lines.Sum(l => l.Credit);
+
+    protected override async Task OnInitializedAsync()
+    {
+        _accounts = await AccountService.GetAllAsync(CurrentUser.TenantId);
+
+        if (Template is not null)
+        {
+            _name = Template.Name;
+            _entryDescription = Template.EntryDescription;
+            _frequency = Template.Frequency;
+            _startDate = Template.StartDate.ToDateTime(TimeOnly.MinValue);
+            _endDate = Template.EndDate?.ToDateTime(TimeOnly.MinValue);
+            _lines = Template.Lines.Select(l => new LineModel
+            {
+                AccountId = l.AccountId,
+                Debit     = l.Debit,
+                Credit    = l.Credit,
+                Currency  = l.Currency,
+                Memo      = l.Memo,
+            }).ToList();
+        }
+        else
+        {
+            _lines = [new LineModel(), new LineModel()];
+        }
+    }
+
+    private Account? GetAccount(Guid id) => _accounts.FirstOrDefault(a => a.Id == id);
+
+    private Task<IEnumerable<Account>> SearchAccounts(string text, CancellationToken ct)
+    {
+        if (string.IsNullOrWhiteSpace(text))
+            return Task.FromResult<IEnumerable<Account>>(_accounts);
+
+        var lower = text.Trim().ToLowerInvariant();
+        return Task.FromResult<IEnumerable<Account>>(
+            _accounts.Where(a =>
+                a.Code.Contains(lower, StringComparison.OrdinalIgnoreCase) ||
+                a.Name.Contains(lower, StringComparison.OrdinalIgnoreCase)));
+    }
+
+    private async Task Submit()
+    {
+        _errorMessage = null;
+
+        var lineInputs = _lines
+            .Where(l => l.AccountId != Guid.Empty)
+            .Select(l => new RecurringEntryLineInput(l.AccountId, l.Debit, l.Credit, l.Currency, 1m, l.Memo))
+            .ToList();
+
+        if (lineInputs.Count < 2)          { _errorMessage = L["Err_MinLines"];    return; }
+        if (Math.Abs(TotalDebit - TotalCredit) >= 0.0001m) { _errorMessage = L["Err_Unbalanced"]; return; }
+
+        _saving = true;
+        Result<RecurringEntryDto> result;
+        var startDate = DateOnly.FromDateTime(_startDate ?? DateTime.Today);
+        var endDate   = _endDate.HasValue ? DateOnly.FromDateTime(_endDate.Value) : (DateOnly?)null;
+
+        if (Template is not null)
+        {
+            result = await RecurringSvc.UpdateAsync(new UpdateRecurringEntryCommand(
+                Template.Id, CurrentUser.TenantId, _name, _entryDescription,
+                _frequency, startDate, endDate, lineInputs));
+        }
+        else
+        {
+            result = await RecurringSvc.CreateAsync(new CreateRecurringEntryCommand(
+                CurrentUser.TenantId, _name, _entryDescription,
+                _frequency, startDate, endDate, lineInputs));
+        }
+
+        _saving = false;
+
+        if (result.IsSuccess)
+            MudDialog.Close(DialogResult.Ok(result.Value));
+        else
+            _errorMessage = result.Error;
+    }
+
+    private class LineModel
+    {
+        public Guid AccountId { get; set; }
+        public decimal Debit { get; set; }
+        public decimal Credit { get; set; }
+        public string Currency { get; set; } = "EUR";
+        public string? Memo { get; set; }
+    }
+}

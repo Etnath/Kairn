@@ -23,4 +23,5 @@
   <data name="Type_Revenue" xml:space="preserve"><value>Revenue</value></data>
   <data name="Type_Expense" xml:space="preserve"><value>Expenses</value></data>
   <data name="InactiveNote" xml:space="preserve"><value>Inactive accounts are hidden from new transaction entry.</value></data>
+  <data name="ViewLedger" xml:space="preserve"><value>View ledger</value></data>
 </root>

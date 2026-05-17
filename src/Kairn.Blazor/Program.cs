@@ -1,5 +1,11 @@
 using Fluxor;
 using Kairn.Application.Common;
+using Kairn.Application.Features.Audit;
+using Kairn.Application.Features.Reconciliation;
+using Kairn.Application.Features.Reports;
+using Kairn.Application.Features.GL;
+using Kairn.Infrastructure.Jobs;
+using Kairn.Infrastructure.Reports;
 using Kairn.Application.Features.GL;
 using Kairn.Infrastructure.Identity;
 using Kairn.Infrastructure.Persistence;
@@ -25,6 +31,8 @@ Log.Logger = new LoggerConfiguration()
 
 try
 {
+    QuestPDF.Settings.License = QuestPDF.Infrastructure.LicenseType.Community;
+
     var builder = WebApplication.CreateBuilder(args);
 
     // ── Serilog ──────────────────────────────────────────────────────────────
@@ -103,6 +111,20 @@ try
     builder.Services.AddScoped<ThemeService>();
     builder.Services.AddScoped<IAccountService, AccountService>();
     builder.Services.AddScoped<IJournalEntryService, JournalEntryService>();
+    builder.Services.AddScoped<IAuditLogService, AuditLogService>();
+    builder.Services.AddScoped<IReconciliationService, ReconciliationService>();
+    builder.Services.AddSingleton<IOfxParser, OfxParser>();
+    builder.Services.AddSingleton<ICsvParser, CsvParser>();
+    builder.Services.AddScoped<ITrialBalanceService, TrialBalanceService>();
+    builder.Services.AddSingleton<ITrialBalanceExporter, TrialBalanceExporter>();
+    builder.Services.AddScoped<IRecurringEntryService, RecurringEntryService>();
+    builder.Services.AddHostedService<RecurringPostingJob>();
+    builder.Services.AddScoped<IExchangeRateService, ExchangeRateService>();
+    builder.Services.AddHostedService<ExchangeRateRefreshJob>();
+    builder.Services.AddHttpClient("Frankfurter", client =>
+    {
+        client.Timeout = TimeSpan.FromSeconds(10);
+    });
 
     // ── Health checks ────────────────────────────────────────────────────────
     builder.Services.AddHealthChecks();

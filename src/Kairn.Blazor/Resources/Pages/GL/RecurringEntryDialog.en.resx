@@ -1,0 +1,29 @@
+<?xml version="1.0" encoding="utf-8"?>
+<root>
+  <resheader name="resmimetype"><value>text/microsoft-resx</value></resheader>
+  <resheader name="version"><value>2.0</value></resheader>
+  <data name="CreateTitle" xml:space="preserve"><value>New Recurring Template</value></data>
+  <data name="EditTitle" xml:space="preserve"><value>Edit Recurring Template</value></data>
+  <data name="Lbl_Name" xml:space="preserve"><value>Template name</value></data>
+  <data name="Lbl_EntryDescription" xml:space="preserve"><value>Entry description</value></data>
+  <data name="Lbl_Frequency" xml:space="preserve"><value>Frequency</value></data>
+  <data name="Lbl_StartDate" xml:space="preserve"><value>Start date</value></data>
+  <data name="Lbl_EndDate" xml:space="preserve"><value>End date (optional)</value></data>
+  <data name="Freq_Daily" xml:space="preserve"><value>Daily</value></data>
+  <data name="Freq_Weekly" xml:space="preserve"><value>Weekly</value></data>
+  <data name="Freq_Monthly" xml:space="preserve"><value>Monthly</value></data>
+  <data name="Freq_Quarterly" xml:space="preserve"><value>Quarterly</value></data>
+  <data name="Freq_Annually" xml:space="preserve"><value>Annually</value></data>
+  <data name="Lbl_Account" xml:space="preserve"><value>Account</value></data>
+  <data name="Lbl_Debit" xml:space="preserve"><value>Debit</value></data>
+  <data name="Lbl_Credit" xml:space="preserve"><value>Credit</value></data>
+  <data name="Lbl_Currency" xml:space="preserve"><value>Currency</value></data>
+  <data name="Lbl_Memo" xml:space="preserve"><value>Memo</value></data>
+  <data name="AddLine" xml:space="preserve"><value>Add line</value></data>
+  <data name="Balance_OK" xml:space="preserve"><value>Balanced</value></data>
+  <data name="Balance_Diff" xml:space="preserve"><value>Difference: {0:N2}</value></data>
+  <data name="Save" xml:space="preserve"><value>Save</value></data>
+  <data name="Cancel" xml:space="preserve"><value>Cancel</value></data>
+  <data name="Err_MinLines" xml:space="preserve"><value>A journal entry requires at least 2 lines.</value></data>
+  <data name="Err_Unbalanced" xml:space="preserve"><value>Debits and credits must be equal.</value></data>
+</root>

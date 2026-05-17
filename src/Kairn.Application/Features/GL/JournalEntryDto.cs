@@ -9,8 +9,10 @@ public record JournalEntryDto(
     decimal TotalCredit,
     string CreatedByName,
     bool IsLocked,
+    bool IsDeleted,
     string? AttachmentFileName,
-    IReadOnlyList<JournalLineDto> Lines);
+    IReadOnlyList<JournalLineDto> Lines,
+    bool IsRecurring = false);
 
 public record JournalLineDto(
     Guid Id,
@@ -21,4 +23,5 @@ public record JournalLineDto(
     decimal Credit,
     string Currency,
     decimal ExchangeRate,
-    string? Memo);
+    string? Memo,
+    decimal? SystemRate = null);

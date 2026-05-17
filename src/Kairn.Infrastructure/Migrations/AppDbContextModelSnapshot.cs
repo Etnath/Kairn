@@ -110,6 +110,87 @@ namespace Kairn.Infrastructure.Migrations
                     b.ToTable("AuditLogs");
                 });
 
+            modelBuilder.Entity("Kairn.Domain.Entities.BankStatementLine", b =>
+                {
+                    b.Property<Guid>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("TEXT");
+
+                    b.Property<decimal>("Amount")
+                        .HasPrecision(18, 4)
+                        .HasColumnType("TEXT");
+
+                    b.Property<DateTimeOffset>("CreatedAt")
+                        .HasColumnType("TEXT");
+
+                    b.Property<string>("Currency")
+                        .IsRequired()
+                        .HasMaxLength(3)
+                        .HasColumnType("TEXT");
+
+                    b.Property<DateOnly>("Date")
+                        .HasColumnType("TEXT");
+
+                    b.Property<string>("Description")
+                        .IsRequired()
+                        .HasMaxLength(500)
+                        .HasColumnType("TEXT");
+
+                    b.Property<string>("ExternalId")
+                        .HasMaxLength(100)
+                        .HasColumnType("TEXT");
+
+                    b.Property<bool>("IsMatched")
+                        .HasColumnType("INTEGER");
+
+                    b.Property<uint>("RowVersion")
+                        .HasColumnType("INTEGER");
+
+                    b.Property<Guid>("SessionId")
+                        .HasColumnType("TEXT");
+
+                    b.Property<Guid>("TenantId")
+                        .HasColumnType("TEXT");
+
+                    b.Property<DateTimeOffset>("UpdatedAt")
+                        .HasColumnType("TEXT");
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("SessionId");
+
+                    b.ToTable("BankStatementLines");
+                });
+
+            modelBuilder.Entity("Kairn.Domain.Entities.CurrencyRate", b =>
+                {
+                    b.Property<long>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("INTEGER");
+
+                    b.Property<string>("CurrencyPair")
+                        .IsRequired()
+                        .HasMaxLength(10)
+                        .HasColumnType("TEXT");
+
+                    b.Property<DateOnly>("Date")
+                        .HasColumnType("TEXT");
+
+                    b.Property<DateTimeOffset>("FetchedAt")
+                        .HasColumnType("TEXT");
+
+                    b.Property<decimal>("Rate")
+                        .HasPrecision(18, 4)
+                        .HasColumnType("TEXT");
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("CurrencyPair", "Date")
+                        .IsUnique();
+
+                    b.ToTable("CurrencyRates");
+                });
+
             modelBuilder.Entity("Kairn.Domain.Entities.JournalEntry", b =>
                 {
                     b.Property<Guid>("Id")
@@ -151,6 +232,12 @@ namespace Kairn.Infrastructure.Migrations
                     b.Property<bool>("IsLocked")
                         .HasColumnType("INTEGER");
 
+                    b.Property<bool>("IsRecurring")
+                        .HasColumnType("INTEGER");
+
+                    b.Property<Guid?>("RecurringEntryId")
+                        .HasColumnType("TEXT");
+
                     b.Property<string>("Reference")
                         .IsRequired()
                         .HasMaxLength(30)
@@ -166,6 +253,8 @@ namespace Kairn.Infrastructure.Migrations
                         .HasColumnType("TEXT");
 
                     b.HasKey("Id");
+
+                    b.HasIndex("RecurringEntryId");
 
                     b.HasIndex("TenantId", "Date");
 
@@ -204,17 +293,243 @@ namespace Kairn.Infrastructure.Migrations
                         .HasPrecision(18, 4)
                         .HasColumnType("TEXT");
 
+                    b.Property<bool>("IsReconciled")
+                        .HasColumnType("INTEGER");
+
                     b.Property<string>("Memo")
                         .HasMaxLength(500)
+                        .HasColumnType("TEXT");
+
+                    b.Property<decimal?>("SystemRate")
+                        .HasPrecision(18, 4)
+                        .HasColumnType("TEXT");
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("EntryId");
+
+                    b.HasIndex("AccountId", "IsReconciled");
+
+                    b.ToTable("JournalLines");
+                });
+
+            modelBuilder.Entity("Kairn.Domain.Entities.ReconciliationMatch", b =>
+                {
+                    b.Property<Guid>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("TEXT");
+
+                    b.Property<Guid>("BankLineId")
+                        .HasColumnType("TEXT");
+
+                    b.Property<Guid>("JournalLineId")
+                        .HasColumnType("TEXT");
+
+                    b.Property<DateTimeOffset>("MatchedAt")
+                        .HasColumnType("TEXT");
+
+                    b.Property<string>("MatchedByUserId")
+                        .IsRequired()
+                        .HasMaxLength(450)
+                        .HasColumnType("TEXT");
+
+                    b.Property<Guid>("SessionId")
+                        .HasColumnType("TEXT");
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("BankLineId");
+
+                    b.HasIndex("JournalLineId");
+
+                    b.HasIndex("SessionId", "BankLineId");
+
+                    b.ToTable("ReconciliationMatches");
+                });
+
+            modelBuilder.Entity("Kairn.Domain.Entities.ReconciliationSession", b =>
+                {
+                    b.Property<Guid>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("TEXT");
+
+                    b.Property<Guid>("AccountId")
+                        .HasColumnType("TEXT");
+
+                    b.Property<DateTimeOffset?>("CompletedAt")
+                        .HasColumnType("TEXT");
+
+                    b.Property<DateTimeOffset>("CreatedAt")
+                        .HasColumnType("TEXT");
+
+                    b.Property<DateOnly>("EndDate")
+                        .HasColumnType("TEXT");
+
+                    b.Property<int?>("Format")
+                        .HasColumnType("INTEGER");
+
+                    b.Property<int>("MatchedPairCount")
+                        .HasColumnType("INTEGER");
+
+                    b.Property<uint>("RowVersion")
+                        .HasColumnType("INTEGER");
+
+                    b.Property<DateOnly>("StartDate")
+                        .HasColumnType("TEXT");
+
+                    b.Property<string>("StatementFileName")
+                        .HasMaxLength(260)
+                        .HasColumnType("TEXT");
+
+                    b.Property<int>("Status")
+                        .HasColumnType("INTEGER");
+
+                    b.Property<Guid>("TenantId")
+                        .HasColumnType("TEXT");
+
+                    b.Property<DateTimeOffset>("UpdatedAt")
                         .HasColumnType("TEXT");
 
                     b.HasKey("Id");
 
                     b.HasIndex("AccountId");
 
-                    b.HasIndex("EntryId");
+                    b.HasIndex("TenantId", "AccountId", "StartDate", "EndDate");
 
-                    b.ToTable("JournalLines");
+                    b.ToTable("ReconciliationSessions");
+                });
+
+            modelBuilder.Entity("Kairn.Domain.Entities.RecurringEntry", b =>
+                {
+                    b.Property<Guid>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("TEXT");
+
+                    b.Property<DateTimeOffset>("CreatedAt")
+                        .HasColumnType("TEXT");
+
+                    b.Property<DateOnly?>("EndDate")
+                        .HasColumnType("TEXT");
+
+                    b.Property<string>("EntryDescription")
+                        .IsRequired()
+                        .HasMaxLength(500)
+                        .HasColumnType("TEXT");
+
+                    b.Property<int>("Frequency")
+                        .HasColumnType("INTEGER");
+
+                    b.Property<bool>("IsActive")
+                        .HasColumnType("INTEGER");
+
+                    b.Property<DateOnly?>("LastPostedDate")
+                        .HasColumnType("TEXT");
+
+                    b.Property<string>("Name")
+                        .IsRequired()
+                        .HasMaxLength(200)
+                        .HasColumnType("TEXT");
+
+                    b.Property<DateOnly>("NextDueDate")
+                        .HasColumnType("TEXT");
+
+                    b.Property<uint>("RowVersion")
+                        .HasColumnType("INTEGER");
+
+                    b.Property<DateOnly>("StartDate")
+                        .HasColumnType("TEXT");
+
+                    b.Property<Guid>("TenantId")
+                        .HasColumnType("TEXT");
+
+                    b.Property<DateTimeOffset>("UpdatedAt")
+                        .HasColumnType("TEXT");
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("TenantId", "IsActive", "NextDueDate");
+
+                    b.ToTable("RecurringEntries");
+                });
+
+            modelBuilder.Entity("Kairn.Domain.Entities.RecurringEntryLine", b =>
+                {
+                    b.Property<Guid>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("TEXT");
+
+                    b.Property<Guid>("AccountId")
+                        .HasColumnType("TEXT");
+
+                    b.Property<decimal>("Credit")
+                        .HasPrecision(18, 4)
+                        .HasColumnType("TEXT");
+
+                    b.Property<string>("Currency")
+                        .IsRequired()
+                        .HasMaxLength(3)
+                        .HasColumnType("TEXT");
+
+                    b.Property<decimal>("Debit")
+                        .HasPrecision(18, 4)
+                        .HasColumnType("TEXT");
+
+                    b.Property<decimal>("ExchangeRate")
+                        .HasPrecision(18, 4)
+                        .HasColumnType("TEXT");
+
+                    b.Property<string>("Memo")
+                        .HasMaxLength(500)
+                        .HasColumnType("TEXT");
+
+                    b.Property<Guid>("RecurringEntryId")
+                        .HasColumnType("TEXT");
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("AccountId");
+
+                    b.HasIndex("RecurringEntryId");
+
+                    b.ToTable("RecurringEntryLines");
+                });
+
+            modelBuilder.Entity("Kairn.Domain.Entities.RecurringJobLog", b =>
+                {
+                    b.Property<long>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("INTEGER");
+
+                    b.Property<DateTimeOffset>("AttemptedAt")
+                        .HasColumnType("TEXT");
+
+                    b.Property<string>("EntryName")
+                        .IsRequired()
+                        .HasMaxLength(200)
+                        .HasColumnType("TEXT");
+
+                    b.Property<string>("ErrorMessage")
+                        .HasMaxLength(2000)
+                        .HasColumnType("TEXT");
+
+                    b.Property<bool>("IsSuccess")
+                        .HasColumnType("INTEGER");
+
+                    b.Property<string>("PostedReference")
+                        .HasMaxLength(30)
+                        .HasColumnType("TEXT");
+
+                    b.Property<Guid?>("RecurringEntryId")
+                        .HasColumnType("TEXT");
+
+                    b.Property<Guid>("TenantId")
+                        .HasColumnType("TEXT");
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("TenantId", "AttemptedAt");
+
+                    b.ToTable("RecurringJobLogs");
                 });
 
             modelBuilder.Entity("Kairn.Infrastructure.Identity.ApplicationUser", b =>
@@ -422,6 +737,25 @@ namespace Kairn.Infrastructure.Migrations
                     b.ToTable("AspNetUserTokens", (string)null);
                 });
 
+            modelBuilder.Entity("Kairn.Domain.Entities.BankStatementLine", b =>
+                {
+                    b.HasOne("Kairn.Domain.Entities.ReconciliationSession", "Session")
+                        .WithMany("BankLines")
+                        .HasForeignKey("SessionId")
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired();
+
+                    b.Navigation("Session");
+                });
+
+            modelBuilder.Entity("Kairn.Domain.Entities.JournalEntry", b =>
+                {
+                    b.HasOne("Kairn.Domain.Entities.RecurringEntry", null)
+                        .WithMany()
+                        .HasForeignKey("RecurringEntryId")
+                        .OnDelete(DeleteBehavior.SetNull);
+                });
+
             modelBuilder.Entity("Kairn.Domain.Entities.JournalLine", b =>
                 {
                     b.HasOne("Kairn.Domain.Entities.Account", "Account")
@@ -439,6 +773,55 @@ namespace Kairn.Infrastructure.Migrations
                     b.Navigation("Account");
 
                     b.Navigation("Entry");
+                });
+
+            modelBuilder.Entity("Kairn.Domain.Entities.ReconciliationMatch", b =>
+                {
+                    b.HasOne("Kairn.Domain.Entities.BankStatementLine", "BankLine")
+                        .WithMany("Matches")
+                        .HasForeignKey("BankLineId")
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired();
+
+                    b.HasOne("Kairn.Domain.Entities.JournalLine", "JournalLine")
+                        .WithMany()
+                        .HasForeignKey("JournalLineId")
+                        .OnDelete(DeleteBehavior.Restrict)
+                        .IsRequired();
+
+                    b.Navigation("BankLine");
+
+                    b.Navigation("JournalLine");
+                });
+
+            modelBuilder.Entity("Kairn.Domain.Entities.ReconciliationSession", b =>
+                {
+                    b.HasOne("Kairn.Domain.Entities.Account", "Account")
+                        .WithMany()
+                        .HasForeignKey("AccountId")
+                        .OnDelete(DeleteBehavior.Restrict)
+                        .IsRequired();
+
+                    b.Navigation("Account");
+                });
+
+            modelBuilder.Entity("Kairn.Domain.Entities.RecurringEntryLine", b =>
+                {
+                    b.HasOne("Kairn.Domain.Entities.Account", "Account")
+                        .WithMany()
+                        .HasForeignKey("AccountId")
+                        .OnDelete(DeleteBehavior.Restrict)
+                        .IsRequired();
+
+                    b.HasOne("Kairn.Domain.Entities.RecurringEntry", "RecurringEntry")
+                        .WithMany("Lines")
+                        .HasForeignKey("RecurringEntryId")
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired();
+
+                    b.Navigation("Account");
+
+                    b.Navigation("RecurringEntry");
                 });
 
             modelBuilder.Entity("Microsoft.AspNetCore.Identity.IdentityRoleClaim<string>", b =>
@@ -492,7 +875,22 @@ namespace Kairn.Infrastructure.Migrations
                         .IsRequired();
                 });
 
+            modelBuilder.Entity("Kairn.Domain.Entities.BankStatementLine", b =>
+                {
+                    b.Navigation("Matches");
+                });
+
             modelBuilder.Entity("Kairn.Domain.Entities.JournalEntry", b =>
+                {
+                    b.Navigation("Lines");
+                });
+
+            modelBuilder.Entity("Kairn.Domain.Entities.ReconciliationSession", b =>
+                {
+                    b.Navigation("BankLines");
+                });
+
+            modelBuilder.Entity("Kairn.Domain.Entities.RecurringEntry", b =>
                 {
                     b.Navigation("Lines");
                 });

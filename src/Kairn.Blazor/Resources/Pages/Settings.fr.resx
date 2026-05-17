@@ -7,4 +7,6 @@
   <data name="COA.Title" xml:space="preserve"><value>Plan comptable</value></data>
   <data name="COA.Description" xml:space="preserve"><value>Gérer votre hiérarchie de comptes</value></data>
   <data name="Open" xml:space="preserve"><value>Ouvrir</value></data>
+  <data name="AuditLog.Title" xml:space="preserve"><value>Journal d'audit</value></data>
+  <data name="AuditLog.Description" xml:space="preserve"><value>Enregistrement immuable de toutes les modifications</value></data>
 </root>

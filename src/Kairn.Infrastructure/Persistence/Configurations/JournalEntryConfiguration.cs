@@ -25,6 +25,12 @@ public class JournalEntryConfiguration : IEntityTypeConfiguration<JournalEntry>
         builder.Ignore(e => e.TotalCredit);
         builder.Ignore(e => e.IsBalanced);
 
+        builder.HasOne<Kairn.Domain.Entities.RecurringEntry>()
+               .WithMany()
+               .HasForeignKey(e => e.RecurringEntryId)
+               .OnDelete(DeleteBehavior.SetNull)
+               .IsRequired(false);
+
         builder.HasMany(e => e.Lines)
                .WithOne(l => l.Entry)
                .HasForeignKey(l => l.EntryId)

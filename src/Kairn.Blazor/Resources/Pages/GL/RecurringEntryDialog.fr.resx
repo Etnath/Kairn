@@ -1,0 +1,29 @@
+<?xml version="1.0" encoding="utf-8"?>
+<root>
+  <resheader name="resmimetype"><value>text/microsoft-resx</value></resheader>
+  <resheader name="version"><value>2.0</value></resheader>
+  <data name="CreateTitle" xml:space="preserve"><value>Nouveau modèle récurrent</value></data>
+  <data name="EditTitle" xml:space="preserve"><value>Modifier le modèle récurrent</value></data>
+  <data name="Lbl_Name" xml:space="preserve"><value>Nom du modèle</value></data>
+  <data name="Lbl_EntryDescription" xml:space="preserve"><value>Description de l'écriture</value></data>
+  <data name="Lbl_Frequency" xml:space="preserve"><value>Fréquence</value></data>
+  <data name="Lbl_StartDate" xml:space="preserve"><value>Date de début</value></data>
+  <data name="Lbl_EndDate" xml:space="preserve"><value>Date de fin (facultatif)</value></data>
+  <data name="Freq_Daily" xml:space="preserve"><value>Quotidien</value></data>
+  <data name="Freq_Weekly" xml:space="preserve"><value>Hebdomadaire</value></data>
+  <data name="Freq_Monthly" xml:space="preserve"><value>Mensuel</value></data>
+  <data name="Freq_Quarterly" xml:space="preserve"><value>Trimestriel</value></data>
+  <data name="Freq_Annually" xml:space="preserve"><value>Annuel</value></data>
+  <data name="Lbl_Account" xml:space="preserve"><value>Compte</value></data>
+  <data name="Lbl_Debit" xml:space="preserve"><value>Débit</value></data>
+  <data name="Lbl_Credit" xml:space="preserve"><value>Crédit</value></data>
+  <data name="Lbl_Currency" xml:space="preserve"><value>Devise</value></data>
+  <data name="Lbl_Memo" xml:space="preserve"><value>Libellé</value></data>
+  <data name="AddLine" xml:space="preserve"><value>Ajouter une ligne</value></data>
+  <data name="Balance_OK" xml:space="preserve"><value>Équilibrée</value></data>
+  <data name="Balance_Diff" xml:space="preserve"><value>Différence : {0:N2}</value></data>
+  <data name="Save" xml:space="preserve"><value>Enregistrer</value></data>
+  <data name="Cancel" xml:space="preserve"><value>Annuler</value></data>
+  <data name="Err_MinLines" xml:space="preserve"><value>Une écriture comptable nécessite au moins 2 lignes.</value></data>
+  <data name="Err_Unbalanced" xml:space="preserve"><value>Les débits et crédits doivent être égaux.</value></data>
+</root>

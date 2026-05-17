@@ -1,0 +1,25 @@
+<?xml version="1.0" encoding="utf-8"?>
+<root>
+  <resheader name="resmimetype"><value>text/microsoft-resx</value></resheader>
+  <resheader name="version"><value>2.0</value></resheader>
+  <data name="Title" xml:space="preserve"><value>Journal d'audit</value></data>
+  <data name="Filter_EntityType" xml:space="preserve"><value>Type d'entité</value></data>
+  <data name="Filter_From" xml:space="preserve"><value>Du</value></data>
+  <data name="Filter_To" xml:space="preserve"><value>Au</value></data>
+  <data name="Filter_ChangedBy" xml:space="preserve"><value>Modifié par</value></data>
+  <data name="Filter_All" xml:space="preserve"><value>Tous</value></data>
+  <data name="Col_Timestamp" xml:space="preserve"><value>Horodatage</value></data>
+  <data name="Col_EntityType" xml:space="preserve"><value>Entité</value></data>
+  <data name="Col_RecordId" xml:space="preserve"><value>ID enregistrement</value></data>
+  <data name="Col_Action" xml:space="preserve"><value>Action</value></data>
+  <data name="Col_ChangedBy" xml:space="preserve"><value>Modifié par</value></data>
+  <data name="Col_OldValues" xml:space="preserve"><value>Avant</value></data>
+  <data name="Col_NewValues" xml:space="preserve"><value>Après</value></data>
+  <data name="NoEntries" xml:space="preserve"><value>Aucune entrée dans le journal d'audit.</value></data>
+  <data name="Action_Created" xml:space="preserve"><value>Créé</value></data>
+  <data name="Action_Updated" xml:space="preserve"><value>Modifié</value></data>
+  <data name="Action_Deleted" xml:space="preserve"><value>Supprimé</value></data>
+  <data name="Action_Restored" xml:space="preserve"><value>Restauré</value></data>
+  <data name="Values_Empty" xml:space="preserve"><value>—</value></data>
+  <data name="Expand" xml:space="preserve"><value>Voir les valeurs</value></data>
+</root>

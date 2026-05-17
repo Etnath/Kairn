@@ -19,6 +19,17 @@
                 const value = 'c=' + culture + '|uic=' + culture;
                 document.cookie = '.AspNetCore.Culture=' + encodeURIComponent(value)
                     + '; path=/; max-age=2592000; samesite=lax';
+            },
+            downloadFile: function (filename, contentType, data) {
+                const blob = new Blob([new Uint8Array(data)], { type: contentType });
+                const url = URL.createObjectURL(blob);
+                const a = document.createElement('a');
+                a.href = url;
+                a.download = filename;
+                document.body.appendChild(a);
+                a.click();
+                document.body.removeChild(a);
+                URL.revokeObjectURL(url);
             }
         };
     </script>

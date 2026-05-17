@@ -1,0 +1,562 @@
+@page "/ledger/reconcile"
+@page "/ledger/reconcile/{SessionId:guid}"
+@attribute [Authorize(Roles = "Admin,Bookkeeper")]
+@rendermode InteractiveServer
+@inject IReconciliationService ReconciliationService
+@inject IAccountService AccountService
+@inject IOfxParser OfxParser
+@inject ICsvParser CsvParser
+@inject ICurrentUserContext CurrentUser
+@inject IStringLocalizer<Reconciliation> L
+@inject IDialogService DialogService
+@inject ISnackbar Snackbar
+@inject NavigationManager Nav
+
+<PageTitle>@L["Title"] – Kairn</PageTitle>
+
+@if (_session is null)
+{
+    @* ── Setup view ── *@
+    <MudStack Row="true" AlignItems="AlignItems.Center" Class="mb-4">
+        <MudText Typo="Typo.h5">@L["Title"]</MudText>
+    </MudStack>
+
+    <MudGrid>
+        <MudItem xs="12" md="6">
+            <MudPaper Class="pa-4" Elevation="1">
+                <MudStack Spacing="3">
+                    <MudSelect T="Kairn.Domain.Entities.Account"
+                               Value="_selectedAccount"
+                               ValueChanged="@((Kairn.Domain.Entities.Account a) => _selectedAccount = a)"
+                               Label="@L["Setup_Account"]"
+                               ToStringFunc="@(a => a is null ? "" : $"{a.Code} – {a.Name}")"
+                               Required="true">
+                        @foreach (var acct in _accounts)
+                        {
+                            <MudSelectItem T="Kairn.Domain.Entities.Account" Value="acct">
+                                @acct.Code – @acct.Name
+                            </MudSelectItem>
+                        }
+                    </MudSelect>
+
+                    <MudGrid Spacing="2">
+                        <MudItem xs="6">
+                            <MudDatePicker @bind-Date="_setupFrom" Label="@L["Setup_From"]"
+                                           DateFormat="dd/MM/yyyy" Editable="true" Required="true" />
+                        </MudItem>
+                        <MudItem xs="6">
+                            <MudDatePicker @bind-Date="_setupTo" Label="@L["Setup_To"]"
+                                           DateFormat="dd/MM/yyyy" Editable="true" Required="true" />
+                        </MudItem>
+                    </MudGrid>
+
+                    <MudFileUpload T="IBrowserFile" FilesChanged="OnStatementUploaded"
+                                   Accept=".ofx,.qfx,.csv">
+                        <ActivatorContent>
+                            <MudButton HtmlTag="label" Variant="Variant.Outlined"
+                                       StartIcon="@Icons.Material.Filled.Upload">
+                                @L["Setup_Upload"]
+                            </MudButton>
+                        </ActivatorContent>
+                    </MudFileUpload>
+                    @if (_uploadedFileName is not null)
+                    {
+                        <MudChip T="string" Icon="@Icons.Material.Filled.InsertDriveFile">
+                            @_uploadedFileName (@_parsedTransactions.Count tx)
+                        </MudChip>
+                    }
+
+                    @if (_setupError is not null)
+                    {
+                        <MudAlert Severity="Severity.Error" Dense="true">@_setupError</MudAlert>
+                    }
+
+                    <MudButton Variant="Variant.Filled" Color="Color.Primary"
+                               OnClick="StartReconciliation"
+                               Disabled="@(_selectedAccount is null || _setupFrom is null || _setupTo is null || _parsedTransactions.Count == 0)">
+                        @L["Setup_Start"]
+                    </MudButton>
+                </MudStack>
+            </MudPaper>
+        </MudItem>
+
+        @* History *@
+        <MudItem xs="12" md="6">
+            <MudText Typo="Typo.subtitle1" Class="mb-2">@L["Setup_History"]</MudText>
+            <MudTable Items="_history" Dense="true" Hover="true" Elevation="0"
+                      Style="border:1px solid var(--mud-palette-lines-default)">
+                <HeaderContent>
+                    <MudTh>@L["History_Account"]</MudTh>
+                    <MudTh>@L["History_Period"]</MudTh>
+                    <MudTh>@L["History_Status"]</MudTh>
+                    <MudTh>@L["History_Pairs"]</MudTh>
+                    <MudTh Style="width:60px"></MudTh>
+                </HeaderContent>
+                <RowTemplate>
+                    <MudTd>@context.AccountCode</MudTd>
+                    <MudTd>@context.StartDate.ToString("dd/MM/yy") – @context.EndDate.ToString("dd/MM/yy")</MudTd>
+                    <MudTd>
+                        <MudChip T="string" Size="Size.Small"
+                                 Color="@(context.Status == Kairn.Domain.Entities.ReconciliationStatus.Completed ? Color.Success : Color.Warning)">
+                            @(context.Status == Kairn.Domain.Entities.ReconciliationStatus.Completed ? L["Status_Completed"].Value : L["Status_InProgress"].Value)
+                        </MudChip>
+                    </MudTd>
+                    <MudTd>@context.MatchedPairCount</MudTd>
+                    <MudTd>
+                        @if (context.Status == Kairn.Domain.Entities.ReconciliationStatus.InProgress)
+                        {
+                            <MudIconButton Icon="@Icons.Material.Filled.OpenInNew" Size="Size.Small"
+                                           OnClick="@(() => Nav.NavigateTo($"/ledger/reconcile/{context.Id}"))" />
+                        }
+                    </MudTd>
+                </RowTemplate>
+                <NoRecordsContent>
+                    <MudText Color="Color.Secondary" Typo="Typo.caption">—</MudText>
+                </NoRecordsContent>
+            </MudTable>
+        </MudItem>
+    </MudGrid>
+}
+else if (_session.Status == Kairn.Domain.Entities.ReconciliationStatus.Completed)
+{
+    @* ── Completed view ── *@
+    <MudStack Row="true" AlignItems="AlignItems.Center" Class="mb-4">
+        <MudIconButton Icon="@Icons.Material.Filled.ArrowBack" OnClick="GoBack" />
+        <MudText Typo="Typo.h5">@L["Title"] – @_session.AccountCode</MudText>
+        <MudChip T="string" Color="Color.Success">@L["Status_Completed"]</MudChip>
+    </MudStack>
+
+    <MudAlert Severity="Severity.Success" Class="mb-3">
+        @_session.MatchedPairCount @L["Lbl_MatchedCount"] · @_session.StartDate.ToString("dd/MM/yyyy") – @_session.EndDate.ToString("dd/MM/yyyy")
+    </MudAlert>
+
+    <MudTable Items="_session.BankLines" Dense="true" Elevation="0">
+        <HeaderContent>
+            <MudTh>@L["Col_Date"]</MudTh>
+            <MudTh>@L["Col_Description"]</MudTh>
+            <MudTh Style="text-align:right">@L["Col_Amount"]</MudTh>
+            <MudTh>@L["Col_Matched"]</MudTh>
+        </HeaderContent>
+        <RowTemplate>
+            <MudTd>@context.Date.ToString("dd/MM/yyyy")</MudTd>
+            <MudTd>@context.Description</MudTd>
+            <MudTd Style="text-align:right">@AmountStr(context.Amount)</MudTd>
+            <MudTd>
+                @if (context.IsMatched)
+                {
+                    <MudIcon Icon="@Icons.Material.Filled.CheckCircle" Color="Color.Success" Size="Size.Small" />
+                }
+                else
+                {
+                    <MudIcon Icon="@Icons.Material.Filled.Warning" Color="Color.Warning" Size="Size.Small" />
+                }
+            </MudTd>
+        </RowTemplate>
+    </MudTable>
+}
+else
+{
+    @* ── Active reconciliation view ── *@
+    <MudStack Row="true" AlignItems="AlignItems.Center" Class="mb-3">
+        <MudIconButton Icon="@Icons.Material.Filled.ArrowBack" OnClick="GoBack" />
+        <MudText Typo="Typo.h5">@_session.AccountCode – @_session.AccountName</MudText>
+        <MudText Typo="Typo.caption" Color="Color.Secondary" Class="ml-2">
+            @_session.StartDate.ToString("dd/MM/yyyy") – @_session.EndDate.ToString("dd/MM/yyyy")
+        </MudText>
+        <MudSpacer />
+        @* Balance summary *@
+        @{
+            var unmatchedBalance = UnmatchedBalance;
+            var isBalanced = Math.Abs(unmatchedBalance) < 0.01m;
+            var balColor = isBalanced ? "#3A9463" : "#C2492A";
+        }
+        <MudStack Row="true" Spacing="3" AlignItems="AlignItems.Center">
+            <MudText Typo="Typo.caption">@L["Lbl_UnmatchedBalance"]</MudText>
+            <MudText Style="@($"color:{balColor};font-weight:600")">@AmountStr(unmatchedBalance)</MudText>
+            <MudButton Variant="Variant.Filled" Color="Color.Primary"
+                       Disabled="@(!isBalanced)"
+                       OnClick="ConfirmComplete">
+                @L["Btn_Complete"]
+            </MudButton>
+        </MudStack>
+    </MudStack>
+
+    @* Action bar *@
+    <MudStack Row="true" Spacing="1" Class="mb-3">
+        <MudButton Variant="Variant.Outlined" Size="Size.Small"
+                   Disabled="@(_selectedBankLine is null || _selectedLedgerLines.Count == 0)"
+                   OnClick="DoMatch">
+            @L["Btn_Match"]
+        </MudButton>
+        <MudButton Variant="Variant.Outlined" Size="Size.Small" Color="Color.Warning"
+                   Disabled="@(_selectedBankLine is null || !_selectedBankLine.IsMatched)"
+                   OnClick="DoUnmatch">
+            @L["Btn_Unmatch"]
+        </MudButton>
+        <MudButton Variant="Variant.Outlined" Size="Size.Small" Color="Color.Info"
+                   Disabled="@(_selectedBankLine is null)"
+                   OnClick="OpenCreateEntry">
+            @L["Btn_CreateEntry"]
+        </MudButton>
+    </MudStack>
+
+    @if (_matchError is not null)
+    {
+        <MudAlert Severity="Severity.Error" Dense="true" Class="mb-2">@_matchError</MudAlert>
+    }
+
+    <MudGrid Spacing="2">
+        @* LEFT: bank statement *@
+        <MudItem xs="12" md="6">
+            <MudText Typo="Typo.subtitle2" Class="mb-1">@L["Panel_Bank"]</MudText>
+            <MudTable Items="_session.BankLines" Dense="true" Hover="true" Elevation="0"
+                      SelectedItem="_selectedBankLine"
+                      SelectedItemChanged="@((BankStatementLineDto b) => OnBankLineSelected(b))"
+                      RowClassFunc="BankRowClass"
+                      Style="border:1px solid var(--mud-palette-lines-default)">
+                <HeaderContent>
+                    <MudTh>@L["Col_Date"]</MudTh>
+                    <MudTh>@L["Col_Description"]</MudTh>
+                    <MudTh Style="text-align:right">@L["Col_Amount"]</MudTh>
+                    <MudTh Style="width:32px"></MudTh>
+                </HeaderContent>
+                <RowTemplate>
+                    <MudTd>@context.Date.ToString("dd/MM/yyyy")</MudTd>
+                    <MudTd>
+                        <MudText Typo="Typo.body2">@context.Description</MudText>
+                        @if (context.IsMatched)
+                        {
+                            <MudText Typo="Typo.caption" Color="Color.Success">
+                                ↔ @string.Join(", ", context.Matches.Select(m => m.Reference))
+                            </MudText>
+                        }
+                    </MudTd>
+                    <MudTd Style="text-align:right">
+                        <MudText Style="@(context.Amount >= 0 ? "color:#3A9463" : "color:#C2492A")">
+                            @AmountStr(context.Amount)
+                        </MudText>
+                    </MudTd>
+                    <MudTd>
+                        @if (context.IsMatched)
+                        {
+                            <MudIcon Icon="@Icons.Material.Filled.CheckCircle"
+                                     Color="Color.Success" Size="Size.Small" />
+                        }
+                    </MudTd>
+                </RowTemplate>
+            </MudTable>
+        </MudItem>
+
+        @* RIGHT: unreconciled ledger lines *@
+        <MudItem xs="12" md="6">
+            <MudText Typo="Typo.subtitle2" Class="mb-1">@L["Panel_Ledger"]</MudText>
+            <MudTable Items="_ledgerLines" Dense="true" Hover="true" Elevation="0"
+                      MultiSelection="true"
+                      @bind-SelectedItems="_selectedLedgerLinesSet"
+                      RowClassFunc="LedgerRowClass"
+                      Style="border:1px solid var(--mud-palette-lines-default)">
+                <HeaderContent>
+                    <MudTh>@L["Col_Date"]</MudTh>
+                    <MudTh>@L["Col_Reference"]</MudTh>
+                    <MudTh Style="text-align:right">@L["Col_Debit"]</MudTh>
+                    <MudTh Style="text-align:right">@L["Col_Credit"]</MudTh>
+                </HeaderContent>
+                <RowTemplate>
+                    <MudTd>@context.EntryDate.ToString("dd/MM/yyyy")</MudTd>
+                    <MudTd>
+                        <MudText Typo="Typo.body2">@context.Reference</MudText>
+                        <MudText Typo="Typo.caption" Color="Color.Secondary">@context.EntryDescription</MudText>
+                    </MudTd>
+                    <MudTd Style="text-align:right">@(context.Debit > 0 ? context.Debit.ToString("N2") : "")</MudTd>
+                    <MudTd Style="text-align:right">@(context.Credit > 0 ? context.Credit.ToString("N2") : "")</MudTd>
+                </RowTemplate>
+                <NoRecordsContent>
+                    <MudText Color="Color.Secondary" Typo="Typo.caption">—</MudText>
+                </NoRecordsContent>
+            </MudTable>
+        </MudItem>
+    </MudGrid>
+
+    @* Unmatched summary *@
+    @if (UnmatchedLines.Count > 0)
+    {
+        <MudDivider Class="my-4" />
+        <MudText Typo="Typo.subtitle2" Color="Color.Warning" Class="mb-2">
+            @L["Lbl_Unmatched"] (@UnmatchedLines.Count)
+        </MudText>
+        <MudTable Items="UnmatchedLines" Dense="true" Elevation="0">
+            <HeaderContent>
+                <MudTh>@L["Col_Date"]</MudTh>
+                <MudTh>@L["Col_Description"]</MudTh>
+                <MudTh Style="text-align:right">@L["Col_Amount"]</MudTh>
+            </HeaderContent>
+            <RowTemplate>
+                <MudTd>@context.Date.ToString("dd/MM/yyyy")</MudTd>
+                <MudTd>@context.Description</MudTd>
+                <MudTd Style="text-align:right">@AmountStr(context.Amount)</MudTd>
+            </RowTemplate>
+        </MudTable>
+    }
+}
+
+@code {
+    [Parameter] public Guid? SessionId { get; set; }
+
+    // Setup state
+    private List<Kairn.Domain.Entities.Account> _accounts = [];
+    private Kairn.Domain.Entities.Account? _selectedAccount;
+    private DateTime? _setupFrom;
+    private DateTime? _setupTo;
+    private string? _uploadedFileName;
+    private List<ParsedTransaction> _parsedTransactions = [];
+    private string? _setupError;
+
+    // Matching state
+    private ReconciliationSessionDto? _session;
+    private List<LedgerLineForReconciliationDto> _ledgerLines = [];
+    private BankStatementLineDto? _selectedBankLine;
+    private HashSet<LedgerLineForReconciliationDto> _selectedLedgerLinesSet = [];
+    private string? _matchError;
+
+    // History
+    private List<ReconciliationSessionSummaryDto> _history = [];
+
+    private IReadOnlyList<LedgerLineForReconciliationDto> _selectedLedgerLines =>
+        _selectedLedgerLinesSet.ToList();
+
+    private decimal UnmatchedBalance =>
+        _session?.BankLines.Where(l => !l.IsMatched).Sum(l => l.Amount) ?? 0m;
+
+    private IReadOnlyList<BankStatementLineDto> UnmatchedLines =>
+        _session?.BankLines.Where(l => !l.IsMatched).ToList() ?? [];
+
+    protected override async Task OnInitializedAsync()
+    {
+        _accounts = (await AccountService.GetAllAsync(CurrentUser.TenantId))
+            .Where(a => a.IsActive)
+            .ToList();
+
+        _history = (await ReconciliationService.GetSessionsAsync(CurrentUser.TenantId)).ToList();
+
+        if (SessionId.HasValue)
+        {
+            _session = await ReconciliationService.GetSessionAsync(SessionId.Value, CurrentUser.TenantId);
+            if (_session is not null && _session.Status == Kairn.Domain.Entities.ReconciliationStatus.InProgress)
+                await LoadLedgerLines();
+        }
+    }
+
+    private async Task OnStatementUploaded(IBrowserFile file)
+    {
+        _setupError = null;
+        _parsedTransactions = [];
+        _uploadedFileName = null;
+
+        var ext = Path.GetExtension(file.Name).ToLowerInvariant();
+        const long maxBytes = 25 * 1024 * 1024;
+
+        await using var stream = file.OpenReadStream(maxBytes);
+        using var ms = new MemoryStream();
+        await stream.CopyToAsync(ms);
+        ms.Position = 0;
+
+        try
+        {
+            if (ext is ".ofx" or ".qfx")
+            {
+                var txns = await OfxParser.ParseAsync(ms);
+                if (txns.Count == 0) { _setupError = L["Err_NoLines"]; return; }
+                _parsedTransactions = txns.ToList();
+                _uploadedFileName = file.Name;
+                _pendingCsvFile = null;
+            }
+            else if (ext == ".csv")
+            {
+                ms.Position = 0;
+                var (headers, rows) = await CsvParser.PreviewAsync(ms, ",");
+                _pendingCsvBytes = ms.ToArray();
+                _uploadedFileName = file.Name;
+
+                var dialog = await DialogService.ShowAsync<CsvMappingDialog>(
+                    L["Csv_Title"],
+                    new DialogParameters<CsvMappingDialog>
+                    {
+                        { x => x.InitialHeaders, headers },
+                        { x => x.InitialRows, rows },
+                    },
+                    new DialogOptions { MaxWidth = MaxWidth.Medium, FullWidth = true });
+
+                var result = await dialog.Result;
+                if (result is { Canceled: false, Data: CsvColumnMapping mapping })
+                {
+                    using var parseStream = new MemoryStream(_pendingCsvBytes!);
+                    var txns = await CsvParser.ParseAsync(parseStream, mapping);
+                    if (txns.Count == 0) { _setupError = L["Err_NoLines"]; return; }
+                    _parsedTransactions = txns.ToList();
+                }
+                else
+                {
+                    _uploadedFileName = null;
+                }
+            }
+        }
+        catch
+        {
+            _setupError = L["Err_ParseFailed"];
+        }
+    }
+
+    private byte[]? _pendingCsvBytes;
+    private IBrowserFile? _pendingCsvFile;
+
+    private async Task StartReconciliation()
+    {
+        if (_selectedAccount is null || _setupFrom is null || _setupTo is null) return;
+
+        var session = await ReconciliationService.StartSessionAsync(new StartReconciliationCommand(
+            CurrentUser.TenantId,
+            _selectedAccount.Id,
+            DateOnly.FromDateTime(_setupFrom.Value),
+            DateOnly.FromDateTime(_setupTo.Value)));
+
+        var ext = Path.GetExtension(_uploadedFileName ?? "").ToLowerInvariant();
+        var format = ext is ".ofx" or ".qfx"
+            ? Kairn.Domain.Entities.StatementFormat.OFX
+            : Kairn.Domain.Entities.StatementFormat.CSV;
+
+        await ReconciliationService.ImportLinesAsync(new ImportLinesCommand(
+            session.Id, CurrentUser.TenantId,
+            _parsedTransactions, _uploadedFileName ?? "statement", format));
+
+        _session = await ReconciliationService.GetSessionAsync(session.Id, CurrentUser.TenantId);
+        await LoadLedgerLines();
+        Nav.NavigateTo($"/ledger/reconcile/{session.Id}", replace: true);
+    }
+
+    private async Task LoadLedgerLines()
+    {
+        if (_session is null) return;
+        _ledgerLines = (await ReconciliationService.GetUnreconciledLinesAsync(
+            CurrentUser.TenantId, _session.AccountId,
+            _session.StartDate, _session.EndDate)).ToList();
+    }
+
+    private void OnBankLineSelected(BankStatementLineDto? line)
+    {
+        _selectedBankLine = line;
+        _matchError = null;
+    }
+
+    private async Task DoMatch()
+    {
+        if (_selectedBankLine is null) { _matchError = L["Err_SelectBankLine"]; return; }
+        if (_selectedLedgerLines.Count == 0) { _matchError = L["Err_SelectLedgerLines"]; return; }
+        _matchError = null;
+
+        var result = await ReconciliationService.MatchAsync(new MatchCommand(
+            _session!.Id, CurrentUser.TenantId,
+            _selectedBankLine.Id,
+            _selectedLedgerLines.Select(l => l.LineId).ToList(),
+            CurrentUser.UserId));
+
+        if (result.IsSuccess)
+        {
+            Snackbar.Add(L["Snack_Matched"], Severity.Success);
+            _session = await ReconciliationService.GetSessionAsync(_session.Id, CurrentUser.TenantId);
+            await LoadLedgerLines();
+            _selectedBankLine = null;
+            _selectedLedgerLinesSet = [];
+        }
+        else
+        {
+            _matchError = result.Error;
+        }
+    }
+
+    private async Task DoUnmatch()
+    {
+        if (_selectedBankLine is null) return;
+
+        var result = await ReconciliationService.UnmatchAsync(
+            _session!.Id, CurrentUser.TenantId, _selectedBankLine.Id);
+
+        if (result.IsSuccess)
+        {
+            Snackbar.Add(L["Snack_Unmatched"], Severity.Warning);
+            _session = await ReconciliationService.GetSessionAsync(_session.Id, CurrentUser.TenantId);
+            await LoadLedgerLines();
+            _selectedBankLine = null;
+        }
+        else
+        {
+            _matchError = result.Error;
+        }
+    }
+
+    private async Task OpenCreateEntry()
+    {
+        if (_selectedBankLine is null || _session is null) return;
+
+        var preFill = new JournalEntryDialog.BankEntryPreFill(
+            _selectedBankLine.Description,
+            _selectedBankLine.Date.ToDateTime(TimeOnly.MinValue),
+            _session.AccountId,
+            _selectedBankLine.Amount);
+
+        var dialog = await DialogService.ShowAsync<JournalEntryDialog>(
+            L["Btn_CreateEntry"],
+            new DialogParameters<JournalEntryDialog>
+            {
+                { x => x.Entry, null },
+                { x => x.PreFill, preFill },
+            },
+            new DialogOptions { MaxWidth = MaxWidth.Large, FullWidth = true });
+
+        var result = await dialog.Result;
+        if (result is { Canceled: false })
+        {
+            await LoadLedgerLines();
+            Snackbar.Add(L["Snack_Matched"], Severity.Info);
+        }
+    }
+
+    private async Task ConfirmComplete()
+    {
+        var confirmed = await DialogService.ShowMessageBox(
+            L["Complete_Confirm"].Value,
+            L["Complete_Body"].Value,
+            yesText: L["Complete_Yes"].Value,
+            cancelText: L["Cancel"].Value);
+
+        if (confirmed is not true) return;
+
+        var result = await ReconciliationService.CompleteAsync(_session!.Id, CurrentUser.TenantId);
+        if (result.IsSuccess)
+        {
+            Snackbar.Add(L["Snack_Completed"], Severity.Success);
+            _session = await ReconciliationService.GetSessionAsync(_session!.Id, CurrentUser.TenantId);
+        }
+        else
+        {
+            _matchError = result.Error;
+        }
+    }
+
+    private void GoBack()
+    {
+        _session = null;
+        Nav.NavigateTo("/ledger/reconcile", replace: true);
+    }
+
+    private string BankRowClass(BankStatementLineDto line, int index)
+    {
+        if (_selectedBankLine?.Id == line.Id) return "mud-selected-item";
+        if (line.IsMatched) return "reconcile-matched";
+        return "";
+    }
+
+    private string LedgerRowClass(LedgerLineForReconciliationDto line, int index) => "";
+
+    private static string AmountStr(decimal amount) =>
+        amount >= 0 ? $"+{amount:N2}" : amount.ToString("N2");
+}

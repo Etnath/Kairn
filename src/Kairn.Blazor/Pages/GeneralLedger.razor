@@ -1,128 +1,438 @@
 @page "/ledger"
+@page "/ledger/account/{PrefilterAccountId:guid}"
 @attribute [Authorize]
 @rendermode InteractiveServer
+@using Kairn.Domain.Entities
 @inject IJournalEntryService JournalEntryService
+@inject IRecurringEntryService RecurringSvc
+@inject IAccountService AccountService
 @inject ICurrentUserContext CurrentUser
 @inject IStringLocalizer<GeneralLedger> L
 @inject IDialogService DialogService
 @inject ISnackbar Snackbar
+@inject IJSRuntime JS
 
 <PageTitle>@L["Title"] – Kairn</PageTitle>
+<MudText Typo="Typo.h5" Class="mb-4">@L["Title"]</MudText>
 
-<MudStack Row="true" AlignItems="AlignItems.Center" Class="mb-4">
-    <MudText Typo="Typo.h5">@L["Title"]</MudText>
-    <MudSpacer />
-    <AuthorizeView Roles="Admin,Bookkeeper">
-        <MudButton StartIcon="@Icons.Material.Filled.Add" Variant="Variant.Filled"
-                   Color="Color.Primary" OnClick="OpenCreate">
-            @L["NewEntry"]
-        </MudButton>
-    </AuthorizeView>
-</MudStack>
+<MudTabs Elevation="0" Border="true" ApplyEffectsToContainer="true">
 
-@* Filters *@
-<MudPaper Class="pa-3 mb-4" Elevation="0" Outlined="true">
-    <MudGrid Spacing="2">
-        <MudItem xs="12" sm="4">
-            <MudTextField Value="@_search" Label="@L["Search"]"
-                          Immediate="true" DebounceInterval="300"
-                          Adornment="Adornment.Start" AdornmentIcon="@Icons.Material.Filled.Search"
-                          Clearable="true"
-                          ValueChanged="@((string v) => OnSearchChanged(v))" />
-        </MudItem>
-        <MudItem xs="6" sm="2">
-            <MudDatePicker Date="_filterFrom" Label="@L["Filter_From"]"
-                           DateFormat="dd/MM/yyyy" Editable="true"
-                           DateChanged="@OnFromChanged" />
-        </MudItem>
-        <MudItem xs="6" sm="2">
-            <MudDatePicker Date="_filterTo" Label="@L["Filter_To"]"
-                           DateFormat="dd/MM/yyyy" Editable="true"
-                           DateChanged="@OnToChanged" />
-        </MudItem>
-    </MudGrid>
-</MudPaper>
+    @* ── Tab 1: Journal Entries ─────────────────────────────────────────────── *@
+    <MudTabPanel Text="@L["Tab_Entries"]" Icon="@Icons.Material.Filled.Receipt">
 
-@* Table *@
-<MudTable ServerData="LoadData" @ref="_table" Dense="true" Hover="true"
-          RowClass="cursor-pointer"
-          OnRowClick="OnRowClick"
-          T="JournalEntryDto">
-    <HeaderContent>
-        <MudTh>@L["Col_Date"]</MudTh>
-        <MudTh>@L["Col_Reference"]</MudTh>
-        <MudTh>@L["Col_Description"]</MudTh>
-        <MudTh Style="text-align:right">@L["Col_Debit"]</MudTh>
-        <MudTh Style="text-align:right">@L["Col_Credit"]</MudTh>
-        <MudTh>@L["Col_CreatedBy"]</MudTh>
-        <MudTh Style="width:40px">@L["Col_Attachment"]</MudTh>
-    </HeaderContent>
-    <RowTemplate>
-        <MudTd DataLabel="@L["Col_Date"]">@context.Date.ToString("dd/MM/yyyy")</MudTd>
-        <MudTd DataLabel="@L["Col_Reference"]">
-            <MudText Typo="Typo.body2">@context.Reference</MudText>
-            @if (context.IsLocked)
+        <MudStack Row="true" AlignItems="AlignItems.Center" Class="mt-3 mb-3">
+            <MudSpacer />
+            <MudButton StartIcon="@Icons.Material.Filled.Download" Variant="Variant.Outlined"
+                       Color="Color.Default" OnClick="ExportCsv" Class="mr-1">
+                @L["ExportCsv"]
+            </MudButton>
+            <AuthorizeView Roles="Admin">
+                <MudSwitch T="bool" Value="_showDeleted" ValueChanged="OnShowDeletedChanged"
+                           Color="Color.Warning" Class="mr-2">
+                    @L["ShowDeleted"]
+                    @if (_deletedCount > 0)
+                    {
+                        <MudChip T="string" Size="Size.Small" Color="Color.Warning" Class="ml-1">
+                            @string.Format(L["DeletedCount"].Value, _deletedCount)
+                        </MudChip>
+                    }
+                </MudSwitch>
+            </AuthorizeView>
+            <AuthorizeView Roles="Admin,Bookkeeper">
+                @if (!_showDeleted)
+                {
+                    <MudButton StartIcon="@Icons.Material.Filled.CompareArrows" Variant="Variant.Outlined"
+                               Color="Color.Secondary" Href="/ledger/reconcile" Class="mr-1">
+                        @L["Reconcile"]
+                    </MudButton>
+                    <MudButton StartIcon="@Icons.Material.Filled.Add" Variant="Variant.Filled"
+                               Color="Color.Primary" OnClick="OpenCreate">
+                        @L["NewEntry"]
+                    </MudButton>
+                }
+            </AuthorizeView>
+        </MudStack>
+
+        <MudPaper Class="pa-3 mb-4" Elevation="0" Outlined="true">
+            <MudGrid Spacing="2">
+                <MudItem xs="12" sm="4">
+                    <MudTextField Value="@_search" Label="@L["Search"]"
+                                  Immediate="true" DebounceInterval="300"
+                                  Adornment="Adornment.Start" AdornmentIcon="@Icons.Material.Filled.Search"
+                                  Clearable="true"
+                                  ValueChanged="@((string v) => OnSearchChanged(v))" />
+                </MudItem>
+                <MudItem xs="12" sm="4">
+                    <MudDateRangePicker DateRange="_dateRange" Label="@L["Filter_DateRange"]"
+                                        DateFormat="dd/MM/yyyy" Editable="true" Clearable="true"
+                                        DateRangeChanged="OnDateRangeChanged" />
+                </MudItem>
+                <MudItem xs="12" sm="4">
+                    <MudSelect T="Guid" MultiSelection="true"
+                               SelectedValues="_selectedAccountIds"
+                               SelectedValuesChanged="OnAccountsChanged"
+                               Label="@L["Filter_Accounts"]"
+                               Clearable="true" Dense="true"
+                               ToStringFunc="@(id => _accounts.FirstOrDefault(a => a.Id == id) is { } a ? $"{a.Code} – {a.Name}" : "")">
+                        @foreach (var acct in _accounts)
+                        {
+                            <MudSelectItem T="Guid" Value="@acct.Id">@acct.Code – @acct.Name</MudSelectItem>
+                        }
+                    </MudSelect>
+                </MudItem>
+                <MudItem xs="12" sm="4">
+                    <MudTextField Value="@_createdByFilter" Label="@L["Filter_CreatedBy"]"
+                                  Immediate="true" DebounceInterval="300"
+                                  Clearable="true"
+                                  ValueChanged="@((string v) => OnCreatedByChanged(v))" />
+                </MudItem>
+            </MudGrid>
+        </MudPaper>
+
+        <MudTable ServerData="LoadLedgerData" @ref="_table" Dense="true" Hover="true"
+                  T="LedgerLineDto">
+            <HeaderContent>
+                <MudTh Style="width:40px"></MudTh>
+                <MudTh>@L["Col_Date"]</MudTh>
+                <MudTh>@L["Col_Reference"]</MudTh>
+                <MudTh>@L["Col_Description"]</MudTh>
+                <MudTh Style="text-align:right">@L["Col_Debit"]</MudTh>
+                <MudTh Style="text-align:right">@L["Col_Credit"]</MudTh>
+                @if (_showRunningBalance)
+                {
+                    <MudTh Style="text-align:right">@L["Col_RunningBalance"]</MudTh>
+                }
+                <MudTh>@L["Col_CreatedBy"]</MudTh>
+                <MudTh Style="width:40px">@L["Col_Attachment"]</MudTh>
+                <MudTh Style="width:100px"></MudTh>
+            </HeaderContent>
+            <RowTemplate>
+                @{
+                    var rowStyle = context.IsDeleted ? "text-decoration:line-through;opacity:0.6" : "";
+                    var isExpanded = _expandedRows.Contains(context.EntryId);
+                }
+                <MudTd>
+                    <MudIconButton Icon="@(isExpanded ? Icons.Material.Filled.ExpandLess : Icons.Material.Filled.ExpandMore)"
+                                   Size="Size.Small"
+                                   OnClick="@(() => ToggleRow(context.EntryId))" />
+                </MudTd>
+                <MudTd DataLabel="@L["Col_Date"]" Style="@rowStyle">
+                    @context.Date.ToString("dd/MM/yyyy")
+                </MudTd>
+                <MudTd DataLabel="@L["Col_Reference"]" Style="@rowStyle">
+                    <MudText Typo="Typo.body2">@context.Reference</MudText>
+                    @if (context.IsLocked)
+                    {
+                        <MudChip T="string" Size="Size.Small" Icon="@Icons.Material.Filled.Lock"
+                                 Color="Color.Default">@L["Locked"]</MudChip>
+                    }
+                    @if (context.IsDeleted)
+                    {
+                        <MudChip T="string" Size="Size.Small" Icon="@Icons.Material.Filled.Delete"
+                                 Color="Color.Warning">@L["Deleted"]</MudChip>
+                    }
+                    @if (context.IsRecurring)
+                    {
+                        <MudChip T="string" Size="Size.Small" Icon="@Icons.Material.Filled.Repeat"
+                                 Color="Color.Info">@L["IsRecurring"]</MudChip>
+                    }
+                </MudTd>
+                <MudTd DataLabel="@L["Col_Description"]" Style="@rowStyle">@context.Description</MudTd>
+                <MudTd DataLabel="@L["Col_Debit"]" Style="@($"text-align:right;{rowStyle}")">
+                    @context.Debit.ToString("N2")
+                </MudTd>
+                <MudTd DataLabel="@L["Col_Credit"]" Style="@($"text-align:right;{rowStyle}")">
+                    @context.Credit.ToString("N2")
+                </MudTd>
+                @if (_showRunningBalance)
+                {
+                    <MudTd Style="text-align:right;font-weight:500">
+                        @context.RunningBalance?.ToString("N2")
+                    </MudTd>
+                }
+                <MudTd DataLabel="@L["Col_CreatedBy"]" Style="@rowStyle">@context.CreatedByName</MudTd>
+                <MudTd>
+                    @if (context.AttachmentFileName is not null)
+                    {
+                        <MudIcon Icon="@Icons.Material.Filled.AttachFile" Size="Size.Small"
+                                 Title="@context.AttachmentFileName" />
+                    }
+                </MudTd>
+                <MudTd>
+                    <span @onclick:stopPropagation="true">
+                        @if (context.IsDeleted)
+                        {
+                            <AuthorizeView Roles="Admin" Context="authCtx">
+                                <MudIconButton Icon="@Icons.Material.Filled.RestoreFromTrash"
+                                               Size="Size.Small" Color="Color.Success"
+                                               Title="@L["Restore"]"
+                                               OnClick="@(() => RestoreEntry(context))" />
+                            </AuthorizeView>
+                        }
+                        else
+                        {
+                            @if (!context.IsLocked)
+                            {
+                                <AuthorizeView Roles="Admin,Bookkeeper" Context="authCtx">
+                                    <MudIconButton Icon="@Icons.Material.Filled.Edit"
+                                                   Size="Size.Small" Color="Color.Primary"
+                                                   Title="@L["EditTitle"]"
+                                                   OnClick="@(() => OpenEdit(context))" />
+                                    <MudIconButton Icon="@Icons.Material.Filled.Delete"
+                                                   Size="Size.Small" Color="Color.Error"
+                                                   Title="@L["Delete"]"
+                                                   OnClick="@(() => ConfirmDelete(context))" />
+                                </AuthorizeView>
+                            }
+                        }
+                    </span>
+                </MudTd>
+            </RowTemplate>
+            <ChildRowContent Context="rowCtx">
+                @if (_expandedRows.Contains(rowCtx.EntryId))
+                {
+                    <MudTr>
+                        <td colspan="@(_showRunningBalance ? 10 : 9)" style="padding:0 24px 12px 56px">
+                            <MudTable Items="rowCtx.Lines" Dense="true" Hover="false"
+                                      Elevation="0" Style="border:1px solid var(--mud-palette-lines-default)">
+                                <HeaderContent>
+                                    <MudTh>@L["Lbl_Account"]</MudTh>
+                                    <MudTh Style="text-align:right">@L["Lbl_Debit"]</MudTh>
+                                    <MudTh Style="text-align:right">@L["Lbl_Credit"]</MudTh>
+                                    <MudTh Style="width:80px">@L["Lbl_Currency"]</MudTh>
+                                    <MudTh>@L["Lbl_Memo"]</MudTh>
+                                </HeaderContent>
+                                <RowTemplate Context="line">
+                                    <MudTd>
+                                        <MudText Typo="Typo.body2" Style="font-family:monospace">@line.AccountCode</MudText>
+                                        @line.AccountName
+                                    </MudTd>
+                                    <MudTd Style="text-align:right">
+                                        @(line.Debit > 0 ? line.Debit.ToString("N2") : "")
+                                    </MudTd>
+                                    <MudTd Style="text-align:right">
+                                        @(line.Credit > 0 ? line.Credit.ToString("N2") : "")
+                                    </MudTd>
+                                    <MudTd>@line.Currency</MudTd>
+                                    <MudTd>
+                                        <MudText Typo="Typo.body2" Color="Color.Secondary">@line.Memo</MudText>
+                                    </MudTd>
+                                </RowTemplate>
+                            </MudTable>
+                            @if (rowCtx.AttachmentFileName is not null)
+                            {
+                                <MudStack Row="true" AlignItems="AlignItems.Center" Spacing="1" Class="mt-1">
+                                    <MudIcon Icon="@Icons.Material.Filled.AttachFile" Size="Size.Small" />
+                                    <MudText Typo="Typo.caption">@rowCtx.AttachmentFileName</MudText>
+                                </MudStack>
+                            }
+                        </td>
+                    </MudTr>
+                }
+            </ChildRowContent>
+            <NoRecordsContent>
+                <MudText Color="Color.Secondary">@L["NoEntries"]</MudText>
+            </NoRecordsContent>
+            <PagerContent>
+                <MudTablePager PageSizeOptions="new[] { 25, 50, 100 }" />
+            </PagerContent>
+        </MudTable>
+
+    </MudTabPanel>
+
+    @* ── Tab 2: Recurring Templates ─────────────────────────────────────────── *@
+    <MudTabPanel Text="@L["Tab_Recurring"]" Icon="@Icons.Material.Filled.Repeat">
+
+        <MudStack Row="true" AlignItems="AlignItems.Center" Class="mt-3 mb-3">
+            <MudSpacer />
+            <AuthorizeView Roles="Admin,Bookkeeper">
+                <MudButton StartIcon="@Icons.Material.Filled.Add" Variant="Variant.Filled"
+                           Color="Color.Primary" OnClick="OpenCreateTemplate">
+                    @L["Rec_NewTemplate"]
+                </MudButton>
+            </AuthorizeView>
+        </MudStack>
+
+        @if (_recErrors.Count > 0)
+        {
+            <MudText Typo="Typo.subtitle2" Class="mb-1">@L["Rec_RecentErrors"]</MudText>
+            @foreach (var err in _recErrors)
             {
-                <MudChip T="string" Size="Size.Small" Icon="@Icons.Material.Filled.Lock"
-                         Color="Color.Default">@L["Locked"]</MudChip>
+                <MudAlert Severity="Severity.Error" Dense="true" Class="mb-1">
+                    @err.AttemptedAt.LocalDateTime.ToString("dd/MM/yyyy HH:mm") — @err.EntryName: @err.ErrorMessage
+                </MudAlert>
             }
-        </MudTd>
-        <MudTd DataLabel="@L["Col_Description"]">@context.Description</MudTd>
-        <MudTd DataLabel="@L["Col_Debit"]" Style="text-align:right">
-            @context.TotalDebit.ToString("N2")
-        </MudTd>
-        <MudTd DataLabel="@L["Col_Credit"]" Style="text-align:right">
-            @context.TotalCredit.ToString("N2")
-        </MudTd>
-        <MudTd DataLabel="@L["Col_CreatedBy"]">@context.CreatedByName</MudTd>
-        <MudTd>
-            @if (context.AttachmentFileName is not null)
-            {
-                <MudIcon Icon="@Icons.Material.Filled.AttachFile" Size="Size.Small"
-                         Title="@context.AttachmentFileName" />
-            }
-        </MudTd>
-    </RowTemplate>
-    <NoRecordsContent>
-        <MudText Color="Color.Secondary">@L["NoEntries"]</MudText>
-    </NoRecordsContent>
-    <PagerContent>
-        <MudTablePager PageSizeOptions="new[] { 25, 50, 100 }" />
-    </PagerContent>
-</MudTable>
+        }
+
+        <MudTable Items="_templates" Dense="true" Hover="true" Elevation="1" Class="mt-2"
+                  OnRowClick="OnTemplateRowClick" RowClass="cursor-pointer" T="RecurringEntryDto">
+            <HeaderContent>
+                <MudTh>@L["Rec_Col_Name"]</MudTh>
+                <MudTh>@L["Rec_Col_Frequency"]</MudTh>
+                <MudTh>@L["Rec_Col_StartDate"]</MudTh>
+                <MudTh>@L["Rec_Col_EndDate"]</MudTh>
+                <MudTh>@L["Rec_Col_LastPosted"]</MudTh>
+                <MudTh>@L["Rec_Col_NextDue"]</MudTh>
+                <MudTh>@L["Rec_Col_Status"]</MudTh>
+                <MudTh Style="width:120px"></MudTh>
+            </HeaderContent>
+            <RowTemplate>
+                <MudTd>@context.Name</MudTd>
+                <MudTd>@FrequencyLabel(context.Frequency)</MudTd>
+                <MudTd>@context.StartDate.ToString("dd/MM/yyyy")</MudTd>
+                <MudTd>@(context.EndDate?.ToString("dd/MM/yyyy") ?? "—")</MudTd>
+                <MudTd>@(context.LastPostedDate?.ToString("dd/MM/yyyy") ?? "—")</MudTd>
+                <MudTd>@context.NextDueDate.ToString("dd/MM/yyyy")</MudTd>
+                <MudTd>
+                    <MudChip T="string" Size="Size.Small"
+                             Color="@(context.IsActive ? Color.Success : Color.Default)">
+                        @(context.IsActive ? L["Rec_Active"] : L["Rec_Inactive"])
+                    </MudChip>
+                </MudTd>
+                <MudTd>
+                    <span @onclick:stopPropagation="true">
+                        <AuthorizeView Roles="Admin,Bookkeeper" Context="authCtx">
+                            <MudIconButton Icon="@Icons.Material.Filled.PlayArrow"
+                                           Size="Size.Small" Color="Color.Primary"
+                                           Title="@L["Rec_PostNow"]"
+                                           Disabled="@(!context.IsActive)"
+                                           OnClick="@(() => PostNow(context))" />
+                            @if (context.IsActive)
+                            {
+                                <MudIconButton Icon="@Icons.Material.Filled.PauseCircle"
+                                               Size="Size.Small" Color="Color.Warning"
+                                               Title="@L["Rec_Deactivate"]"
+                                               OnClick="@(() => ConfirmDeactivate(context))" />
+                            }
+                            else
+                            {
+                                <MudIconButton Icon="@Icons.Material.Filled.PlayCircle"
+                                               Size="Size.Small" Color="Color.Success"
+                                               Title="@L["Rec_Activate"]"
+                                               OnClick="@(() => ActivateTemplate(context))" />
+                            }
+                        </AuthorizeView>
+                    </span>
+                </MudTd>
+            </RowTemplate>
+            <NoRecordsContent>
+                <MudText Color="Color.Secondary">@L["Rec_NoTemplates"]</MudText>
+            </NoRecordsContent>
+        </MudTable>
+
+    </MudTabPanel>
+
+</MudTabs>
 
 @code {
-    private MudTable<JournalEntryDto> _table = null!;
+    [Parameter] public Guid? PrefilterAccountId { get; set; }
+
+    // ── Entries tab state ─────────────────────────────────────────────────────
+    private MudTable<LedgerLineDto> _table = null!;
     private string _search = "";
-    private DateTime? _filterFrom;
-    private DateTime? _filterTo;
+    private MudBlazor.DateRange? _dateRange;
+    private IReadOnlyCollection<Guid> _selectedAccountIds = [];
+    private string _createdByFilter = "";
+    private bool _showDeleted;
+    private int _deletedCount;
+    private HashSet<Guid> _expandedRows = [];
+    private List<Kairn.Domain.Entities.Account> _accounts = [];
 
-    private async Task<TableData<JournalEntryDto>> LoadData(TableState state, CancellationToken ct)
+    private bool _showRunningBalance => _selectedAccountIds.Count == 1;
+
+    // ── Recurring tab state ───────────────────────────────────────────────────
+    private List<RecurringEntryDto> _templates = [];
+    private List<RecurringJobLogDto> _recErrors = [];
+
+    protected override async Task OnInitializedAsync()
     {
-        var query = new JournalEntryQuery(
-            CurrentUser.TenantId,
-            From: _filterFrom.HasValue ? DateOnly.FromDateTime(_filterFrom.Value) : null,
-            To:   _filterTo.HasValue   ? DateOnly.FromDateTime(_filterTo.Value)   : null,
-            Search: string.IsNullOrWhiteSpace(_search) ? null : _search,
-            Page: state.Page + 1,
-            PageSize: state.PageSize);
+        _accounts = (await AccountService.GetAllAsync(CurrentUser.TenantId)).ToList();
 
-        var result = await JournalEntryService.GetPagedAsync(query, ct);
-        return new TableData<JournalEntryDto>
-        {
-            Items = result.Items,
-            TotalItems = result.TotalCount,
-        };
+        if (PrefilterAccountId.HasValue)
+            _selectedAccountIds = new HashSet<Guid> { PrefilterAccountId.Value };
+
+        await Task.WhenAll(
+            RefreshDeletedCount(),
+            LoadTemplatesAsync());
+    }
+
+    // ── Entries tab ───────────────────────────────────────────────────────────
+
+    private async Task<TableData<LedgerLineDto>> LoadLedgerData(TableState state, CancellationToken ct)
+    {
+        var query = new LedgerQuery(
+            TenantId:   CurrentUser.TenantId,
+            AccountIds: _selectedAccountIds.Count > 0 ? _selectedAccountIds.ToList() : null,
+            From:       _dateRange?.Start.HasValue == true ? DateOnly.FromDateTime(_dateRange.Start.Value) : null,
+            To:         _dateRange?.End.HasValue   == true ? DateOnly.FromDateTime(_dateRange.End.Value)   : null,
+            Search:     string.IsNullOrWhiteSpace(_search) ? null : _search,
+            CreatedBy:  string.IsNullOrWhiteSpace(_createdByFilter) ? null : _createdByFilter,
+            Page:       state.Page + 1,
+            PageSize:   state.PageSize,
+            ShowDeleted: _showDeleted);
+
+        var result = await JournalEntryService.GetLedgerAsync(query, ct);
+        return new TableData<LedgerLineDto> { Items = result.Items, TotalItems = result.TotalCount };
+    }
+
+    private async Task RefreshDeletedCount()
+    {
+        _deletedCount = await JournalEntryService.GetDeletedCountAsync(
+            CurrentUser.TenantId,
+            _dateRange?.Start.HasValue == true ? DateOnly.FromDateTime(_dateRange.Start!.Value) : null,
+            _dateRange?.End.HasValue   == true ? DateOnly.FromDateTime(_dateRange.End!.Value)   : null,
+            string.IsNullOrWhiteSpace(_search) ? null : _search);
+    }
+
+    private void ToggleRow(Guid id)
+    {
+        if (!_expandedRows.Remove(id))
+            _expandedRows.Add(id);
     }
 
     private void OnSearchChanged(string value) { _search = value; ResetAndLoad(); }
-    private void OnFromChanged(DateTime? value) { _filterFrom = value; ResetAndLoad(); }
-    private void OnToChanged(DateTime? value)   { _filterTo = value;   ResetAndLoad(); }
+    private void OnCreatedByChanged(string value) { _createdByFilter = value; ResetAndLoad(); }
+
+    private void OnDateRangeChanged(MudBlazor.DateRange range)
+    {
+        _dateRange = range;
+        ResetAndLoad();
+    }
+
+    private void OnAccountsChanged(IEnumerable<Guid> ids)
+    {
+        _selectedAccountIds = ids.ToHashSet();
+        _expandedRows.Clear();
+        ResetAndLoad();
+    }
+
+    private async Task OnShowDeletedChanged(bool value)
+    {
+        _showDeleted = value;
+        await _table.ReloadServerData();
+    }
 
     private void ResetAndLoad()
     {
-        if (_table is not null)
-            _ = _table.ReloadServerData();
+        _ = RefreshDeletedCount();
+        if (_table is not null) _ = _table.ReloadServerData();
+    }
+
+    private async Task ExportCsv()
+    {
+        var query = new LedgerQuery(
+            TenantId:   CurrentUser.TenantId,
+            AccountIds: _selectedAccountIds.Count > 0 ? _selectedAccountIds.ToList() : null,
+            From:       _dateRange?.Start.HasValue == true ? DateOnly.FromDateTime(_dateRange.Start.Value) : null,
+            To:         _dateRange?.End.HasValue   == true ? DateOnly.FromDateTime(_dateRange.End.Value)   : null,
+            Search:     string.IsNullOrWhiteSpace(_search) ? null : _search,
+            CreatedBy:  string.IsNullOrWhiteSpace(_createdByFilter) ? null : _createdByFilter,
+            ShowDeleted: _showDeleted);
+
+        var csv = await JournalEntryService.ExportLedgerCsvAsync(query);
+        var bytes = System.Text.Encoding.UTF8.GetBytes(csv);
+        var fileName = $"ledger-{DateOnly.FromDateTime(DateTime.Today):yyyyMMdd}.csv";
+        await JS.InvokeVoidAsync("kairn.downloadFile", fileName, "text/csv", bytes);
     }
 
     private async Task OpenCreate()
@@ -139,14 +449,18 @@
         if (result is { Canceled: false, Data: JournalEntryDto dto })
         {
             Snackbar.Add(string.Format(L["Snack_Created"].Value, dto.Reference), Severity.Success);
+            await RefreshDeletedCount();
             await _table.ReloadServerData();
         }
     }
 
-    private async Task OnRowClick(TableRowClickEventArgs<JournalEntryDto> args)
+    private async Task OpenEdit(LedgerLineDto row)
     {
-        var entry = args.Item;
-        if (entry is null || entry.IsLocked) return;
+        var entry = new JournalEntryDto(
+            row.EntryId, row.Date, row.Reference, row.Description,
+            row.Lines.Sum(l => l.Debit), row.Lines.Sum(l => l.Credit),
+            row.CreatedByName, row.IsLocked, row.IsDeleted, row.AttachmentFileName,
+            row.Lines, row.IsRecurring);
 
         var dialog = await DialogService.ShowAsync<Kairn.Blazor.Pages.GL.JournalEntryDialog>(
             L["EditTitle"],
@@ -163,4 +477,135 @@
             await _table.ReloadServerData();
         }
     }
+
+    private async Task ConfirmDelete(LedgerLineDto row)
+    {
+        var confirmed = await DialogService.ShowMessageBox(
+            string.Format(L["Confirm_Delete"].Value, row.Reference),
+            L["Confirm_Delete_Body"].Value,
+            yesText: L["Delete"], cancelText: L["Cancel"]);
+
+        if (confirmed is not true) return;
+
+        var result = await JournalEntryService.DeleteAsync(row.EntryId, CurrentUser.TenantId);
+        if (result.IsSuccess)
+        {
+            Snackbar.Add(string.Format(L["Snack_Deleted"].Value, row.Reference), Severity.Warning);
+            await RefreshDeletedCount();
+            await _table.ReloadServerData();
+        }
+        else { Snackbar.Add(result.Error, Severity.Error); }
+    }
+
+    private async Task RestoreEntry(LedgerLineDto row)
+    {
+        var result = await JournalEntryService.RestoreAsync(row.EntryId, CurrentUser.TenantId);
+        if (result.IsSuccess)
+        {
+            Snackbar.Add(string.Format(L["Snack_Restored"].Value, row.Reference), Severity.Success);
+            await RefreshDeletedCount();
+            await _table.ReloadServerData();
+        }
+        else { Snackbar.Add(result.Error, Severity.Error); }
+    }
+
+    // ── Recurring tab ─────────────────────────────────────────────────────────
+
+    private async Task LoadTemplatesAsync()
+    {
+        _templates = (await RecurringSvc.GetAllAsync(CurrentUser.TenantId)).ToList();
+        _recErrors = (await RecurringSvc.GetRecentErrorsAsync(CurrentUser.TenantId, 5)).ToList();
+    }
+
+    private async Task OpenCreateTemplate()
+    {
+        var dialog = await DialogService.ShowAsync<Kairn.Blazor.Pages.GL.RecurringEntryDialog>(
+            L["Rec_NewTemplate"].Value,
+            new DialogParameters<Kairn.Blazor.Pages.GL.RecurringEntryDialog>
+            {
+                { x => x.Template, null },
+            },
+            new DialogOptions { MaxWidth = MaxWidth.Large, FullWidth = true });
+
+        var result = await dialog.Result;
+        if (result is { Canceled: false, Data: RecurringEntryDto dto })
+        {
+            Snackbar.Add(string.Format(L["Rec_Snack_Created"].Value, dto.Name), Severity.Success);
+            await LoadTemplatesAsync();
+        }
+    }
+
+    private async Task OnTemplateRowClick(TableRowClickEventArgs<RecurringEntryDto> args)
+    {
+        var tmpl = args.Item;
+        if (tmpl is null) return;
+
+        var dialog = await DialogService.ShowAsync<Kairn.Blazor.Pages.GL.RecurringEntryDialog>(
+            L["EditTitle"].Value,
+            new DialogParameters<Kairn.Blazor.Pages.GL.RecurringEntryDialog>
+            {
+                { x => x.Template, tmpl },
+            },
+            new DialogOptions { MaxWidth = MaxWidth.Large, FullWidth = true });
+
+        var result = await dialog.Result;
+        if (result is { Canceled: false, Data: RecurringEntryDto dto })
+        {
+            Snackbar.Add(string.Format(L["Rec_Snack_Updated"].Value, dto.Name), Severity.Success);
+            await LoadTemplatesAsync();
+        }
+    }
+
+    private async Task PostNow(RecurringEntryDto tmpl)
+    {
+        var result = await RecurringSvc.PostNowAsync(
+            tmpl.Id, CurrentUser.TenantId, CurrentUser.UserId, CurrentUser.UserName);
+
+        if (result.IsSuccess)
+        {
+            Snackbar.Add(string.Format(L["Rec_Snack_Posted"].Value, result.Value!.Reference, tmpl.Name), Severity.Success);
+            await LoadTemplatesAsync();
+            await _table.ReloadServerData();
+        }
+        else { Snackbar.Add(result.Error, Severity.Error); }
+    }
+
+    private async Task ConfirmDeactivate(RecurringEntryDto tmpl)
+    {
+        var confirmed = await DialogService.ShowMessageBox(
+            string.Format(L["Rec_Confirm_Deactivate"].Value, tmpl.Name),
+            L["Rec_Confirm_Deactivate_Body"].Value,
+            yesText: L["Rec_Deactivate"], cancelText: L["Cancel"]);
+
+        if (confirmed is not true) return;
+
+        var result = await RecurringSvc.SetActiveAsync(tmpl.Id, CurrentUser.TenantId, false);
+        if (result.IsSuccess)
+        {
+            Snackbar.Add(string.Format(L["Rec_Snack_Deactivated"].Value, tmpl.Name), Severity.Warning);
+            await LoadTemplatesAsync();
+        }
+        else { Snackbar.Add(result.Error, Severity.Error); }
+    }
+
+    private async Task ActivateTemplate(RecurringEntryDto tmpl)
+    {
+        var result = await RecurringSvc.SetActiveAsync(tmpl.Id, CurrentUser.TenantId, true);
+        if (result.IsSuccess)
+        {
+            Snackbar.Add(string.Format(L["Rec_Snack_Activated"].Value, tmpl.Name), Severity.Success);
+            await LoadTemplatesAsync();
+        }
+        else { Snackbar.Add(result.Error, Severity.Error); }
+    }
+
+    private string FrequencyLabel(RecurringFrequency freq) => freq switch
+    {
+        RecurringFrequency.Daily     => "Daily",
+        RecurringFrequency.Weekly    => "Weekly",
+        RecurringFrequency.Monthly   => "Monthly",
+        RecurringFrequency.Quarterly => "Quarterly",
+        RecurringFrequency.Annually  => "Annually",
+        _                            => freq.ToString(),
+    };
 }

@@ -12,6 +12,8 @@ public class JournalLineConfiguration : IEntityTypeConfiguration<JournalLine>
         builder.Property(l => l.Currency).IsRequired().HasMaxLength(3);
         builder.Property(l => l.Memo).HasMaxLength(500);
 
+        builder.HasIndex(l => new { l.AccountId, l.IsReconciled });
+
         builder.HasOne(l => l.Account)
                .WithMany()
                .HasForeignKey(l => l.AccountId)

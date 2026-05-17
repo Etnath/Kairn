@@ -31,7 +31,7 @@
         <MudTh Style="width:160px">@L["Col_Parent"]</MudTh>
         <MudTh Style="width:80px">@L["Col_Currency"]</MudTh>
         <MudTh Style="width:70px">@L["Col_Active"]</MudTh>
-        <MudTh Style="width:80px">@L["Col_Actions"]</MudTh>
+        <MudTh Style="width:110px">@L["Col_Actions"]</MudTh>
     </HeaderContent>
     <GroupHeaderTemplate>
         <MudTh colspan="6" Class="mud-table-cell-custom-group py-2">
@@ -74,6 +74,9 @@
             }
         </MudTd>
         <MudTd>
+            <MudIconButton Icon="@Icons.Material.Filled.MenuBook" Size="Size.Small"
+                           title="@L["ViewLedger"]"
+                           Href="@($"/ledger/account/{context.Id}")" />
             <AuthorizeView Roles="Admin,Bookkeeper" Context="authCtx">
                 <MudIconButton Icon="@Icons.Material.Filled.Edit" Size="Size.Small"
                                title="@L["EditTitle"]"
