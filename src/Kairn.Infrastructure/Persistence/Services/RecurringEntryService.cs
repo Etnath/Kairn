@@ -123,7 +123,7 @@ public class RecurringEntryService(AppDbContext db, IJournalEntryService journal
     {
         var logs = await db.RecurringJobLogs
             .Where(l => l.TenantId == tenantId && !l.IsSuccess)
-            .OrderByDescending(l => l.AttemptedAt)
+            .OrderByDescending(l => l.Id)
             .Take(count)
             .ToListAsync(ct);
 

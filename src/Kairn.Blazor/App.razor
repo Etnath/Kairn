@@ -3,6 +3,7 @@
 <head>
     <meta charset="utf-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <base href="/" />
     <title>Kairn</title>
     <link rel="stylesheet" href="app.css" />
     <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" />
@@ -10,15 +11,23 @@
     <HeadOutlet />
 </head>
 <body>
+    <Kairn.Blazor.Components.CultureSynchronizer @rendermode="InteractiveServer" />
     <Routes @rendermode="InteractiveServer" />
     <script src="_framework/blazor.web.js"></script>
     <script src="_content/MudBlazor/MudBlazor.min.js"></script>
     <script>
         window.kairn = {
-            setCultureCookie: function (culture) {
+            switchCulture: function (culture, returnUrl) {
                 const value = 'c=' + culture + '|uic=' + culture;
                 document.cookie = '.AspNetCore.Culture=' + encodeURIComponent(value)
                     + '; path=/; max-age=2592000; samesite=lax';
+                // Use window.location.href for a genuine browser reload so that
+                // the new culture cookie is applied by the server-side middleware
+                // and all CSS/JS assets are re-fetched from scratch. Calling
+                // Navigation.NavigateTo(forceLoad:true) from Blazor Server can be
+                // intercepted by Blazor's enhanced-navigation pipeline and may
+                // stream-replace the body without re-loading <head> assets.
+                window.location.href = returnUrl;
             },
             downloadFile: function (filename, contentType, data) {
                 const blob = new Blob([new Uint8Array(data)], { type: contentType });

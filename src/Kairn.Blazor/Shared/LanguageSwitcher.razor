@@ -15,10 +15,9 @@
 @code {
     private async Task SwitchLanguage(string culture)
     {
-        // HttpContext.Response is read-only inside a Blazor Server circuit (SignalR).
-        // Set the culture cookie via JS interop instead, then force a full page reload
-        // so the new RequestCulture is applied by the server middleware.
-        await JS.InvokeVoidAsync("kairn.setCultureCookie", culture);
-        Navigation.NavigateTo(Navigation.Uri, forceLoad: true);
+        // kairn.switchCulture sets the cookie and then assigns window.location.href
+        // directly, bypassing Blazor's enhanced-navigation pipeline so that the
+        // full page (including <head> assets) is re-fetched with the new culture.
+        await JS.InvokeVoidAsync("kairn.switchCulture", culture, Navigation.Uri);
     }
 }

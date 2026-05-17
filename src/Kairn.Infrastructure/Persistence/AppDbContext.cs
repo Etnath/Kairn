@@ -1,3 +1,4 @@
+using Kairn.Domain.Common;
 using Kairn.Domain.Entities;
 using Kairn.Infrastructure.Identity;
 using Kairn.Infrastructure.Persistence.Interceptors;
@@ -48,5 +49,19 @@ public class AppDbContext : IdentityDbContext<ApplicationUser>
         }
 
         modelBuilder.ApplyConfigurationsFromAssembly(typeof(AppDbContext).Assembly);
+
+        // RowVersion is intended for PostgreSQL's xmin concurrency token.
+        // SQLite stores it as a plain INTEGER that never auto-updates, so using it
+        // as a concurrency token there causes DbUpdateConcurrencyException on every save.
+        if (Database.ProviderName?.Contains("Sqlite", StringComparison.OrdinalIgnoreCase) == true)
+        {
+            foreach (var entityType in modelBuilder.Model.GetEntityTypes()
+                         .Where(e => typeof(BaseEntity).IsAssignableFrom(e.ClrType)))
+            {
+                modelBuilder.Entity(entityType.ClrType)
+                    .Property<uint>(nameof(BaseEntity.RowVersion))
+                    .IsConcurrencyToken(false);
+            }
+        }
     }
 }

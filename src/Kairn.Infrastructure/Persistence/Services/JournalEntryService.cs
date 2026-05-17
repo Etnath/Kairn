@@ -26,7 +26,7 @@ public class JournalEntryService(AppDbContext db) : IJournalEntryService
             q = q.Where(e => e.Reference.ToLower().Contains(s) || e.Description.ToLower().Contains(s));
         }
 
-        q = q.OrderByDescending(e => e.Date).ThenByDescending(e => e.CreatedAt);
+        q = q.OrderByDescending(e => e.Date).ThenByDescending(e => e.Reference);
 
         var total = await q.CountAsync(ct);
         var items = await q
@@ -71,8 +71,8 @@ public class JournalEntryService(AppDbContext db) : IJournalEntryService
         }
 
         IOrderedQueryable<JournalEntry> ordered = singleAccount
-            ? q.OrderBy(e => e.Date).ThenBy(e => e.Id)
-            : q.OrderByDescending(e => e.Date).ThenByDescending(e => e.Id);
+            ? q.OrderBy(e => e.Date).ThenBy(e => e.Reference)
+            : q.OrderByDescending(e => e.Date).ThenByDescending(e => e.Reference);
 
         var total = await ordered.CountAsync(ct);
 
@@ -261,7 +261,7 @@ public class JournalEntryService(AppDbContext db) : IJournalEntryService
         entry.UpdatedAt = DateTimeOffset.UtcNow;
 
         db.JournalLines.RemoveRange(entry.Lines);
-        entry.Lines = cmd.Lines.Select(l => new JournalLine
+        var newLines = cmd.Lines.Select(l => new JournalLine
         {
             EntryId = entry.Id,
             AccountId = l.AccountId,
@@ -272,6 +272,7 @@ public class JournalEntryService(AppDbContext db) : IJournalEntryService
             SystemRate = l.SystemRate,
             Memo = l.Memo,
         }).ToList();
+        db.JournalLines.AddRange(newLines);
 
         await db.SaveChangesAsync(ct);
 

@@ -144,11 +144,20 @@ try
     }
 
     // ── Localisation middleware ───────────────────────────────────────────────
+    // Only honour the culture cookie (and optional query string). The browser's
+    // Accept-Language header is intentionally ignored so the app always defaults
+    // to French rather than inheriting whatever language the user's browser prefers.
     var supportedCultures = new[] { "fr-FR", "fr", "en" };
-    app.UseRequestLocalization(new RequestLocalizationOptions()
+    var localizationOptions = new RequestLocalizationOptions()
         .SetDefaultCulture("fr-FR")
         .AddSupportedCultures(supportedCultures)
-        .AddSupportedUICultures(supportedCultures));
+        .AddSupportedUICultures(supportedCultures);
+    localizationOptions.RequestCultureProviders =
+    [
+        new Microsoft.AspNetCore.Localization.QueryStringRequestCultureProvider(),
+        new Microsoft.AspNetCore.Localization.CookieRequestCultureProvider(),
+    ];
+    app.UseRequestLocalization(localizationOptions);
 
     // ── Pipeline ──────────────────────────────────────────────────────────────
     if (!app.Environment.IsDevelopment())

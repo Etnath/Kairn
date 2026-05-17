@@ -1,0 +1,30 @@
+@* Persists CultureInfo.CurrentUICulture during SSR pre-rendering so the
+   interactive-server circuit can restore it on the circuit thread pool.
+   Without this, circuit threads default to the server OS culture (usually
+   en-US) rather than the culture established by UseRequestLocalization. *@
+@implements IDisposable
+@inject PersistentComponentState AppState
+
+@code {
+    private PersistingComponentStateSubscription _subscription;
+
+    protected override void OnInitialized()
+    {
+        _subscription = AppState.RegisterOnPersisting(PersistCulture);
+
+        if (AppState.TryTakeFromJson<string>("culture", out var saved) && saved is not null)
+        {
+            var ci = new System.Globalization.CultureInfo(saved);
+            System.Globalization.CultureInfo.DefaultThreadCurrentCulture   = ci;
+            System.Globalization.CultureInfo.DefaultThreadCurrentUICulture = ci;
+        }
+    }
+
+    private Task PersistCulture()
+    {
+        AppState.PersistAsJson("culture", System.Globalization.CultureInfo.CurrentUICulture.Name);
+        return Task.CompletedTask;
+    }
+
+    public void Dispose() => _subscription.Dispose();
+}
