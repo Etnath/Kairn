@@ -1,0 +1,148 @@
+@page "/settings/chart-of-accounts"
+@attribute [Authorize(Roles = "Admin,Bookkeeper,Viewer")]
+@inject IStringLocalizer<ChartOfAccounts> L
+@inject IAccountService AccountService
+@inject ICurrentUserContext CurrentUser
+@inject IDialogService DialogService
+
+<PageTitle>@L["Title"] – Kairn</PageTitle>
+
+<MudStack Row="true" AlignItems="AlignItems.Center" Class="mb-4">
+    <MudText Typo="Typo.h5">@L["Title"]</MudText>
+    <MudSpacer />
+    <AuthorizeView Roles="Admin,Bookkeeper">
+        <MudButton Variant="Variant.Filled" Color="Color.Primary"
+                   StartIcon="@Icons.Material.Filled.Add"
+                   OnClick="OpenCreateDialog">
+            @L["NewAccount"]
+        </MudButton>
+    </AuthorizeView>
+</MudStack>
+
+<MudTextField @bind-Value="_search" Placeholder="@L["Search"]"
+              Adornment="Adornment.Start" AdornmentIcon="@Icons.Material.Filled.Search"
+              Immediate="true" Clearable="true" Class="mb-4" />
+
+<MudTable T="Kairn.Domain.Entities.Account" Items="_filtered" Dense="true" Hover="true"
+          GroupBy="_groupDef" Breakpoint="Breakpoint.Sm">
+    <HeaderContent>
+        <MudTh Style="width:90px">@L["Col_Code"]</MudTh>
+        <MudTh>@L["Col_Name"]</MudTh>
+        <MudTh Style="width:160px">@L["Col_Parent"]</MudTh>
+        <MudTh Style="width:80px">@L["Col_Currency"]</MudTh>
+        <MudTh Style="width:70px">@L["Col_Active"]</MudTh>
+        <MudTh Style="width:80px">@L["Col_Actions"]</MudTh>
+    </HeaderContent>
+    <GroupHeaderTemplate>
+        <MudTh colspan="6" Class="mud-table-cell-custom-group py-2">
+            <MudStack Row="true" AlignItems="AlignItems.Center" Spacing="1">
+                <MudText Typo="Typo.subtitle1"><b>@TypeLabel(context.Key)</b></MudText>
+                <MudChip T="string" Size="Size.Small" Color="Color.Default">
+                    @context.Items.Count()
+                </MudChip>
+            </MudStack>
+        </MudTh>
+    </GroupHeaderTemplate>
+    <RowTemplate>
+        <MudTd DataLabel="@L["Col_Code"]">
+            <MudText Typo="Typo.body2" Style="font-family:monospace">@context.Code</MudText>
+        </MudTd>
+        <MudTd DataLabel="@L["Col_Name"]">
+            @if (!context.IsActive)
+            {
+                <MudText Typo="Typo.body2" Style="text-decoration:line-through; opacity:0.6">
+                    @context.Name
+                </MudText>
+            }
+            else
+            {
+                @context.Name
+            }
+        </MudTd>
+        <MudTd DataLabel="@L["Col_Parent"]">
+            <MudText Typo="Typo.body2" Color="Color.Secondary">@ParentName(context.ParentId)</MudText>
+        </MudTd>
+        <MudTd DataLabel="@L["Col_Currency"]">@context.Currency</MudTd>
+        <MudTd DataLabel="@L["Col_Active"]">
+            @if (context.IsActive)
+            {
+                <MudIcon Icon="@Icons.Material.Filled.CheckCircle" Color="Color.Success" Size="Size.Small" />
+            }
+            else
+            {
+                <MudIcon Icon="@Icons.Material.Filled.Cancel" Color="Color.Default" Size="Size.Small" />
+            }
+        </MudTd>
+        <MudTd>
+            <AuthorizeView Roles="Admin,Bookkeeper" Context="authCtx">
+                <MudIconButton Icon="@Icons.Material.Filled.Edit" Size="Size.Small"
+                               title="@L["EditTitle"]"
+                               OnClick="@(() => OpenEditDialog(context))" />
+            </AuthorizeView>
+        </MudTd>
+    </RowTemplate>
+</MudTable>
+
+@code {
+    private List<Kairn.Domain.Entities.Account> _accounts = [];
+    private string _search = "";
+
+    private readonly TableGroupDefinition<Kairn.Domain.Entities.Account> _groupDef = new()
+    {
+        Indentation = false,
+        Expandable = true,
+        IsInitiallyExpanded = true,
+        Selector = a => a.Type
+    };
+
+    private IEnumerable<Kairn.Domain.Entities.Account> _filtered =>
+        string.IsNullOrWhiteSpace(_search)
+            ? _accounts
+            : _accounts.Where(a =>
+                a.Code.Contains(_search, StringComparison.OrdinalIgnoreCase) ||
+                a.Name.Contains(_search, StringComparison.OrdinalIgnoreCase));
+
+    protected override async Task OnInitializedAsync() =>
+        _accounts = await AccountService.GetAllAsync(CurrentUser.TenantId);
+
+    private string ParentName(Guid? parentId) =>
+        parentId is null
+            ? "—"
+            : _accounts.FirstOrDefault(a => a.Id == parentId)?.Name ?? "—";
+
+    private string TypeLabel(object? key) =>
+        key is Kairn.Domain.Entities.AccountType t ? t switch
+        {
+            Kairn.Domain.Entities.AccountType.Asset     => L["Type_Asset"],
+            Kairn.Domain.Entities.AccountType.Liability => L["Type_Liability"],
+            Kairn.Domain.Entities.AccountType.Equity    => L["Type_Equity"],
+            Kairn.Domain.Entities.AccountType.Revenue   => L["Type_Revenue"],
+            Kairn.Domain.Entities.AccountType.Expense   => L["Type_Expense"],
+            _                                           => t.ToString()
+        } : key?.ToString() ?? "";
+
+    private async Task OpenCreateDialog()
+    {
+        var parameters = new DialogParameters<AccountFormDialog>
+        {
+            { x => x.AllAccounts, _accounts }
+        };
+        var dialog = await DialogService.ShowAsync<AccountFormDialog>(L["CreateTitle"], parameters);
+        var result = await dialog.Result;
+        if (result is { Canceled: false })
+            _accounts = await AccountService.GetAllAsync(CurrentUser.TenantId);
+    }
+
+    private async Task OpenEditDialog(Kairn.Domain.Entities.Account account)
+    {
+        var parameters = new DialogParameters<AccountFormDialog>
+        {
+            { x => x.Account, account },
+            { x => x.AllAccounts, _accounts }
+        };
+        var dialog = await DialogService.ShowAsync<AccountFormDialog>(L["EditTitle"], parameters);
+        var result = await dialog.Result;
+        if (result is { Canceled: false })
+            _accounts = await AccountService.GetAllAsync(CurrentUser.TenantId);
+    }
+}

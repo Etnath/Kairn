@@ -1,0 +1,31 @@
+services:
+  app:
+    build: .
+    image: kairn:latest
+    ports:
+      - "8080:8080"
+    environment:
+      - ConnectionStrings__Default=Host=db;Port=5432;Database=kairn;Username=kairn;Password=${DB_PASSWORD}
+      - ASPNETCORE_ENVIRONMENT=Production
+    depends_on:
+      db:
+        condition: service_healthy
+    restart: unless-stopped
+
+  db:
+    image: postgres:16-alpine
+    environment:
+      POSTGRES_DB: kairn
+      POSTGRES_USER: kairn
+      POSTGRES_PASSWORD: ${DB_PASSWORD}
+    volumes:
+      - pgdata:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U kairn"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+    restart: unless-stopped
+
+volumes:
+  pgdata:

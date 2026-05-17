@@ -1,0 +1,14 @@
+<?xml version="1.0" encoding="utf-8"?>
+<root>
+  <resheader name="resmimetype"><value>text/microsoft-resx</value></resheader>
+  <resheader name="version"><value>2.0</value></resheader>
+  <data name="Nav.Dashboard" xml:space="preserve"><value>Dashboard</value></data>
+  <data name="Nav.GeneralLedger" xml:space="preserve"><value>General Ledger</value></data>
+  <data name="Nav.Invoicing" xml:space="preserve"><value>Invoicing</value></data>
+  <data name="Nav.Bills" xml:space="preserve"><value>Bills</value></data>
+  <data name="Nav.Reports" xml:space="preserve"><value>Reports</value></data>
+  <data name="Nav.MarginAnalysis" xml:space="preserve"><value>Margin Analysis</value></data>
+  <data name="Nav.Tax" xml:space="preserve"><value>Tax</value></data>
+  <data name="Nav.Budgets" xml:space="preserve"><value>Budgets</value></data>
+  <data name="Nav.Settings" xml:space="preserve"><value>Settings</value></data>
+</root>

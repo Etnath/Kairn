@@ -1,0 +1,162 @@
+using Fluxor;
+using Kairn.Application.Common;
+using Kairn.Application.Features.GL;
+using Kairn.Infrastructure.Identity;
+using Kairn.Infrastructure.Persistence;
+using Kairn.Infrastructure.Persistence.Interceptors;
+using Kairn.Infrastructure.Persistence.Seed;
+using Kairn.Infrastructure.Persistence.Services;
+using Kairn.Blazor.Localisation;
+using Kairn.Blazor.Services;
+using Microsoft.AspNetCore.Identity;
+using Microsoft.AspNetCore.Localization;
+using Microsoft.EntityFrameworkCore;
+using MudBlazor;
+using MudBlazor.Services;
+using Serilog;
+using Serilog.Events;
+
+// ── Serilog bootstrap ───────────────────────────────────────────────────────
+Log.Logger = new LoggerConfiguration()
+    .MinimumLevel.Override("Microsoft", LogEventLevel.Information)
+    .Enrich.FromLogContext()
+    .WriteTo.Console()
+    .CreateBootstrapLogger();
+
+try
+{
+    var builder = WebApplication.CreateBuilder(args);
+
+    // ── Serilog ──────────────────────────────────────────────────────────────
+    builder.Host.UseSerilog((ctx, services, config) => config
+        .ReadFrom.Configuration(ctx.Configuration)
+        .ReadFrom.Services(services)
+        .Enrich.FromLogContext()
+        .WriteTo.Console()
+        .WriteTo.File("logs/kairn-.log",
+            rollingInterval: RollingInterval.Day,
+            outputTemplate: "{Timestamp:yyyy-MM-dd HH:mm:ss} [{Level:u3}] {Message:lj}{NewLine}{Exception}"));
+
+    // ── Database ─────────────────────────────────────────────────────────────
+    builder.Services.AddScoped<AuditLogInterceptor>();
+    builder.Services.AddScoped<ICurrentUserContext, CurrentUserContext>();
+    builder.Services.AddHttpContextAccessor();
+
+    if (builder.Environment.IsDevelopment())
+    {
+        builder.Services.AddDbContext<AppDbContext>((sp, options) =>
+            options.UseSqlite(builder.Configuration.GetConnectionString("Default") ?? "Data Source=kairn.db")
+                   .AddInterceptors(sp.GetRequiredService<AuditLogInterceptor>()));
+    }
+    else
+    {
+        builder.Services.AddDbContext<AppDbContext>((sp, options) =>
+            options.UseNpgsql(builder.Configuration.GetConnectionString("Default"),
+                       npgsql => npgsql.EnableRetryOnFailure(3).CommandTimeout(60))
+                   .AddInterceptors(sp.GetRequiredService<AuditLogInterceptor>()));
+    }
+
+    // ── Identity ─────────────────────────────────────────────────────────────
+    builder.Services.AddIdentity<ApplicationUser, IdentityRole>(options =>
+    {
+        options.Password.RequireDigit = true;
+        options.Password.RequiredLength = 8;
+        options.Password.RequireNonAlphanumeric = false;
+        options.Lockout.MaxFailedAccessAttempts = 5;
+        options.Lockout.DefaultLockoutTimeSpan = TimeSpan.FromMinutes(15);
+    })
+    .AddEntityFrameworkStores<AppDbContext>()
+    .AddDefaultTokenProviders();
+
+    builder.Services.ConfigureApplicationCookie(options =>
+    {
+        options.LoginPath = "/account/login";
+        options.LogoutPath = "/account/logout";
+        options.SlidingExpiration = true;
+        options.ExpireTimeSpan = TimeSpan.FromMinutes(30);
+        options.Cookie.HttpOnly = true;
+        options.Cookie.SameSite = SameSiteMode.Strict;
+        options.Cookie.SecurePolicy = CookieSecurePolicy.Always;
+    });
+
+    // ── Razor components + pages (for auth) ──────────────────────────────────
+    builder.Services.AddRazorComponents()
+        .AddInteractiveServerComponents();
+    builder.Services.AddRazorPages();
+
+    // ── MudBlazor ────────────────────────────────────────────────────────────
+    builder.Services.AddSingleton<MudLocalizer, KairnMudLocalizer>();
+    builder.Services.AddMudServices(config =>
+    {
+        config.SnackbarConfiguration.PositionClass = MudBlazor.Defaults.Classes.Position.BottomRight;
+        config.SnackbarConfiguration.ShowCloseIcon = true;
+    });
+
+    // ── Fluxor ───────────────────────────────────────────────────────────────
+    builder.Services.AddFluxor(options =>
+        options.ScanAssemblies(typeof(Program).Assembly));
+
+    // ── Localisation ─────────────────────────────────────────────────────────
+    builder.Services.AddLocalization(options => options.ResourcesPath = "Resources");
+
+    // ── Application services ─────────────────────────────────────────────────
+    builder.Services.AddScoped<ThemeService>();
+    builder.Services.AddScoped<IAccountService, AccountService>();
+
+    // ── Health checks ────────────────────────────────────────────────────────
+    builder.Services.AddHealthChecks();
+
+    // ── Build ─────────────────────────────────────────────────────────────────
+    var app = builder.Build();
+
+    // ── Migrate + seed on startup ─────────────────────────────────────────────
+    using (var scope = app.Services.CreateScope())
+    {
+        var db          = scope.ServiceProvider.GetRequiredService<AppDbContext>();
+        var userManager = scope.ServiceProvider.GetRequiredService<UserManager<ApplicationUser>>();
+        var roleManager = scope.ServiceProvider.GetRequiredService<RoleManager<IdentityRole>>();
+
+        await db.Database.MigrateAsync();
+        await DatabaseSeeder.SeedAsync(db, userManager, roleManager, app.Environment.IsDevelopment());
+    }
+
+    // ── Localisation middleware ───────────────────────────────────────────────
+    var supportedCultures = new[] { "fr-FR", "fr", "en" };
+    app.UseRequestLocalization(new RequestLocalizationOptions()
+        .SetDefaultCulture("fr-FR")
+        .AddSupportedCultures(supportedCultures)
+        .AddSupportedUICultures(supportedCultures));
+
+    // ── Pipeline ──────────────────────────────────────────────────────────────
+    if (!app.Environment.IsDevelopment())
+    {
+        app.UseExceptionHandler("/Error");
+        app.UseHsts();
+    }
+
+    app.UseHttpsRedirection();
+    app.UseStaticFiles();
+    app.UseSerilogRequestLogging();
+    app.UseRouting();
+    app.UseAuthentication();
+    app.UseAuthorization();
+    app.UseAntiforgery();
+
+    app.MapRazorComponents<Kairn.Blazor.App>()
+        .AddInteractiveServerRenderMode();
+    app.MapRazorPages();
+    app.MapHealthChecks("/health");
+
+    await app.RunAsync();
+}
+catch (Exception ex) when (ex is not HostAbortedException)
+{
+    Log.Fatal(ex, "Application terminated unexpectedly");
+}
+finally
+{
+    Log.CloseAndFlush();
+}
+
+// Expose Program for WebApplicationFactory in tests
+public partial class Program { }

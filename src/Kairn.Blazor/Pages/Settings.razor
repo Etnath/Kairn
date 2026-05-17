@@ -1,0 +1,25 @@
+@page "/settings"
+@attribute [Authorize(Roles = "Admin,Bookkeeper,Viewer")]
+@inject IStringLocalizer<Settings> L
+
+<PageTitle>@L["Title"] – Kairn</PageTitle>
+<MudText Typo="Typo.h5" Class="mb-6">@L["Title"]</MudText>
+
+<MudGrid>
+    <MudItem xs="12" sm="6" md="4">
+        <MudCard>
+            <MudCardContent>
+                <MudStack Row="true" AlignItems="AlignItems.Center" Spacing="2" Class="mb-2">
+                    <MudIcon Icon="@Icons.Material.Filled.AccountTree" Color="Color.Primary" />
+                    <MudText Typo="Typo.h6">@L["COA.Title"]</MudText>
+                </MudStack>
+                <MudText Typo="Typo.body2" Color="Color.Secondary">@L["COA.Description"]</MudText>
+            </MudCardContent>
+            <MudCardActions>
+                <MudButton Href="/settings/chart-of-accounts" Variant="Variant.Text" Color="Color.Primary">
+                    @L["Open"]
+                </MudButton>
+            </MudCardActions>
+        </MudCard>
+    </MudItem>
+</MudGrid>

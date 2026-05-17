@@ -1,0 +1,11 @@
+<Solution>
+  <Folder Name="/src/">
+    <Project Path="src/Kairn.Application/Kairn.Application.csproj" />
+    <Project Path="src/Kairn.Blazor/Kairn.Blazor.csproj" />
+    <Project Path="src/Kairn.Domain/Kairn.Domain.csproj" />
+    <Project Path="src/Kairn.Infrastructure/Kairn.Infrastructure.csproj" />
+  </Folder>
+  <Folder Name="/tests/">
+    <Project Path="tests/Kairn.Tests/Kairn.Tests.csproj" />
+  </Folder>
+</Solution>

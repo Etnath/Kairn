@@ -1,0 +1,60 @@
+@page
+@model Kairn.Blazor.Pages.Account.LoginModel
+@{
+    Layout = null;
+    var L = ViewData["Localizer"] as Microsoft.Extensions.Localization.IStringLocalizer;
+}
+<!DOCTYPE html>
+<html lang="@System.Globalization.CultureInfo.CurrentUICulture.TwoLetterISOLanguageName">
+<head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>@(L?["Login.Title"] ?? "Sign in") – Kairn</title>
+    <link rel="stylesheet" href="~/app.css" />
+    <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600&display=swap" />
+    <style>
+        body { background: #F5F4F1; font-family: Inter, sans-serif; display: flex; align-items: center; justify-content: center; min-height: 100vh; margin: 0; }
+        .login-card { background: #fff; border: 1px solid #D6D3CA; border-radius: 8px; padding: 2rem 2.5rem; width: 100%; max-width: 400px; box-shadow: 0 2px 8px rgba(0,0,0,.08); }
+        h1 { color: #1F1E1C; font-size: 1.5rem; font-weight: 600; margin-bottom: 0.25rem; }
+        .subtitle { color: #8C8980; font-size: 0.875rem; margin-bottom: 1.5rem; }
+        label { display: block; font-size: 0.8125rem; font-weight: 500; color: #4A4843; margin-bottom: .25rem; }
+        input[type=email], input[type=password] { width: 100%; box-sizing: border-box; padding: .5rem .75rem; border: 1px solid #D6D3CA; border-radius: 4px; font-size: .875rem; font-family: inherit; margin-bottom: 1rem; }
+        input:focus { outline: 2px solid #3A9463; border-color: #3A9463; }
+        .btn { width: 100%; background: #3A9463; color: #fff; border: none; border-radius: 4px; padding: .625rem 1rem; font-size: .875rem; font-weight: 600; cursor: pointer; font-family: inherit; }
+        .btn:hover { background: #1F6040; }
+        .error { color: #7E2A14; background: #FAECE8; border-radius: 4px; padding: .5rem .75rem; font-size: .8125rem; margin-bottom: 1rem; }
+        .lang { text-align: right; margin-bottom: 1rem; font-size: 0.8125rem; color: #4D7A9E; }
+        .lang a { color: inherit; text-decoration: none; }
+        .lang a:hover { text-decoration: underline; }
+    </style>
+</head>
+<body>
+    <div class="login-card">
+        <div class="lang">
+            <a href="?culture=en&returnUrl=@Model.ReturnUrl">EN</a> |
+            <a href="?culture=fr-FR&returnUrl=@Model.ReturnUrl">FR</a>
+        </div>
+        <h1>Kairn</h1>
+        <p class="subtitle">@(L?["Login.Subtitle"] ?? "Sign in to your account")</p>
+
+        @if (!string.IsNullOrEmpty(Model.ErrorMessage))
+        {
+            <div class="error">@Model.ErrorMessage</div>
+        }
+
+        <form method="post">
+            @Html.AntiForgeryToken()
+            <label for="email">@(L?["Login.Email"] ?? "Email")</label>
+            <input id="email" name="Input.Email" type="email" autocomplete="username"
+                   placeholder="you@example.com" required />
+
+            <label for="password">@(L?["Login.Password"] ?? "Password")</label>
+            <input id="password" name="Input.Password" type="password" autocomplete="current-password"
+                   placeholder="••••••••" required />
+
+            <input type="hidden" name="ReturnUrl" value="@Model.ReturnUrl" />
+            <button class="btn" type="submit">@(L?["Login.Submit"] ?? "Sign in")</button>
+        </form>
+    </div>
+</body>
+</html>

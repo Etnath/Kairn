@@ -1,0 +1,24 @@
+@inject NavigationManager Navigation
+@inject IJSRuntime JS
+
+@{
+    var isFr = System.Globalization.CultureInfo.CurrentUICulture.TwoLetterISOLanguageName == "fr";
+    var nextCulture = isFr ? "en" : "fr-FR";
+    var label = isFr ? "FR" : "EN";
+}
+
+<MudButton Variant="Variant.Text" Color="Color.Inherit" Size="Size.Small"
+           OnClick="@(() => SwitchLanguage(nextCulture))">
+    @label
+</MudButton>
+
+@code {
+    private async Task SwitchLanguage(string culture)
+    {
+        // HttpContext.Response is read-only inside a Blazor Server circuit (SignalR).
+        // Set the culture cookie via JS interop instead, then force a full page reload
+        // so the new RequestCulture is applied by the server middleware.
+        await JS.InvokeVoidAsync("kairn.setCultureCookie", culture);
+        Navigation.NavigateTo(Navigation.Uri, forceLoad: true);
+    }
+}

@@ -1,0 +1,151 @@
+@inject IAccountService AccountService
+@inject ICurrentUserContext CurrentUser
+@inject IStringLocalizer<ChartOfAccounts> L
+
+<MudDialog>
+    <DialogContent>
+        <MudForm @ref="_form" @bind-IsValid="_isValid">
+            <MudStack Spacing="3">
+                <MudTextField @bind-Value="_model.Code" Label="@L["Col_Code"]"
+                              Required="true" RequiredError="@L["Col_Code"]"
+                              Disabled="@_isEdit"
+                              Immediate="true" />
+                <MudTextField @bind-Value="_model.Name" Label="@L["Col_Name"]"
+                              Required="true" RequiredError="@L["Col_Name"]"
+                              Immediate="true" />
+                <MudSelect T="Kairn.Domain.Entities.AccountType" @bind-Value="_model.Type"
+                           Label="@L["Col_Type"]" Required="true"
+                           Disabled="@_isEdit">
+                    <MudSelectItem Value="Kairn.Domain.Entities.AccountType.Asset">@L["Type_Asset"]</MudSelectItem>
+                    <MudSelectItem Value="Kairn.Domain.Entities.AccountType.Liability">@L["Type_Liability"]</MudSelectItem>
+                    <MudSelectItem Value="Kairn.Domain.Entities.AccountType.Equity">@L["Type_Equity"]</MudSelectItem>
+                    <MudSelectItem Value="Kairn.Domain.Entities.AccountType.Revenue">@L["Type_Revenue"]</MudSelectItem>
+                    <MudSelectItem Value="Kairn.Domain.Entities.AccountType.Expense">@L["Type_Expense"]</MudSelectItem>
+                </MudSelect>
+                <MudSelect T="Guid?" @bind-Value="_model.ParentId"
+                           Label="@L["Col_Parent"]" Clearable="true">
+                    @foreach (var parent in _parentCandidates)
+                    {
+                        <MudSelectItem T="Guid?" Value="parent.Id">
+                            @parent.Code – @parent.Name
+                        </MudSelectItem>
+                    }
+                </MudSelect>
+                <MudTextField @bind-Value="_model.Currency" Label="@L["Col_Currency"]"
+                              Required="true" RequiredError="@L["Col_Currency"]"
+                              MaxLength="3" Immediate="true" />
+                <MudSwitch T="bool" @bind-Value="_model.IsActive"
+                           Label="@L["Col_Active"]" Color="Color.Primary" />
+                @if (!_model.IsActive)
+                {
+                    <MudText Typo="Typo.caption" Color="Color.Warning">
+                        @L["InactiveNote"]
+                    </MudText>
+                }
+                @if (_errorMessage is not null)
+                {
+                    <MudAlert Severity="Severity.Error" Dense="true">@_errorMessage</MudAlert>
+                }
+            </MudStack>
+        </MudForm>
+    </DialogContent>
+    <DialogActions>
+        <MudButton OnClick="Cancel">@L["Cancel"]</MudButton>
+        <MudButton OnClick="Submit" Color="Color.Primary" Variant="Variant.Filled"
+                   Disabled="@_saving">
+            @if (_saving)
+            {
+                <MudProgressCircular Size="Size.Small" Indeterminate="true" Class="mr-2" />
+            }
+            @L["Save"]
+        </MudButton>
+    </DialogActions>
+</MudDialog>
+
+@code {
+    [CascadingParameter] private IMudDialogInstance MudDialog { get; set; } = null!;
+    [Parameter] public Kairn.Domain.Entities.Account? Account { get; set; }
+    [Parameter] public List<Kairn.Domain.Entities.Account> AllAccounts { get; set; } = [];
+
+    private MudForm _form = null!;
+    private bool _isValid;
+    private bool _saving;
+    private bool _isEdit;
+    private string? _errorMessage;
+    private AccountFormModel _model = new();
+    private IReadOnlyList<Kairn.Domain.Entities.Account> _parentCandidates = [];
+
+    protected override void OnParametersSet()
+    {
+        _isEdit = Account is not null;
+
+        if (_isEdit)
+        {
+            _model = new AccountFormModel
+            {
+                Code = Account!.Code,
+                Name = Account.Name,
+                Type = Account.Type,
+                ParentId = Account.ParentId,
+                Currency = Account.Currency,
+                IsActive = Account.IsActive,
+            };
+        }
+
+        var excludedId = Account?.Id;
+        _parentCandidates = AllAccounts
+            .Where(a => a.Id != excludedId)
+            .OrderBy(a => a.Type)
+            .ThenBy(a => a.Code)
+            .ToList();
+    }
+
+    private void Cancel() => MudDialog.Cancel();
+
+    private async Task Submit()
+    {
+        await _form.Validate();
+        if (!_isValid) return;
+
+        _saving = true;
+        _errorMessage = null;
+
+        Result<Kairn.Domain.Entities.Account> result;
+        if (_isEdit)
+        {
+            result = await AccountService.UpdateAsync(new UpdateAccountCommand(
+                Account!.Id, CurrentUser.TenantId,
+                _model.Name, _model.ParentId, _model.Currency, _model.IsActive));
+        }
+        else
+        {
+            result = await AccountService.CreateAsync(new CreateAccountCommand(
+                CurrentUser.TenantId,
+                _model.Code, _model.Name, _model.Type,
+                _model.ParentId, _model.Currency, _model.IsActive));
+        }
+
+        _saving = false;
+
+        if (result.IsSuccess)
+        {
+            MudDialog.Close(DialogResult.Ok(result.Value));
+        }
+        else
+        {
+            _errorMessage = result.Error == "Account code already exists."
+                ? L["Err_DuplicateCode"]
+                : result.Error;
+        }
+    }
+
+    private class AccountFormModel
+    {
+        public string Code { get; set; } = "";
+        public string Name { get; set; } = "";
+        public Kairn.Domain.Entities.AccountType Type { get; set; } = Kairn.Domain.Entities.AccountType.Asset;
+        public Guid? ParentId { get; set; }
+        public string Currency { get; set; } = "EUR";
+        public bool IsActive { get; set; } = true;
+    }
+}

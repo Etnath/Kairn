@@ -1,0 +1,32 @@
+@inject IStringLocalizer<NavMenu> L
+
+<MudNavMenu>
+    <MudNavLink Href="/" Match="NavLinkMatch.All" Icon="@Icons.Material.Filled.Dashboard">
+        @L["Nav.Dashboard"]
+    </MudNavLink>
+    <MudNavLink Href="/ledger" Icon="@Icons.Material.Filled.MenuBook">
+        @L["Nav.GeneralLedger"]
+    </MudNavLink>
+    <MudNavLink Href="/invoicing" Icon="@Icons.Material.Filled.Receipt">
+        @L["Nav.Invoicing"]
+    </MudNavLink>
+    <MudNavLink Href="/bills" Icon="@Icons.Material.Filled.RequestPage">
+        @L["Nav.Bills"]
+    </MudNavLink>
+    <MudNavLink Href="/reports" Icon="@Icons.Material.Filled.BarChart">
+        @L["Nav.Reports"]
+    </MudNavLink>
+    <MudNavLink Href="/margin" Icon="@Icons.Material.Filled.TrendingUp">
+        @L["Nav.MarginAnalysis"]
+    </MudNavLink>
+    <MudNavLink Href="/tax" Icon="@Icons.Material.Filled.AccountBalance">
+        @L["Nav.Tax"]
+    </MudNavLink>
+    <MudNavLink Href="/budgets" Icon="@Icons.Material.Filled.Savings">
+        @L["Nav.Budgets"]
+    </MudNavLink>
+    <MudDivider Class="my-2" />
+    <MudNavLink Href="/settings" Icon="@Icons.Material.Filled.Settings">
+        @L["Nav.Settings"]
+    </MudNavLink>
+</MudNavMenu>

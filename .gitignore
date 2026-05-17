@@ -1,0 +1,33 @@
+## .NET
+bin/
+obj/
+*.user
+*.suo
+*.vs/
+.vs/
+*.db
+*.db-shm
+*.db-wal
+kairn-design.db
+
+## Secrets – never commit
+src/Kairn.Blazor/appsettings.Development.json
+src/Kairn.Blazor/appsettings.*.local.json
+.env
+*.env
+
+## Logs
+logs/
+
+## Node
+node_modules/
+src/Kairn.Blazor/wwwroot/app.min.css
+
+## Rider / VS Code
+.idea/
+.vscode/
+*.DotSettings.user
+
+## OS
+.DS_Store
+Thumbs.db
