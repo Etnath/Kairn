@@ -1,0 +1,143 @@
+<?xml version="1.0" encoding="utf-8"?>
+<root>
+  <resheader name="resmimetype"><value>text/microsoft-resx</value></resheader>
+  <resheader name="version"><value>2.0</value></resheader>
+  <data name="Title" xml:space="preserve"><value>Invoices</value></data>
+  <data name="NewInvoice" xml:space="preserve"><value>New Invoice</value></data>
+  <data name="CreateTitle" xml:space="preserve"><value>New Invoice</value></data>
+  <data name="EditTitle" xml:space="preserve"><value>Edit Invoice</value></data>
+  <data name="Save" xml:space="preserve"><value>Save</value></data>
+  <data name="SaveDraft" xml:space="preserve"><value>Save as Draft</value></data>
+  <data name="Cancel" xml:space="preserve"><value>Cancel</value></data>
+  <data name="Back" xml:space="preserve"><value>Back to Invoices</value></data>
+  <data name="Open" xml:space="preserve"><value>Open</value></data>
+  <data name="NoInvoices" xml:space="preserve"><value>No invoices found.</value></data>
+
+  <!-- List filters -->
+  <data name="Filter_Customer" xml:space="preserve"><value>Customer</value></data>
+  <data name="Filter_Status" xml:space="preserve"><value>Status</value></data>
+  <data name="Filter_From" xml:space="preserve"><value>From</value></data>
+  <data name="Filter_To" xml:space="preserve"><value>To</value></data>
+  <data name="Filter_Reset" xml:space="preserve"><value>Reset</value></data>
+  <data name="Filter_ShowAll" xml:space="preserve"><value>Show all</value></data>
+
+  <!-- List columns -->
+  <data name="Col_Reference" xml:space="preserve"><value>Reference</value></data>
+  <data name="Col_Customer" xml:space="preserve"><value>Customer</value></data>
+  <data name="Col_Date" xml:space="preserve"><value>Date</value></data>
+  <data name="Col_DueDate" xml:space="preserve"><value>Due Date</value></data>
+  <data name="Col_Status" xml:space="preserve"><value>Status</value></data>
+  <data name="Col_Amount" xml:space="preserve"><value>Amount</value></data>
+
+  <!-- Form fields -->
+  <data name="Field_Customer" xml:space="preserve"><value>Customer</value></data>
+  <data name="Field_Reference" xml:space="preserve"><value>Reference</value></data>
+  <data name="Field_Date" xml:space="preserve"><value>Invoice Date</value></data>
+  <data name="Field_DueDate" xml:space="preserve"><value>Due Date</value></data>
+  <data name="Field_Currency" xml:space="preserve"><value>Currency</value></data>
+  <data name="Field_Notes" xml:space="preserve"><value>Notes</value></data>
+  <data name="Field_RevenueAccount" xml:space="preserve"><value>Revenue Account</value></data>
+  <data name="Field_RevenueAccountHint" xml:space="preserve"><value>Used when posting GL entries on send</value></data>
+
+  <!-- Line items -->
+  <data name="Lines_Title" xml:space="preserve"><value>Line Items</value></data>
+  <data name="Lines_Add" xml:space="preserve"><value>Add Line</value></data>
+  <data name="Lines_Empty" xml:space="preserve"><value>No line items yet. Click "Add Line" to begin.</value></data>
+  <data name="Col_Description" xml:space="preserve"><value>Description</value></data>
+  <data name="Col_Qty" xml:space="preserve"><value>Qty</value></data>
+  <data name="Col_UnitPrice" xml:space="preserve"><value>Unit Price</value></data>
+  <data name="Col_Disc" xml:space="preserve"><value>Disc %</value></data>
+  <data name="Col_TaxRate" xml:space="preserve"><value>Tax %</value></data>
+  <data name="Col_LineTotal" xml:space="preserve"><value>Line Total</value></data>
+
+  <!-- Totals -->
+  <data name="Totals_Title" xml:space="preserve"><value>Summary</value></data>
+  <data name="Totals_Subtotal" xml:space="preserve"><value>Subtotal</value></data>
+  <data name="Totals_Discount" xml:space="preserve"><value>Total Discount</value></data>
+  <data name="Totals_Tax" xml:space="preserve"><value>Total Tax (VAT)</value></data>
+  <data name="Totals_Grand" xml:space="preserve"><value>Grand Total</value></data>
+
+  <!-- Detail page -->
+  <data name="Detail_InvoiceInfo" xml:space="preserve"><value>Invoice Details</value></data>
+  <data name="Detail_CustomerInfo" xml:space="preserve"><value>Customer</value></data>
+
+  <!-- Actions -->
+  <data name="Action_Pdf" xml:space="preserve"><value>Download PDF</value></data>
+  <data name="Action_Edit" xml:space="preserve"><value>Edit</value></data>
+  <data name="Action_Send" xml:space="preserve"><value>Send</value></data>
+  <data name="Action_Void" xml:space="preserve"><value>Void</value></data>
+
+  <!-- Send dialog -->
+  <data name="Send_Title" xml:space="preserve"><value>Send Invoice</value></data>
+  <data name="Send_Confirm" xml:space="preserve"><value>You are about to send invoice {0} to {1}. The corresponding journal entries will be posted automatically.</value></data>
+  <data name="Send_Net" xml:space="preserve"><value>Net Amount</value></data>
+  <data name="Send_Tax" xml:space="preserve"><value>Tax (VAT)</value></data>
+  <data name="Send_Total" xml:space="preserve"><value>Grand Total</value></data>
+  <data name="Send_RevenueAccount" xml:space="preserve"><value>Revenue Account</value></data>
+  <data name="Send_RevenueAccountHint" xml:space="preserve"><value>The revenue account to credit in the journal entry</value></data>
+  <data name="Send_Send" xml:space="preserve"><value>Send Invoice</value></data>
+
+  <!-- Void dialog -->
+  <data name="Void_Title" xml:space="preserve"><value>Void Invoice</value></data>
+  <data name="Void_Confirm" xml:space="preserve"><value>This will void the invoice and post a reversing journal entry. This action cannot be undone. Continue?</value></data>
+  <data name="Void_Confirm_Yes" xml:space="preserve"><value>Void Invoice</value></data>
+
+  <!-- Reminder -->
+  <data name="Action_Reminder" xml:space="preserve"><value>Send Reminder</value></data>
+  <data name="Reminder_Title" xml:space="preserve"><value>Send Payment Reminder</value></data>
+  <data name="Reminder_Message" xml:space="preserve"><value>Reminder Message</value></data>
+  <data name="Reminder_Print" xml:space="preserve"><value>Print</value></data>
+  <data name="Reminder_SendEmail" xml:space="preserve"><value>Send by Email</value></data>
+  <data name="Reminder_NoEmail" xml:space="preserve"><value>Customer has no email address</value></data>
+  <data name="Reminder_SmtpNotConfigured" xml:space="preserve"><value>SMTP not configured</value></data>
+  <data name="Reminder_History" xml:space="preserve"><value>Reminder History</value></data>
+  <data name="Reminder_NoReminders" xml:space="preserve"><value>No reminders sent yet.</value></data>
+  <data name="Reminder_Col_Date" xml:space="preserve"><value>Date</value></data>
+  <data name="Reminder_Col_Method" xml:space="preserve"><value>Method</value></data>
+  <data name="Reminder_Col_By" xml:space="preserve"><value>Sent By</value></data>
+  <data name="Reminder_Method_Email" xml:space="preserve"><value>Email</value></data>
+  <data name="Reminder_Method_Print" xml:space="preserve"><value>Print</value></data>
+  <data name="Reminder_Method_Bulk" xml:space="preserve"><value>Bulk</value></data>
+
+  <!-- Payment -->
+  <data name="Action_RecordPayment" xml:space="preserve"><value>Record Payment</value></data>
+  <data name="Payment_Title" xml:space="preserve"><value>Record Payment</value></data>
+  <data name="Payment_Outstanding" xml:space="preserve"><value>Outstanding balance</value></data>
+  <data name="Payment_Date" xml:space="preserve"><value>Payment Date</value></data>
+  <data name="Payment_Amount" xml:space="preserve"><value>Amount</value></data>
+  <data name="Payment_Method" xml:space="preserve"><value>Payment Method</value></data>
+  <data name="Payment_Reference" xml:space="preserve"><value>Reference</value></data>
+  <data name="Payment_BankAccount" xml:space="preserve"><value>Bank / Cash Account</value></data>
+  <data name="Payment_Save" xml:space="preserve"><value>Record Payment</value></data>
+  <data name="Payment_History" xml:space="preserve"><value>Payment History</value></data>
+  <data name="Payment_NoPayments" xml:space="preserve"><value>No payments recorded yet.</value></data>
+  <data name="Payment_Col_Date" xml:space="preserve"><value>Date</value></data>
+  <data name="Payment_Col_Amount" xml:space="preserve"><value>Amount</value></data>
+  <data name="Payment_Col_Method" xml:space="preserve"><value>Method</value></data>
+  <data name="Payment_Col_Reference" xml:space="preserve"><value>Reference</value></data>
+  <data name="Payment_Delete_Title" xml:space="preserve"><value>Delete Payment</value></data>
+  <data name="Payment_Delete_Confirm" xml:space="preserve"><value>This will delete the payment and post a reversing journal entry. Continue?</value></data>
+  <data name="Payment_Delete_Yes" xml:space="preserve"><value>Delete</value></data>
+  <data name="Payment_Paid" xml:space="preserve"><value>Paid</value></data>
+  <data name="Method_BankTransfer" xml:space="preserve"><value>Bank Transfer</value></data>
+  <data name="Method_Cash" xml:space="preserve"><value>Cash</value></data>
+  <data name="Method_Card" xml:space="preserve"><value>Card</value></data>
+  <data name="Method_Other" xml:space="preserve"><value>Other</value></data>
+
+  <!-- Credit notes -->
+  <data name="Action_CreditNote" xml:space="preserve"><value>Credit Note</value></data>
+  <data name="CreditNote_Label" xml:space="preserve"><value>Credit Note</value></data>
+  <data name="CreditNote_Title" xml:space="preserve"><value>Issue Credit Note</value></data>
+  <data name="CreditNote_Subtitle" xml:space="preserve"><value>Against invoice {0}</value></data>
+  <data name="CreditNote_Date" xml:space="preserve"><value>Credit Note Date</value></data>
+  <data name="CreditNote_Save" xml:space="preserve"><value>Issue Credit Note</value></data>
+  <data name="CreditNote_OriginalInvoice" xml:space="preserve"><value>Original Invoice</value></data>
+  <data name="CreditNote_LinkedTo" xml:space="preserve"><value>Credit note for</value></data>
+  <data name="CreditNote_History" xml:space="preserve"><value>Credit Notes</value></data>
+  <data name="CreditNote_NoHistory" xml:space="preserve"><value>No credit notes issued.</value></data>
+  <data name="CreditNote_Col_Reference" xml:space="preserve"><value>Reference</value></data>
+  <data name="CreditNote_Col_Date" xml:space="preserve"><value>Date</value></data>
+  <data name="CreditNote_Col_Amount" xml:space="preserve"><value>Amount</value></data>
+  <data name="CreditNote_MaxExceeded" xml:space="preserve"><value>Credit note amount cannot exceed the original invoice total ({0} {1}).</value></data>
+  <data name="CreditNote_Overpayment" xml:space="preserve"><value>This credit note creates a customer credit balance of {0} {1}. Consider refunding or applying it to a future invoice.</value></data>
+</root>

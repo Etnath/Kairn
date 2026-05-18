@@ -28,6 +28,11 @@ public class AppDbContext : IdentityDbContext<ApplicationUser>
     public DbSet<RecurringEntryLine> RecurringEntryLines => Set<RecurringEntryLine>();
     public DbSet<RecurringJobLog> RecurringJobLogs => Set<RecurringJobLog>();
     public DbSet<CurrencyRate> CurrencyRates => Set<CurrencyRate>();
+    public DbSet<Customer> Customers => Set<Customer>();
+    public DbSet<Invoice> Invoices => Set<Invoice>();
+    public DbSet<InvoiceLine> InvoiceLines => Set<InvoiceLine>();
+    public DbSet<InvoicePayment> InvoicePayments => Set<InvoicePayment>();
+    public DbSet<InvoiceReminder> InvoiceReminders => Set<InvoiceReminder>();
 
     protected override void OnConfiguring(DbContextOptionsBuilder optionsBuilder)
     {

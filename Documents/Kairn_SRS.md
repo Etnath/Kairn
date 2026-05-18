@@ -65,7 +65,8 @@ Kairn is a web-based ERP application tailored for small business owners with no 
 ### 1.4 References
 
 - International Financial Reporting Standards (IFRS)
-- Swiss Code of Obligations — Financial Accounting Requirements (OR/CO Art. 957 et seq.)
+- Code de commerce français — Obligations comptables (Art. L123-12 et seq.)
+- Plan Comptable Général (PCG) — Règlement ANC n°2014-03
 - ISO/IEC 25010:2011 — Software Quality Model
 - IEEE 830-1998 — Recommended Practice for SRS
 
@@ -79,7 +80,7 @@ Section 2 describes the product context and constraints. Section 3 contains all 
 
 ### 2.1 Product Perspective
 
-Kairn is a standalone web application, not dependent on any existing ERP system. It stores all financial data on a private server with optional cloud backup. The system is designed for a single-entity small business operating primarily in Switzerland, with multi-currency support.
+Kairn is a standalone web application, not dependent on any existing ERP system. It stores all financial data on a private server with optional cloud backup. The system is designed for a single-entity small business operating primarily in France, with multi-currency support.
 
 ### 2.2 Product Functions — High-Level Summary
 
@@ -118,13 +119,13 @@ Manages user accounts, system configuration, backup schedules, and access contro
 - All monetary values must be stored as 64-bit decimal to avoid floating-point rounding errors
 - The system must enforce double-entry accounting — every transaction must balance (debits = credits)
 - The fiscal year must be configurable (e.g. January–December or July–June)
-- The system must support Swiss accounting standards (OR/CO) and optionally IFRS
+- The system must support French accounting standards (PCG / Code de commerce) and optionally IFRS
 - All data must be exportable in CSV and PDF formats
 - The application must function correctly on the latest two major versions of each supported browser
 
 ### 2.6 Assumptions and Dependencies
 
-- The business operates as a single legal entity (sole trader or GmbH/Sàrl)
+- The business operates as a single legal entity (auto-entrepreneur, EURL, SARL, SAS, etc.)
 - A real-time currency API (e.g. Frankfurter, ECB) is used for exchange rates
 - Tax rates are configurable and not hard-coded
 - The server environment supports Docker and PostgreSQL 15+
@@ -242,7 +243,7 @@ The balance sheet provides a snapshot of assets, liabilities, and equity at any 
 
 | ID | Requirement | Description | Priority |
 |---|---|---|---|
-| FR-TX-01 | VAT Configuration | Configure VAT rates by category (e.g. 8.1% standard, 2.6% reduced in Switzerland). | Must Have |
+| FR-TX-01 | VAT Configuration | Configure TVA rates by category (e.g. 20% normal, 10% intermédiaire, 5.5% réduit, 2.1% super-réduit in France). | Must Have |
 | FR-TX-02 | VAT Return Report | Generate a VAT return report for any period showing input tax, output tax, and net payable. | Must Have |
 | FR-TX-03 | Tax Period Locking | Lock a tax period to prevent modification of transactions after filing. | Must Have |
 | FR-TX-04 | Accountant Export | Export a complete transaction file (journal entries, P&L, balance sheet) in Excel and PDF for the external accountant. | Must Have |

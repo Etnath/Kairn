@@ -1,12 +1,13 @@
 using Fluxor;
 using Kairn.Application.Common;
+using Kairn.Application.Features.AR;
 using Kairn.Application.Features.Audit;
 using Kairn.Application.Features.Reconciliation;
 using Kairn.Application.Features.Reports;
 using Kairn.Application.Features.GL;
+using Kairn.Infrastructure.Email;
 using Kairn.Infrastructure.Jobs;
 using Kairn.Infrastructure.Reports;
-using Kairn.Application.Features.GL;
 using Kairn.Infrastructure.Identity;
 using Kairn.Infrastructure.Persistence;
 using Kairn.Infrastructure.Persistence.Interceptors;
@@ -110,6 +111,14 @@ try
     // ── Application services ─────────────────────────────────────────────────
     builder.Services.AddScoped<ThemeService>();
     builder.Services.AddScoped<IAccountService, AccountService>();
+    builder.Services.AddScoped<ICustomerService, CustomerService>();
+    builder.Services.AddScoped<IInvoiceService, InvoiceService>();
+    builder.Services.AddScoped<IInvoicePaymentService, InvoicePaymentService>();
+    builder.Services.AddScoped<IArAgingService, ArAgingService>();
+    builder.Services.AddSingleton<IArAgingExporter, ArAgingExporter>();
+    builder.Services.Configure<EmailOptions>(builder.Configuration.GetSection("Email"));
+    builder.Services.AddSingleton<IEmailService, SmtpEmailService>();
+    builder.Services.AddScoped<IReminderService, ReminderService>();
     builder.Services.AddScoped<IJournalEntryService, JournalEntryService>();
     builder.Services.AddScoped<IAuditLogService, AuditLogService>();
     builder.Services.AddScoped<IReconciliationService, ReconciliationService>();
@@ -119,6 +128,7 @@ try
     builder.Services.AddSingleton<ITrialBalanceExporter, TrialBalanceExporter>();
     builder.Services.AddScoped<IRecurringEntryService, RecurringEntryService>();
     builder.Services.AddHostedService<RecurringPostingJob>();
+    builder.Services.AddHostedService<OverdueInvoiceJob>();
     builder.Services.AddScoped<IExchangeRateService, ExchangeRateService>();
     builder.Services.AddHostedService<ExchangeRateRefreshJob>();
     builder.Services.AddHttpClient("Frankfurter", client =>
@@ -178,6 +188,14 @@ try
         .AddInteractiveServerRenderMode();
     app.MapRazorPages();
     app.MapHealthChecks("/health");
+
+    // PDF download endpoint
+    app.MapGet("/api/invoices/{id:guid}/pdf", async (Guid id, IInvoiceService invoiceSvc, ICurrentUserContext user) =>
+    {
+        var bytes = await invoiceSvc.GeneratePdfAsync(id, user.TenantId);
+        if (bytes is null) return Results.NotFound();
+        return Results.File(bytes, "application/pdf", $"invoice-{id}.pdf");
+    }).RequireAuthorization();
 
     await app.RunAsync();
 }

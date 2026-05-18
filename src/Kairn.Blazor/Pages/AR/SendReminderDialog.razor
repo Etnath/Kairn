@@ -1,0 +1,167 @@
+@inject IStringLocalizer<Invoices> L
+@inject IReminderService ReminderService
+@inject IEmailService EmailService
+@inject ICurrentUserContext CurrentUser
+@inject IJSRuntime JS
+
+<MudDialog Style="min-width:640px;max-width:800px">
+    <TitleContent>
+        <MudText Typo="Typo.h6">@L["Reminder_Title"]</MudText>
+    </TitleContent>
+    <DialogContent>
+        <MudStack Spacing="3">
+            @* Letter preview header *@
+            <MudPaper Outlined="true" Class="pa-4">
+                <MudStack Spacing="1">
+                    <MudText Typo="Typo.subtitle2"><b>@Invoice.CustomerName</b></MudText>
+                    @if (!string.IsNullOrWhiteSpace(Invoice.CustomerAddress))
+                    {
+                        <MudText Typo="Typo.body2" Style="white-space:pre-wrap;color:var(--mud-palette-text-secondary)">
+                            @Invoice.CustomerAddress
+                        </MudText>
+                    }
+                    <MudDivider Class="my-2" />
+                    <MudStack Row="true" Spacing="4">
+                        <MudStack Spacing="0">
+                            <MudText Typo="Typo.caption" Color="Color.Secondary">Facture</MudText>
+                            <MudText Typo="Typo.body2"><b>@Invoice.Reference</b></MudText>
+                        </MudStack>
+                        <MudStack Spacing="0">
+                            <MudText Typo="Typo.caption" Color="Color.Secondary">Échéance</MudText>
+                            <MudText Typo="Typo.body2" Color="Color.Error">@Invoice.DueDate.ToString("dd/MM/yyyy")</MudText>
+                        </MudStack>
+                        <MudStack Spacing="0">
+                            <MudText Typo="Typo.caption" Color="Color.Secondary">Solde dû</MudText>
+                            <MudText Typo="Typo.body2" Color="Color.Error"><b>@Invoice.Currency @Invoice.Outstanding.ToString("N2")</b></MudText>
+                        </MudStack>
+                    </MudStack>
+                </MudStack>
+            </MudPaper>
+
+            @* Editable message body *@
+            <MudTextField @bind-Value="_messageText"
+                          Label="@L["Reminder_Message"]"
+                          Lines="6" AutoGrow="true"
+                          Variant="Variant.Outlined" />
+
+            @if (_errorMessage is not null)
+            {
+                <MudAlert Severity="Severity.Error" Dense="true">@_errorMessage</MudAlert>
+            }
+            @if (_successMessage is not null)
+            {
+                <MudAlert Severity="Severity.Success" Dense="true">@_successMessage</MudAlert>
+            }
+        </MudStack>
+    </DialogContent>
+    <DialogActions>
+        <MudButton OnClick="Cancel">@L["Cancel"]</MudButton>
+        <MudSpacer />
+        <MudButton Variant="Variant.Outlined"
+                   StartIcon="@Icons.Material.Filled.Print"
+                   OnClick="PrintAsync" Disabled="_busy">
+            @L["Reminder_Print"]
+        </MudButton>
+        <MudTooltip Text="@EmailButtonTooltip" Disabled="string.IsNullOrEmpty(EmailButtonTooltip)">
+            <MudButton Color="Color.Primary" Variant="Variant.Filled"
+                       StartIcon="@Icons.Material.Filled.Email"
+                       OnClick="SendEmailAsync"
+                       Disabled="@(_busy || !CanSendEmail)">
+                @if (_busy)
+                {
+                    <MudProgressCircular Size="Size.Small" Indeterminate="true" Class="mr-2" />
+                }
+                @L["Reminder_SendEmail"]
+            </MudButton>
+        </MudTooltip>
+    </DialogActions>
+</MudDialog>
+
+@code {
+    [CascadingParameter] IMudDialogInstance MudDialog { get; set; } = null!;
+    [Parameter] public InvoiceDto Invoice { get; set; } = null!;
+
+    private string _messageText = string.Empty;
+    private string? _errorMessage;
+    private string? _successMessage;
+    private bool _busy;
+
+    private bool CanSendEmail =>
+        !string.IsNullOrWhiteSpace(Invoice.CustomerEmail) && EmailService.IsConfigured;
+
+    private string EmailButtonTooltip
+    {
+        get
+        {
+            if (string.IsNullOrWhiteSpace(Invoice.CustomerEmail)) return L["Reminder_NoEmail"];
+            if (!EmailService.IsConfigured) return L["Reminder_SmtpNotConfigured"];
+            return string.Empty;
+        }
+    }
+
+    protected override void OnInitialized()
+    {
+        _messageText = Kairn.Infrastructure.Reports.ReminderLetterGenerator.GenerateDefaultMessage(
+            Invoice.Reference, Invoice.DueDate, Invoice.Currency, Invoice.Outstanding);
+    }
+
+    private void Cancel() => MudDialog.Cancel();
+
+    private async Task PrintAsync()
+    {
+        _busy = true;
+        try
+        {
+            var html = Kairn.Infrastructure.Reports.ReminderLetterGenerator.GenerateHtml(
+                Invoice.CustomerName, Invoice.CustomerAddress,
+                Invoice.Reference, Invoice.DueDate,
+                Invoice.Currency, Invoice.Outstanding,
+                _messageText, CurrentUser.UserName);
+
+            await JS.InvokeVoidAsync("kairn.printHtml", html);
+
+            await LogReminderAsync("Print");
+        }
+        finally { _busy = false; }
+    }
+
+    private async Task SendEmailAsync()
+    {
+        _busy = true;
+        _errorMessage = null;
+        _successMessage = null;
+        try
+        {
+            var result = await ReminderService.SendAsync(new SendReminderCommand(
+                InvoiceId: Invoice.Id,
+                TenantId: CurrentUser.TenantId,
+                MessageText: _messageText,
+                SendEmail: true,
+                SentByUserId: CurrentUser.UserId,
+                SentByName: CurrentUser.UserName));
+
+            if (result.IsSuccess)
+            {
+                _successMessage = $"Reminder email sent to {Invoice.CustomerEmail}.";
+                await Task.Delay(1500);
+                MudDialog.Close(DialogResult.Ok(result.Value));
+            }
+            else
+            {
+                _errorMessage = result.Error;
+            }
+        }
+        finally { _busy = false; }
+    }
+
+    private async Task LogReminderAsync(string method)
+    {
+        await ReminderService.SendAsync(new SendReminderCommand(
+            InvoiceId: Invoice.Id,
+            TenantId: CurrentUser.TenantId,
+            MessageText: _messageText,
+            SendEmail: false,
+            SentByUserId: CurrentUser.UserId,
+            SentByName: CurrentUser.UserName));
+    }
+}

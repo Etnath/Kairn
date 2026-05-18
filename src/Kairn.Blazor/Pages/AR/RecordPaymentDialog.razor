@@ -1,0 +1,128 @@
+@inject IStringLocalizer<Invoices> L
+@inject IInvoicePaymentService PaymentService
+@inject IAccountService AccountService
+@inject ICurrentUserContext CurrentUser
+
+<MudDialog>
+    <TitleContent>
+        <MudText Typo="Typo.h6">@L["Payment_Title"]</MudText>
+    </TitleContent>
+    <DialogContent>
+        <MudStack Spacing="3">
+            <MudStack Row="true" AlignItems="AlignItems.Center">
+                <MudText Color="Color.Secondary">@L["Payment_Outstanding"]:</MudText>
+                <MudText Typo="Typo.subtitle1" Color="Color.Primary">
+                    <b>@Invoice.Currency @_outstanding.ToString("N2")</b>
+                </MudText>
+            </MudStack>
+
+            <MudDatePicker @bind-Date="_date" Label="@L["Payment_Date"]" Required="true"
+                           DateFormat="dd/MM/yyyy" />
+
+            <MudNumericField @bind-Value="_amount" Label="@L["Payment_Amount"]"
+                             Format="N2" Min="0.01m" Max="@_outstanding"
+                             Required="true" />
+
+            <MudSelect @bind-Value="_method" Label="@L["Payment_Method"]" Required="true">
+                <MudSelectItem Value="@PaymentMethod.BankTransfer">@L["Method_BankTransfer"]</MudSelectItem>
+                <MudSelectItem Value="@PaymentMethod.Cash">@L["Method_Cash"]</MudSelectItem>
+                <MudSelectItem Value="@PaymentMethod.Card">@L["Method_Card"]</MudSelectItem>
+                <MudSelectItem Value="@PaymentMethod.Other">@L["Method_Other"]</MudSelectItem>
+            </MudSelect>
+
+            <MudSelect @bind-Value="_bankAccountId" Label="@L["Payment_BankAccount"]" Required="true"
+                       ToStringFunc="@(id => _accounts.FirstOrDefault(a => a.Id == id)?.Name ?? string.Empty)">
+                @foreach (var acct in _accounts)
+                {
+                    <MudSelectItem Value="@acct.Id">@acct.Code – @acct.Name</MudSelectItem>
+                }
+            </MudSelect>
+
+            <MudTextField @bind-Value="_reference" Label="@L["Payment_Reference"]" />
+
+            @if (_errorMessage is not null)
+            {
+                <MudAlert Severity="Severity.Error" Dense="true">@_errorMessage</MudAlert>
+            }
+        </MudStack>
+    </DialogContent>
+    <DialogActions>
+        <MudButton OnClick="Cancel">@L["Cancel"]</MudButton>
+        <MudButton Color="Color.Primary" Variant="Variant.Filled"
+                   OnClick="Submit" Disabled="_saving">
+            @if (_saving)
+            {
+                <MudProgressCircular Size="Size.Small" Indeterminate="true" Class="mr-2" />
+            }
+            @L["Payment_Save"]
+        </MudButton>
+    </DialogActions>
+</MudDialog>
+
+@code {
+    [CascadingParameter] IMudDialogInstance MudDialog { get; set; } = null!;
+    [Parameter] public InvoiceDto Invoice { get; set; } = null!;
+
+    private decimal _outstanding;
+    private DateTime? _date = DateTime.Today;
+    private decimal _amount;
+    private PaymentMethod _method = PaymentMethod.BankTransfer;
+    private Guid _bankAccountId;
+    private string? _reference;
+    private string? _errorMessage;
+    private bool _saving;
+    private List<Kairn.Domain.Entities.Account> _accounts = [];
+
+    protected override async Task OnInitializedAsync()
+    {
+        _outstanding = Invoice.Outstanding;
+        _amount = _outstanding;
+
+        var allAccounts = await AccountService.GetAllAsync(CurrentUser.TenantId);
+        _accounts = allAccounts
+            .Where(a => a.Code.StartsWith("51") || a.Code.StartsWith("53"))
+            .OrderBy(a => a.Code)
+            .ToList();
+
+        if (_accounts.Count > 0)
+            _bankAccountId = _accounts[0].Id;
+    }
+
+    private void Cancel() => MudDialog.Cancel();
+
+    private async Task Submit()
+    {
+        if (_date is null)
+        {
+            _errorMessage = "Payment date is required.";
+            return;
+        }
+        if (_bankAccountId == Guid.Empty)
+        {
+            _errorMessage = "Please select a bank or cash account.";
+            return;
+        }
+
+        _saving = true;
+        _errorMessage = null;
+
+        var cmd = new RecordPaymentCommand(
+            InvoiceId: Invoice.Id,
+            TenantId: CurrentUser.TenantId,
+            Date: DateOnly.FromDateTime(_date.Value),
+            Amount: _amount,
+            Method: _method,
+            Reference: string.IsNullOrWhiteSpace(_reference) ? null : _reference,
+            BankAccountId: _bankAccountId,
+            PostedByUserId: CurrentUser.UserId,
+            PostedByName: CurrentUser.UserName);
+
+        var result = await PaymentService.RecordAsync(cmd);
+        _saving = false;
+
+        if (result.IsSuccess)
+            MudDialog.Close(DialogResult.Ok(result.Value));
+        else
+            _errorMessage = result.Error;
+    }
+}

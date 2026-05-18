@@ -4,7 +4,9 @@
   <resheader name="version"><value>2.0</value></resheader>
   <data name="Nav.Dashboard" xml:space="preserve"><value>Dashboard</value></data>
   <data name="Nav.GeneralLedger" xml:space="preserve"><value>General Ledger</value></data>
+  <data name="Nav.Customers" xml:space="preserve"><value>Customers</value></data>
   <data name="Nav.Invoicing" xml:space="preserve"><value>Invoicing</value></data>
+  <data name="Nav.ArAging" xml:space="preserve"><value>AR Aging</value></data>
   <data name="Nav.Bills" xml:space="preserve"><value>Bills</value></data>
   <data name="Nav.Reports" xml:space="preserve"><value>Reports</value></data>
   <data name="Nav.MarginAnalysis" xml:space="preserve"><value>Margin Analysis</value></data>

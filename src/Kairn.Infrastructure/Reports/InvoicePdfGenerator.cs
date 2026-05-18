@@ -1,0 +1,190 @@
+using Kairn.Application.Features.AR;
+using Kairn.Domain.Entities;
+using QuestPDF.Fluent;
+using QuestPDF.Helpers;
+using QuestPDF.Infrastructure;
+
+namespace Kairn.Infrastructure.Reports;
+
+public static class InvoicePdfGenerator
+{
+    public static byte[] Generate(InvoiceDto invoice)
+    {
+        return Document.Create(container =>
+        {
+            container.Page(page =>
+            {
+                page.Size(PageSizes.A4);
+                page.Margin(2, Unit.Centimetre);
+                page.DefaultTextStyle(ts => ts.FontSize(10).FontFamily("Arial"));
+
+                page.Header().Column(col =>
+                {
+                    col.Item().Row(row =>
+                    {
+                        row.RelativeItem().Column(c =>
+                        {
+                            c.Item().Text("INVOICE").FontSize(22).Bold().FontColor("#1565C0");
+                            c.Item().PaddingTop(4).Text($"# {invoice.Reference}").FontSize(12).FontColor(Colors.Grey.Darken1);
+                        });
+
+                        row.ConstantItem(160).Column(c =>
+                        {
+                            c.Item().AlignRight().Text("Kairn").FontSize(13).Bold();
+                            c.Item().AlignRight().Text($"Date: {invoice.Date:dd/MM/yyyy}");
+                            c.Item().AlignRight().Text($"Due: {invoice.DueDate:dd/MM/yyyy}");
+                            c.Item().PaddingTop(4).AlignRight()
+                                .Text(StatusLabel(invoice.Status))
+                                .Bold()
+                                .FontColor(StatusColor(invoice.Status));
+                        });
+                    });
+
+                    col.Item().PaddingTop(8).LineHorizontal(1).LineColor(Colors.Grey.Lighten1);
+                });
+
+                page.Content().PaddingTop(12).Column(col =>
+                {
+                    // Customer block
+                    col.Item().Column(c =>
+                    {
+                        c.Item().Text("Bill To").FontSize(9).FontColor(Colors.Grey.Darken1).Bold();
+                        c.Item().PaddingTop(2).Text(invoice.CustomerName).Bold();
+                        if (!string.IsNullOrWhiteSpace(invoice.CustomerEmail))
+                            c.Item().Text(invoice.CustomerEmail).FontColor(Colors.Grey.Darken2);
+                        if (!string.IsNullOrWhiteSpace(invoice.CustomerAddress))
+                            c.Item().Text(invoice.CustomerAddress).FontColor(Colors.Grey.Darken2);
+                        if (!string.IsNullOrWhiteSpace(invoice.CustomerTaxNumber))
+                            c.Item().Text($"TVA: {invoice.CustomerTaxNumber}").FontColor(Colors.Grey.Darken2);
+                    });
+
+                    col.Item().PaddingTop(16).Table(table =>
+                    {
+                        table.ColumnsDefinition(cols =>
+                        {
+                            cols.RelativeColumn(4);   // description
+                            cols.ConstantColumn(55);  // qty
+                            cols.ConstantColumn(80);  // unit price
+                            cols.ConstantColumn(55);  // discount
+                            cols.ConstantColumn(50);  // tax
+                            cols.ConstantColumn(80);  // total
+                        });
+
+                        static IContainer HeaderCell(IContainer c) =>
+                            c.Background("#1565C0").Padding(6).AlignMiddle();
+
+                        table.Header(header =>
+                        {
+                            header.Cell().Element(HeaderCell).Text("Description").FontColor(Colors.White).Bold();
+                            header.Cell().Element(HeaderCell).AlignRight().Text("Qty").FontColor(Colors.White).Bold();
+                            header.Cell().Element(HeaderCell).AlignRight().Text("Unit Price").FontColor(Colors.White).Bold();
+                            header.Cell().Element(HeaderCell).AlignRight().Text("Disc %").FontColor(Colors.White).Bold();
+                            header.Cell().Element(HeaderCell).AlignRight().Text("Tax %").FontColor(Colors.White).Bold();
+                            header.Cell().Element(HeaderCell).AlignRight().Text("Total").FontColor(Colors.White).Bold();
+                        });
+
+                        bool even = false;
+                        foreach (var line in invoice.Lines)
+                        {
+                            string bg = even ? Colors.Grey.Lighten4 : Colors.White;
+                            even = !even;
+
+                            IContainer DataCell(IContainer c) => c.Background(bg).Padding(5).AlignMiddle();
+
+                            var gross = line.Quantity * line.UnitPrice;
+                            var discount = gross * line.DiscountPct / 100m;
+                            var net = gross - discount;
+                            var tax = net * line.TaxRate / 100m;
+                            var lineTotal = net + tax;
+
+                            table.Cell().Element(DataCell).Text(line.Description);
+                            table.Cell().Element(DataCell).AlignRight().Text($"{line.Quantity:N2}");
+                            table.Cell().Element(DataCell).AlignRight().Text($"{invoice.Currency} {line.UnitPrice:N2}");
+                            table.Cell().Element(DataCell).AlignRight().Text(line.DiscountPct > 0 ? $"{line.DiscountPct:N1}%" : "—");
+                            table.Cell().Element(DataCell).AlignRight().Text(line.TaxRate > 0 ? $"{line.TaxRate:N1}%" : "0%");
+                            table.Cell().Element(DataCell).AlignRight().Text($"{invoice.Currency} {lineTotal:N2}");
+                        }
+                    });
+
+                    // Totals
+                    col.Item().PaddingTop(12).AlignRight().Width(260).Column(totals =>
+                    {
+                        totals.Item().Row(row =>
+                        {
+                            row.RelativeItem().Text("Subtotal").FontColor(Colors.Grey.Darken1);
+                            row.ConstantItem(100).AlignRight().Text($"{invoice.Currency} {invoice.Subtotal:N2}");
+                        });
+
+                        if (invoice.TotalDiscount > 0)
+                        {
+                            totals.Item().Row(row =>
+                            {
+                                row.RelativeItem().Text("Discount").FontColor(Colors.Grey.Darken1);
+                                row.ConstantItem(100).AlignRight()
+                                    .Text($"- {invoice.Currency} {invoice.TotalDiscount:N2}")
+                                    .FontColor(Colors.Green.Darken2);
+                            });
+                        }
+
+                        if (invoice.TotalTax > 0)
+                        {
+                            totals.Item().Row(row =>
+                            {
+                                row.RelativeItem().Text("Tax (VAT)").FontColor(Colors.Grey.Darken1);
+                                row.ConstantItem(100).AlignRight().Text($"{invoice.Currency} {invoice.TotalTax:N2}");
+                            });
+                        }
+
+                        totals.Item().PaddingTop(4).LineHorizontal(1).LineColor(Colors.Grey.Lighten1);
+
+                        totals.Item().Row(row =>
+                        {
+                            row.RelativeItem().Text("Grand Total").Bold();
+                            row.ConstantItem(100).AlignRight()
+                                .Text($"{invoice.Currency} {invoice.GrandTotal:N2}")
+                                .Bold().FontColor("#1565C0");
+                        });
+                    });
+
+                    // Notes
+                    if (!string.IsNullOrWhiteSpace(invoice.Notes))
+                    {
+                        col.Item().PaddingTop(20).Column(notes =>
+                        {
+                            notes.Item().Text("Notes").Bold().FontSize(9).FontColor(Colors.Grey.Darken1);
+                            notes.Item().PaddingTop(4).Text(invoice.Notes).FontColor(Colors.Grey.Darken2);
+                        });
+                    }
+                });
+
+                page.Footer().AlignCenter().Text(text =>
+                {
+                    text.DefaultTextStyle(ts => ts.FontSize(8).FontColor(Colors.Grey.Medium));
+                    text.Span("Page "); text.CurrentPageNumber(); text.Span(" of "); text.TotalPages();
+                });
+            });
+        }).GeneratePdf();
+    }
+
+    private static string StatusLabel(InvoiceStatus status) => status switch
+    {
+        InvoiceStatus.Draft        => "DRAFT",
+        InvoiceStatus.Sent         => "SENT",
+        InvoiceStatus.PartiallyPaid => "PARTLY PAID",
+        InvoiceStatus.Paid         => "PAID",
+        InvoiceStatus.Overdue      => "OVERDUE",
+        InvoiceStatus.Void         => "VOID",
+        _                          => status.ToString().ToUpper(),
+    };
+
+    private static string StatusColor(InvoiceStatus status) => status switch
+    {
+        InvoiceStatus.Draft        => Colors.Grey.Darken1,
+        InvoiceStatus.Sent         => "#1565C0",
+        InvoiceStatus.PartiallyPaid => "#E65100",
+        InvoiceStatus.Paid         => Colors.Green.Darken2,
+        InvoiceStatus.Overdue      => Colors.Red.Darken2,
+        InvoiceStatus.Void         => Colors.Grey.Darken2,
+        _                          => Colors.Grey.Darken1,
+    };
+}

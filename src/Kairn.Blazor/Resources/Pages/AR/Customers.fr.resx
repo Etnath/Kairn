@@ -1,0 +1,43 @@
+<?xml version="1.0" encoding="utf-8"?>
+<root>
+  <resheader name="resmimetype"><value>text/microsoft-resx</value></resheader>
+  <resheader name="version"><value>2.0</value></resheader>
+  <data name="Title" xml:space="preserve"><value>Clients</value></data>
+  <data name="NewCustomer" xml:space="preserve"><value>Nouveau client</value></data>
+  <data name="Search" xml:space="preserve"><value>Rechercher par nom ou e-mail…</value></data>
+  <data name="Col_Name" xml:space="preserve"><value>Nom</value></data>
+  <data name="Col_Email" xml:space="preserve"><value>E-mail</value></data>
+  <data name="Col_PaymentTerms" xml:space="preserve"><value>Délai (jours)</value></data>
+  <data name="Col_CreditLimit" xml:space="preserve"><value>Limite de crédit</value></data>
+  <data name="Col_OutstandingBalance" xml:space="preserve"><value>Solde dû</value></data>
+  <data name="Col_Currency" xml:space="preserve"><value>Devise</value></data>
+  <data name="Col_Active" xml:space="preserve"><value>Actif</value></data>
+  <data name="Col_Actions" xml:space="preserve"><value>Actions</value></data>
+  <data name="CreateTitle" xml:space="preserve"><value>Nouveau client</value></data>
+  <data name="EditTitle" xml:space="preserve"><value>Modifier le client</value></data>
+  <data name="Save" xml:space="preserve"><value>Enregistrer</value></data>
+  <data name="Cancel" xml:space="preserve"><value>Annuler</value></data>
+  <data name="Field_Name" xml:space="preserve"><value>Nom</value></data>
+  <data name="Field_Email" xml:space="preserve"><value>E-mail</value></data>
+  <data name="Field_Phone" xml:space="preserve"><value>Téléphone</value></data>
+  <data name="Field_Address" xml:space="preserve"><value>Adresse</value></data>
+  <data name="Field_TaxNumber" xml:space="preserve"><value>Numéro de TVA</value></data>
+  <data name="Field_PaymentTerms" xml:space="preserve"><value>Délai de paiement (jours)</value></data>
+  <data name="Field_CreditLimit" xml:space="preserve"><value>Limite de crédit</value></data>
+  <data name="Field_Currency" xml:space="preserve"><value>Devise</value></data>
+  <data name="Field_Active" xml:space="preserve"><value>Actif</value></data>
+  <data name="InactiveNote" xml:space="preserve"><value>Les clients inactifs ne peuvent pas recevoir de nouvelles factures.</value></data>
+  <data name="ViewDetail" xml:space="preserve"><value>Voir les détails</value></data>
+  <data name="EditCustomer" xml:space="preserve"><value>Modifier le client</value></data>
+  <data name="Detail_ContactInfo" xml:space="preserve"><value>Informations de contact</value></data>
+  <data name="Detail_Invoices" xml:space="preserve"><value>Factures</value></data>
+  <data name="Detail_OutstandingBalance" xml:space="preserve"><value>Solde dû</value></data>
+  <data name="Detail_NoInvoices" xml:space="preserve"><value>Aucune facture pour l'instant.</value></data>
+  <data name="Detail_Back" xml:space="preserve"><value>Retour aux clients</value></data>
+  <data name="Detail_PaymentTerms" xml:space="preserve"><value>Délai de paiement</value></data>
+  <data name="Detail_Days" xml:space="preserve"><value>jours</value></data>
+  <data name="Detail_CreditLimit" xml:space="preserve"><value>Limite de crédit</value></data>
+  <data name="Detail_Unlimited" xml:space="preserve"><value>Illimitée</value></data>
+  <data name="Detail_TaxNumber" xml:space="preserve"><value>Numéro de TVA</value></data>
+  <data name="Detail_Inactive" xml:space="preserve"><value>Inactif</value></data>
+</root>

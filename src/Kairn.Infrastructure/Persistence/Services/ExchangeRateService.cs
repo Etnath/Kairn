@@ -15,10 +15,10 @@ public class ExchangeRateService(
     ILogger<ExchangeRateService> logger) : IExchangeRateService
 {
     public string BaseCurrency =>
-        config["Currency:Base"] ?? "CHF";
+        config["Currency:Base"] ?? "EUR";
 
     public IReadOnlyList<string> SupportedCurrencies { get; } =
-        new[] { "CHF", "EUR", "USD", "GBP" };
+        new[] { "EUR", "USD", "GBP", "CHF" };
 
     public async Task<RateResult> GetRateAsync(string currency, DateOnly date, CancellationToken ct = default)
     {

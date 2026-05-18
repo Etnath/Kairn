@@ -1,0 +1,306 @@
+@page "/invoices/{OriginalId:guid}/credit-note"
+@attribute [Authorize(Roles = "Admin,Bookkeeper")]
+@inject IStringLocalizer<Invoices> L
+@inject IInvoiceService InvoiceService
+@inject IAccountService AccountService
+@inject ICurrentUserContext CurrentUser
+@inject NavigationManager Navigation
+
+<PageTitle>@L["CreditNote_Title"] – Kairn</PageTitle>
+
+<MudStack Row="true" AlignItems="AlignItems.Center" Class="mb-4">
+    <MudIconButton Icon="@Icons.Material.Filled.ArrowBack" Size="Size.Small"
+                   title="@L["Back"]"
+                   OnClick="@(() => Navigation.NavigateTo($"/invoices/{OriginalId}"))" />
+    <MudText Typo="Typo.h5">@L["CreditNote_Title"]</MudText>
+</MudStack>
+
+@if (_loading)
+{
+    <MudProgressCircular Indeterminate="true" />
+}
+else if (_original is null)
+{
+    <MudAlert Severity="Severity.Error">Invoice not found.</MudAlert>
+}
+else
+{
+    @* Original invoice summary *@
+    <MudAlert Severity="Severity.Info" Dense="true" Class="mb-4">
+        @string.Format(L["CreditNote_Subtitle"].Value, _original.Reference)
+        – @_original.CustomerName
+        – @L["Totals_Grand"]: @_original.Currency @_original.GrandTotal.ToString("N2")
+    </MudAlert>
+
+    <MudForm @ref="_form" @bind-IsValid="_isValid">
+        <MudGrid Spacing="3">
+
+            @* Header fields *@
+            <MudItem xs="12" md="8">
+                <MudPaper Class="pa-4" Elevation="0" Outlined="true">
+                    <MudGrid Spacing="2">
+                        <MudItem xs="12" sm="6">
+                            <MudTextField Value="_original.CustomerName" Label="@L["Field_Customer"]"
+                                          ReadOnly="true" Disabled="true" />
+                        </MudItem>
+                        <MudItem xs="12" sm="6">
+                            <MudTextField Value="_original.Currency" Label="@L["Field_Currency"]"
+                                          ReadOnly="true" Disabled="true" />
+                        </MudItem>
+                        <MudItem xs="12" sm="4">
+                            <MudDatePicker @bind-Date="_date" Label="@L["CreditNote_Date"]"
+                                           DateFormat="dd/MM/yyyy" Editable="true" Required="true" />
+                        </MudItem>
+                        <MudItem xs="12" sm="4">
+                            <MudSelect T="Guid?" @bind-Value="_revenueAccountId"
+                                       Label="@L["Field_RevenueAccount"]"
+                                       HelperText="@L["Field_RevenueAccountHint"]"
+                                       Clearable="true">
+                                @foreach (var acc in _revenueAccounts)
+                                {
+                                    <MudSelectItem T="Guid?" Value="@((Guid?)acc.Id)">
+                                        @acc.Code – @acc.Name
+                                    </MudSelectItem>
+                                }
+                            </MudSelect>
+                        </MudItem>
+                        <MudItem xs="12">
+                            <MudTextField @bind-Value="_notes" Label="@L["Field_Notes"]"
+                                          Lines="2" Immediate="true" />
+                        </MudItem>
+                    </MudGrid>
+                </MudPaper>
+            </MudItem>
+
+            @* Totals *@
+            <MudItem xs="12" md="4">
+                <MudPaper Class="pa-4" Elevation="0" Outlined="true" Style="height:100%">
+                    <MudText Typo="Typo.subtitle2" Class="mb-3">@L["Totals_Title"]</MudText>
+                    <MudStack Spacing="1">
+                        <MudStack Row="true" Spacing="0">
+                            <MudText Style="flex:1" Color="Color.Secondary">@L["Totals_Subtotal"]</MudText>
+                            <MudText>@_original.Currency @Subtotal.ToString("N2")</MudText>
+                        </MudStack>
+                        @if (TotalTax > 0)
+                        {
+                            <MudStack Row="true" Spacing="0">
+                                <MudText Style="flex:1" Color="Color.Secondary">@L["Totals_Tax"]</MudText>
+                                <MudText>@_original.Currency @TotalTax.ToString("N2")</MudText>
+                            </MudStack>
+                        }
+                        <MudDivider Class="my-2" />
+                        <MudStack Row="true" Spacing="0">
+                            <MudText Style="flex:1"><b>@L["Totals_Grand"]</b></MudText>
+                            <MudText Typo="Typo.h6" Color="Color.Warning">
+                                – @_original.Currency @GrandTotal.ToString("N2")
+                            </MudText>
+                        </MudStack>
+                        @if (_maxExceeded)
+                        {
+                            <MudText Typo="Typo.caption" Color="Color.Error">
+                                @string.Format(L["CreditNote_MaxExceeded"].Value, _original.Currency, _original.GrandTotal.ToString("N2"))
+                            </MudText>
+                        }
+                    </MudStack>
+                </MudPaper>
+            </MudItem>
+
+            @* Line items *@
+            <MudItem xs="12">
+                <MudPaper Class="pa-4" Elevation="0" Outlined="true">
+                    <MudStack Row="true" AlignItems="AlignItems.Center" Class="mb-3">
+                        <MudText Typo="Typo.subtitle1"><b>@L["Lines_Title"]</b></MudText>
+                        <MudSpacer />
+                        <MudButton Variant="Variant.Outlined" Size="Size.Small"
+                                   StartIcon="@Icons.Material.Filled.Add"
+                                   OnClick="AddLine">
+                            @L["Lines_Add"]
+                        </MudButton>
+                    </MudStack>
+
+                    <MudTable Items="_lines" Dense="true" Hover="false" Elevation="0"
+                              Style="border:1px solid var(--mud-palette-lines-default)">
+                        <HeaderContent>
+                            <MudTh>@L["Col_Description"]</MudTh>
+                            <MudTh Style="width:90px">@L["Col_Qty"]</MudTh>
+                            <MudTh Style="width:110px">@L["Col_UnitPrice"]</MudTh>
+                            <MudTh Style="width:80px">@L["Col_Disc"]</MudTh>
+                            <MudTh Style="width:100px">@L["Col_TaxRate"]</MudTh>
+                            <MudTh Style="width:110px" Class="text-right">@L["Col_LineTotal"]</MudTh>
+                            <MudTh Style="width:50px"></MudTh>
+                        </HeaderContent>
+                        <RowTemplate>
+                            <MudTd>
+                                <MudTextField @bind-Value="context.Description"
+                                              Required="true"
+                                              Margin="Margin.Dense" Immediate="true" />
+                            </MudTd>
+                            <MudTd>
+                                <MudNumericField T="decimal" @bind-Value="context.Quantity"
+                                                 Min="0.001m" Format="N2"
+                                                 HideSpinButtons="true" Margin="Margin.Dense" />
+                            </MudTd>
+                            <MudTd>
+                                <MudNumericField T="decimal" @bind-Value="context.UnitPrice"
+                                                 Min="0" Format="N2"
+                                                 HideSpinButtons="true" Margin="Margin.Dense" />
+                            </MudTd>
+                            <MudTd>
+                                <MudNumericField T="decimal" @bind-Value="context.DiscountPct"
+                                                 Min="0" Max="100" Format="N1"
+                                                 HideSpinButtons="true" Margin="Margin.Dense" />
+                            </MudTd>
+                            <MudTd>
+                                <MudSelect T="decimal" @bind-Value="context.TaxRate"
+                                           Dense="true" Margin="Margin.Dense">
+                                    @foreach (var rate in TaxRates)
+                                    {
+                                        <MudSelectItem T="decimal" Value="@rate">@rate.ToString("N1")%</MudSelectItem>
+                                    }
+                                </MudSelect>
+                            </MudTd>
+                            <MudTd Class="text-right">
+                                <MudText Typo="Typo.body2">@context.LineTotal.ToString("N2")</MudText>
+                            </MudTd>
+                            <MudTd>
+                                <MudIconButton Icon="@Icons.Material.Filled.Delete"
+                                               Size="Size.Small" Color="Color.Error"
+                                               OnClick="@(() => RemoveLine(context))" />
+                            </MudTd>
+                        </RowTemplate>
+                        <NoRecordsContent>
+                            <MudText Color="Color.Secondary" Class="pa-4">@L["Lines_Empty"]</MudText>
+                        </NoRecordsContent>
+                    </MudTable>
+                </MudPaper>
+            </MudItem>
+
+            @if (_errorMessage is not null)
+            {
+                <MudItem xs="12">
+                    <MudAlert Severity="Severity.Error" Dense="true">@_errorMessage</MudAlert>
+                </MudItem>
+            }
+
+            <MudItem xs="12">
+                <MudStack Row="true" Spacing="2" Justify="Justify.FlexEnd">
+                    <MudButton OnClick="@(() => Navigation.NavigateTo($"/invoices/{OriginalId}"))">
+                        @L["Cancel"]
+                    </MudButton>
+                    <MudButton Color="Color.Warning" Variant="Variant.Filled"
+                               OnClick="Save" Disabled="@(_saving || _maxExceeded || _lines.Count == 0)">
+                        @if (_saving)
+                        {
+                            <MudProgressCircular Size="Size.Small" Indeterminate="true" Class="mr-2" />
+                        }
+                        @L["CreditNote_Save"]
+                    </MudButton>
+                </MudStack>
+            </MudItem>
+        </MudGrid>
+    </MudForm>
+}
+
+@code {
+    [Parameter] public Guid OriginalId { get; set; }
+
+    private static readonly decimal[] TaxRates = [0m, 2.1m, 5.5m, 10m, 20m];
+
+    private MudForm _form = null!;
+    private bool _isValid;
+    private bool _loading = true;
+    private bool _saving;
+    private string? _errorMessage;
+
+    private InvoiceDto? _original;
+    private List<Kairn.Domain.Entities.Account> _revenueAccounts = [];
+
+    private DateTime? _date = DateTime.Today;
+    private string? _notes;
+    private Guid? _revenueAccountId;
+    private List<LineItemModel> _lines = [];
+
+    private decimal Subtotal => _lines.Sum(l => l.NetAmount);
+    private decimal TotalTax => _lines.Sum(l => l.TaxAmount);
+    private decimal GrandTotal => Subtotal + TotalTax;
+    private bool _maxExceeded => _original is not null && GrandTotal > _original.GrandTotal;
+
+    protected override async Task OnInitializedAsync()
+    {
+        _original = await InvoiceService.GetByIdAsync(OriginalId, CurrentUser.TenantId);
+        if (_original is null || _original.IsCreditNote)
+        {
+            Navigation.NavigateTo("/invoicing");
+            return;
+        }
+
+        var accounts = await AccountService.GetAllAsync(CurrentUser.TenantId);
+        _revenueAccounts = accounts
+            .Where(a => a.Type == Kairn.Domain.Entities.AccountType.Revenue && a.IsActive)
+            .OrderBy(a => a.Code)
+            .ToList();
+
+        _revenueAccountId = _original.RevenueAccountId;
+
+        // Pre-fill lines from original invoice
+        _lines = _original.Lines.Select(l => new LineItemModel
+        {
+            Description = l.Description,
+            Quantity = l.Quantity,
+            UnitPrice = l.UnitPrice,
+            DiscountPct = l.DiscountPct,
+            TaxRate = l.TaxRate,
+        }).ToList();
+
+        _loading = false;
+    }
+
+    private void AddLine() => _lines.Add(new LineItemModel());
+    private void RemoveLine(LineItemModel line) => _lines.Remove(line);
+
+    private async Task Save()
+    {
+        await _form.Validate();
+        if (!_isValid) return;
+        if (_original is null || !_date.HasValue || _lines.Count == 0) return;
+        if (_maxExceeded) return;
+
+        _saving = true;
+        _errorMessage = null;
+
+        var lines = _lines.Select((l, i) => new InvoiceLineInput(
+            l.Description, l.Quantity, l.UnitPrice, l.DiscountPct, l.TaxRate, i)).ToList();
+
+        var result = await InvoiceService.IssueCreditNoteAsync(new IssueCreditNoteCommand(
+            OriginalInvoiceId: OriginalId,
+            TenantId: CurrentUser.TenantId,
+            Date: DateOnly.FromDateTime(_date.Value),
+            Notes: _notes,
+            RevenueAccountId: _revenueAccountId,
+            Lines: lines,
+            PostedByUserId: CurrentUser.UserId,
+            PostedByName: CurrentUser.UserName));
+
+        _saving = false;
+
+        if (result.IsSuccess)
+            Navigation.NavigateTo($"/invoices/{OriginalId}");
+        else
+            _errorMessage = result.Error;
+    }
+
+    private class LineItemModel
+    {
+        public string Description { get; set; } = "";
+        public decimal Quantity { get; set; } = 1m;
+        public decimal UnitPrice { get; set; }
+        public decimal DiscountPct { get; set; }
+        public decimal TaxRate { get; set; }
+
+        public decimal GrossAmount => Quantity * UnitPrice;
+        public decimal DiscountAmount => GrossAmount * DiscountPct / 100m;
+        public decimal NetAmount => GrossAmount - DiscountAmount;
+        public decimal TaxAmount => NetAmount * TaxRate / 100m;
+        public decimal LineTotal => NetAmount + TaxAmount;
+    }
+}

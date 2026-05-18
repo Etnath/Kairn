@@ -4,7 +4,7 @@ namespace Kairn.Blazor.Helpers;
 
 public static class CultureHelper
 {
-    public static string FormatCurrency(decimal amount, string currencyCode = "CHF")
+    public static string FormatCurrency(decimal amount, string currencyCode = "EUR")
     {
         var culture = CultureInfo.CurrentUICulture;
         var formatted = amount.ToString("N2", culture);

@@ -1,0 +1,495 @@
+@page "/invoices/{Id:guid}"
+@attribute [Authorize(Roles = "Admin,Bookkeeper,Viewer")]
+@inject IStringLocalizer<Invoices> L
+@inject IInvoiceService InvoiceService
+@inject IInvoicePaymentService PaymentService
+@inject IReminderService ReminderService
+@inject ICurrentUserContext CurrentUser
+@inject IDialogService DialogService
+@inject NavigationManager Navigation
+@inject IJSRuntime JS
+
+<PageTitle>@(_invoice?.Reference ?? "…") – Kairn</PageTitle>
+
+@if (_invoice is null)
+{
+    <MudProgressCircular Indeterminate="true" />
+}
+else
+{
+    @* Header *@
+    <MudStack Row="true" AlignItems="AlignItems.Center" Class="mb-4" Wrap="Wrap.Wrap">
+        <MudIconButton Icon="@Icons.Material.Filled.ArrowBack" Size="Size.Small"
+                       title="@L["Back"]"
+                       OnClick="@(() => Navigation.NavigateTo("/invoicing"))" />
+        <MudText Typo="Typo.h5">@_invoice.Reference</MudText>
+        <InvoiceStatusChip Status="_invoice.Status" />
+        <MudSpacer />
+
+        @* Action buttons *@
+        <MudStack Row="true" Spacing="1">
+            <MudButton StartIcon="@Icons.Material.Filled.PictureAsPdf"
+                       Variant="Variant.Outlined"
+                       OnClick="DownloadPdf"
+                       Size="Size.Small">
+                @L["Action_Pdf"]
+            </MudButton>
+
+            <AuthorizeView Roles="Admin,Bookkeeper">
+                @if (_invoice.Status == InvoiceStatus.Draft)
+                {
+                    <MudButton StartIcon="@Icons.Material.Filled.Edit"
+                               Variant="Variant.Outlined"
+                               Size="Size.Small"
+                               OnClick="@(() => Navigation.NavigateTo($"/invoices/{Id}/edit"))">
+                        @L["Action_Edit"]
+                    </MudButton>
+                    <MudButton Color="Color.Primary" Variant="Variant.Filled"
+                               StartIcon="@Icons.Material.Filled.Send"
+                               Size="Size.Small"
+                               OnClick="OpenSendDialog">
+                        @L["Action_Send"]
+                    </MudButton>
+                }
+
+                @if (_invoice.Status is InvoiceStatus.Sent or InvoiceStatus.PartiallyPaid or InvoiceStatus.Overdue)
+                {
+                    <MudButton Color="Color.Success" Variant="Variant.Filled"
+                               StartIcon="@Icons.Material.Filled.Payment"
+                               Size="Size.Small"
+                               OnClick="OpenRecordPaymentDialog">
+                        @L["Action_RecordPayment"]
+                    </MudButton>
+                }
+
+                @if (_invoice.Status == InvoiceStatus.Overdue)
+                {
+                    <MudButton Color="Color.Warning" Variant="Variant.Outlined"
+                               StartIcon="@Icons.Material.Filled.NotificationsActive"
+                               Size="Size.Small"
+                               OnClick="OpenSendReminderDialog">
+                        @L["Action_Reminder"]
+                    </MudButton>
+                }
+
+                @if (!_invoice.IsCreditNote &&
+                     _invoice.Status is InvoiceStatus.Sent or InvoiceStatus.PartiallyPaid
+                                     or InvoiceStatus.Paid or InvoiceStatus.Overdue)
+                {
+                    <MudButton Color="Color.Secondary" Variant="Variant.Outlined"
+                               StartIcon="@Icons.Material.Filled.ReceiptLong"
+                               Size="Size.Small"
+                               OnClick="@(() => Navigation.NavigateTo($"/invoices/{Id}/credit-note"))">
+                        @L["Action_CreditNote"]
+                    </MudButton>
+                }
+
+                @if (_invoice.Status is InvoiceStatus.Draft or InvoiceStatus.Sent or InvoiceStatus.Overdue)
+                {
+                    <MudButton Color="Color.Error" Variant="Variant.Outlined"
+                               StartIcon="@Icons.Material.Filled.Block"
+                               Size="Size.Small"
+                               OnClick="OpenVoidDialog">
+                        @L["Action_Void"]
+                    </MudButton>
+                }
+            </AuthorizeView>
+        </MudStack>
+    </MudStack>
+
+    @* Credit note banner – shown when viewing a credit note *@
+    @if (_invoice.IsCreditNote && _invoice.OriginalInvoiceId.HasValue)
+    {
+        <MudAlert Severity="Severity.Info" Dense="true" Class="mb-3">
+            @L["CreditNote_LinkedTo"]:
+            <MudLink Href="@($"/invoices/{_invoice.OriginalInvoiceId.Value}")" Color="Color.Primary">
+                <b>@(_invoice.OriginalReference ?? _invoice.OriginalInvoiceId.Value.ToString("N")[..8])</b>
+            </MudLink>
+        </MudAlert>
+    }
+
+    @* Overpayment alert – shown when credit notes exceed outstanding balance *@
+    @if (!_invoice.IsCreditNote && _invoice.Outstanding < 0)
+    {
+        <MudAlert Severity="Severity.Warning" Dense="true" Class="mb-3">
+            @string.Format(L["CreditNote_Overpayment"].Value, _invoice.Currency, Math.Abs(_invoice.Outstanding).ToString("N2"))
+        </MudAlert>
+    }
+
+    <MudGrid Spacing="3">
+        @* Invoice meta *@
+        <MudItem xs="12" md="6">
+            <MudPaper Class="pa-4" Elevation="0" Outlined="true">
+                <MudText Typo="Typo.subtitle2" Class="mb-3">@L["Detail_InvoiceInfo"]</MudText>
+                <MudGrid Spacing="1">
+                    <MudItem xs="6">
+                        <MudText Typo="Typo.caption" Color="Color.Secondary">@L["Field_Date"]</MudText>
+                        <MudText>@_invoice.Date.ToString("dd/MM/yyyy")</MudText>
+                    </MudItem>
+                    <MudItem xs="6">
+                        <MudText Typo="Typo.caption" Color="Color.Secondary">@L["Field_DueDate"]</MudText>
+                        <MudText Color="@(_invoice.Status == InvoiceStatus.Overdue ? Color.Error : Color.Default)">
+                            @_invoice.DueDate.ToString("dd/MM/yyyy")
+                        </MudText>
+                    </MudItem>
+                    <MudItem xs="6">
+                        <MudText Typo="Typo.caption" Color="Color.Secondary">@L["Field_Currency"]</MudText>
+                        <MudText>@_invoice.Currency</MudText>
+                    </MudItem>
+                </MudGrid>
+            </MudPaper>
+        </MudItem>
+
+        @* Customer info *@
+        <MudItem xs="12" md="6">
+            <MudPaper Class="pa-4" Elevation="0" Outlined="true">
+                <MudText Typo="Typo.subtitle2" Class="mb-3">@L["Detail_CustomerInfo"]</MudText>
+                <MudStack Spacing="1">
+                    <MudText><b>@_invoice.CustomerName</b></MudText>
+                    @if (!string.IsNullOrWhiteSpace(_invoice.CustomerEmail))
+                    {
+                        <MudStack Row="true" AlignItems="AlignItems.Center" Spacing="1">
+                            <MudIcon Icon="@Icons.Material.Filled.Email" Size="Size.Small" Color="Color.Secondary" />
+                            <MudText Typo="Typo.body2">@_invoice.CustomerEmail</MudText>
+                        </MudStack>
+                    }
+                    @if (!string.IsNullOrWhiteSpace(_invoice.CustomerAddress))
+                    {
+                        <MudStack Row="true" AlignItems="AlignItems.Start" Spacing="1">
+                            <MudIcon Icon="@Icons.Material.Filled.LocationOn" Size="Size.Small" Color="Color.Secondary" />
+                            <MudText Typo="Typo.body2" Style="white-space:pre-wrap">@_invoice.CustomerAddress</MudText>
+                        </MudStack>
+                    }
+                    @if (!string.IsNullOrWhiteSpace(_invoice.CustomerTaxNumber))
+                    {
+                        <MudStack Row="true" AlignItems="AlignItems.Center" Spacing="1">
+                            <MudIcon Icon="@Icons.Material.Filled.Tag" Size="Size.Small" Color="Color.Secondary" />
+                            <MudText Typo="Typo.body2">@_invoice.CustomerTaxNumber</MudText>
+                        </MudStack>
+                    }
+                </MudStack>
+            </MudPaper>
+        </MudItem>
+
+        @* Line items *@
+        <MudItem xs="12">
+            <MudPaper Class="pa-4" Elevation="0" Outlined="true">
+                <MudText Typo="Typo.subtitle2" Class="mb-3">@L["Lines_Title"]</MudText>
+                <MudTable Items="_invoice.Lines" Dense="true" Hover="false" Elevation="0"
+                          Style="border:1px solid var(--mud-palette-lines-default)">
+                    <HeaderContent>
+                        <MudTh>@L["Col_Description"]</MudTh>
+                        <MudTh Style="width:90px">@L["Col_Qty"]</MudTh>
+                        <MudTh Style="width:110px">@L["Col_UnitPrice"]</MudTh>
+                        <MudTh Style="width:80px">@L["Col_Disc"]</MudTh>
+                        <MudTh Style="width:80px">@L["Col_TaxRate"]</MudTh>
+                        <MudTh Style="width:120px" Class="text-right">@L["Col_LineTotal"]</MudTh>
+                    </HeaderContent>
+                    <RowTemplate>
+                        <MudTd>@context.Description</MudTd>
+                        <MudTd>@context.Quantity.ToString("N2")</MudTd>
+                        <MudTd>@_invoice.Currency @context.UnitPrice.ToString("N2")</MudTd>
+                        <MudTd>@(context.DiscountPct > 0 ? $"{context.DiscountPct:N1}%" : "—")</MudTd>
+                        <MudTd>@context.TaxRate.ToString("N1")%</MudTd>
+                        <MudTd Class="text-right">
+                            @{
+                                var gross = context.Quantity * context.UnitPrice;
+                                var net = gross * (1 - context.DiscountPct / 100m);
+                                var total = net * (1 + context.TaxRate / 100m);
+                            }
+                            @_invoice.Currency @total.ToString("N2")
+                        </MudTd>
+                    </RowTemplate>
+                </MudTable>
+            </MudPaper>
+        </MudItem>
+
+        @* Totals *@
+        <MudItem xs="12">
+            <MudStack AlignItems="AlignItems.End">
+                <div style="min-width:280px">
+                    <MudStack Spacing="1">
+                        <MudStack Row="true">
+                            <MudText Style="flex:1" Color="Color.Secondary">@L["Totals_Subtotal"]</MudText>
+                            <MudText>@_invoice.Currency @_invoice.Subtotal.ToString("N2")</MudText>
+                        </MudStack>
+                        @if (_invoice.TotalDiscount > 0)
+                        {
+                            <MudStack Row="true">
+                                <MudText Style="flex:1" Color="Color.Secondary">@L["Totals_Discount"]</MudText>
+                                <MudText Color="Color.Success">- @_invoice.Currency @_invoice.TotalDiscount.ToString("N2")</MudText>
+                            </MudStack>
+                        }
+                        @if (_invoice.TotalTax > 0)
+                        {
+                            <MudStack Row="true">
+                                <MudText Style="flex:1" Color="Color.Secondary">@L["Totals_Tax"]</MudText>
+                                <MudText>@_invoice.Currency @_invoice.TotalTax.ToString("N2")</MudText>
+                            </MudStack>
+                        }
+                        <MudDivider />
+                        <MudStack Row="true">
+                            <MudText Style="flex:1"><b>@L["Totals_Grand"]</b></MudText>
+                            <MudText Typo="Typo.h6" Color="Color.Primary">
+                                @_invoice.Currency @_invoice.GrandTotal.ToString("N2")
+                            </MudText>
+                        </MudStack>
+                    </MudStack>
+                </div>
+            </MudStack>
+        </MudItem>
+
+        @* Payment history *@
+        @if (_invoice.Status is not InvoiceStatus.Draft and not InvoiceStatus.Void)
+        {
+            <MudItem xs="12">
+                <MudPaper Class="pa-4" Elevation="0" Outlined="true">
+                    <MudStack Row="true" AlignItems="AlignItems.Center" Class="mb-3">
+                        <MudText Typo="Typo.subtitle2" Style="flex:1">@L["Payment_History"]</MudText>
+                        @if (_invoice.Outstanding > 0)
+                        {
+                            <MudText Typo="Typo.body2" Color="Color.Secondary">
+                                @L["Payment_Outstanding"]: <b>@_invoice.Currency @_invoice.Outstanding.ToString("N2")</b>
+                            </MudText>
+                        }
+                        else
+                        {
+                            <MudChip T="string" Color="Color.Success" Size="Size.Small">@L["Payment_Paid"]</MudChip>
+                        }
+                    </MudStack>
+
+                    @if (_payments.Count == 0)
+                    {
+                        <MudText Typo="Typo.body2" Color="Color.Secondary">@L["Payment_NoPayments"]</MudText>
+                    }
+                    else
+                    {
+                        <MudTable Items="_payments" Dense="true" Hover="false" Elevation="0"
+                                  Style="border:1px solid var(--mud-palette-lines-default)">
+                            <HeaderContent>
+                                <MudTh>@L["Payment_Col_Date"]</MudTh>
+                                <MudTh>@L["Payment_Col_Amount"]</MudTh>
+                                <MudTh>@L["Payment_Col_Method"]</MudTh>
+                                <MudTh>@L["Payment_Col_Reference"]</MudTh>
+                                <AuthorizeView Roles="Admin,Bookkeeper" Context="authCtxH">
+                                    <MudTh Style="width:60px" />
+                                </AuthorizeView>
+                            </HeaderContent>
+                            <RowTemplate Context="payment">
+                                <MudTd>@payment.Date.ToString("dd/MM/yyyy")</MudTd>
+                                <MudTd>@_invoice.Currency @payment.Amount.ToString("N2")</MudTd>
+                                <MudTd>@L[$"Method_{payment.Method}"]</MudTd>
+                                <MudTd>@(payment.Reference ?? "—")</MudTd>
+                                <AuthorizeView Roles="Admin,Bookkeeper" Context="authCtx">
+                                    <MudTd>
+                                        <MudIconButton Icon="@Icons.Material.Filled.Delete"
+                                                       Size="Size.Small" Color="Color.Error"
+                                                       OnClick="@(() => DeletePayment(payment))" />
+                                    </MudTd>
+                                </AuthorizeView>
+                            </RowTemplate>
+                        </MudTable>
+                    }
+                </MudPaper>
+            </MudItem>
+        }
+
+        @* Reminder history *@
+        @if (_reminders.Count > 0 || _invoice.Status == InvoiceStatus.Overdue)
+        {
+            <MudItem xs="12">
+                <MudPaper Class="pa-4" Elevation="0" Outlined="true">
+                    <MudText Typo="Typo.subtitle2" Class="mb-3">@L["Reminder_History"]</MudText>
+                    @if (_reminders.Count == 0)
+                    {
+                        <MudText Typo="Typo.body2" Color="Color.Secondary">@L["Reminder_NoReminders"]</MudText>
+                    }
+                    else
+                    {
+                        <MudTable Items="_reminders" Dense="true" Hover="false" Elevation="0"
+                                  Style="border:1px solid var(--mud-palette-lines-default)">
+                            <HeaderContent>
+                                <MudTh>@L["Reminder_Col_Date"]</MudTh>
+                                <MudTh>@L["Reminder_Col_Method"]</MudTh>
+                                <MudTh>@L["Reminder_Col_By"]</MudTh>
+                            </HeaderContent>
+                            <RowTemplate Context="rem">
+                                <MudTd>@rem.SentDate.ToString("dd/MM/yyyy")</MudTd>
+                                <MudTd>@L[$"Reminder_Method_{rem.Method}"]</MudTd>
+                                <MudTd>@rem.SentByName</MudTd>
+                            </RowTemplate>
+                        </MudTable>
+                    }
+                </MudPaper>
+            </MudItem>
+        }
+
+        @* Credit notes panel – shown for non-credit-note invoices when there are credit notes or user can issue one *@
+        @if (!_invoice.IsCreditNote &&
+             (_creditNotes.Count > 0 ||
+              _invoice.Status is InvoiceStatus.Sent or InvoiceStatus.PartiallyPaid
+                               or InvoiceStatus.Paid or InvoiceStatus.Overdue))
+        {
+            <MudItem xs="12">
+                <MudPaper Class="pa-4" Elevation="0" Outlined="true">
+                    <MudText Typo="Typo.subtitle2" Class="mb-3">@L["CreditNote_History"]</MudText>
+                    @if (_creditNotes.Count == 0)
+                    {
+                        <MudText Typo="Typo.body2" Color="Color.Secondary">@L["CreditNote_NoHistory"]</MudText>
+                    }
+                    else
+                    {
+                        <MudTable Items="_creditNotes" Dense="true" Hover="false" Elevation="0"
+                                  Style="border:1px solid var(--mud-palette-lines-default)">
+                            <HeaderContent>
+                                <MudTh>@L["CreditNote_Col_Reference"]</MudTh>
+                                <MudTh>@L["CreditNote_Col_Date"]</MudTh>
+                                <MudTh Style="text-align:right">@L["CreditNote_Col_Amount"]</MudTh>
+                            </HeaderContent>
+                            <RowTemplate Context="cn">
+                                <MudTd>
+                                    <MudLink Href="@($"/invoices/{cn.Id}")">@cn.Reference</MudLink>
+                                </MudTd>
+                                <MudTd>@cn.Date.ToString("dd/MM/yyyy")</MudTd>
+                                <MudTd Style="text-align:right;font-variant-numeric:tabular-nums;color:var(--mud-palette-warning-text)">
+                                    – @_invoice.Currency @cn.GrandTotal.ToString("N2")
+                                </MudTd>
+                            </RowTemplate>
+                        </MudTable>
+                    }
+                </MudPaper>
+            </MudItem>
+        }
+
+        @* Notes *@
+        @if (!string.IsNullOrWhiteSpace(_invoice.Notes))
+        {
+            <MudItem xs="12">
+                <MudPaper Class="pa-4" Elevation="0" Outlined="true">
+                    <MudText Typo="Typo.subtitle2" Class="mb-2">@L["Field_Notes"]</MudText>
+                    <MudText Typo="Typo.body2" Style="white-space:pre-wrap">@_invoice.Notes</MudText>
+                </MudPaper>
+            </MudItem>
+        }
+
+        @* Error message *@
+        @if (_errorMessage is not null)
+        {
+            <MudItem xs="12">
+                <MudAlert Severity="Severity.Error" Dense="true">@_errorMessage</MudAlert>
+            </MudItem>
+        }
+    </MudGrid>
+}
+
+@code {
+    [Parameter] public Guid Id { get; set; }
+
+    private InvoiceDto? _invoice;
+    private IReadOnlyList<InvoicePaymentDto> _payments = [];
+    private IReadOnlyList<InvoiceReminderDto> _reminders = [];
+    private IReadOnlyList<InvoiceDto> _creditNotes = [];
+    private string? _errorMessage;
+
+    protected override async Task OnInitializedAsync() => await Reload();
+
+    private async Task Reload()
+    {
+        _invoice = await InvoiceService.GetByIdAsync(Id, CurrentUser.TenantId);
+        if (_invoice is not null)
+        {
+            _payments = await PaymentService.GetByInvoiceAsync(Id, CurrentUser.TenantId);
+            _reminders = await ReminderService.GetByInvoiceAsync(Id, CurrentUser.TenantId);
+
+            if (!_invoice.IsCreditNote)
+                _creditNotes = await InvoiceService.GetCreditNotesAsync(Id, CurrentUser.TenantId);
+        }
+    }
+
+    private async Task OpenSendDialog()
+    {
+        if (_invoice is null) return;
+        var parameters = new DialogParameters<SendInvoiceDialog>
+        {
+            { x => x.Invoice, _invoice }
+        };
+        var dialog = await DialogService.ShowAsync<SendInvoiceDialog>(L["Send_Title"], parameters);
+        var result = await dialog.Result;
+        if (result is { Canceled: false })
+            await Reload();
+    }
+
+    private async Task OpenSendReminderDialog()
+    {
+        if (_invoice is null) return;
+        var parameters = new DialogParameters<SendReminderDialog>
+        {
+            { x => x.Invoice, _invoice }
+        };
+        var dialog = await DialogService.ShowAsync<SendReminderDialog>(L["Reminder_Title"], parameters);
+        var result = await dialog.Result;
+        if (result is { Canceled: false })
+            await Reload();
+    }
+
+    private async Task OpenRecordPaymentDialog()
+    {
+        if (_invoice is null) return;
+        var parameters = new DialogParameters<RecordPaymentDialog>
+        {
+            { x => x.Invoice, _invoice }
+        };
+        var dialog = await DialogService.ShowAsync<RecordPaymentDialog>(L["Payment_Title"], parameters);
+        var result = await dialog.Result;
+        if (result is { Canceled: false })
+            await Reload();
+    }
+
+    private async Task DeletePayment(InvoicePaymentDto payment)
+    {
+        var confirmed = await DialogService.ShowMessageBox(
+            L["Payment_Delete_Title"].Value,
+            L["Payment_Delete_Confirm"].Value,
+            yesText: L["Payment_Delete_Yes"].Value,
+            cancelText: L["Cancel"].Value);
+
+        if (confirmed != true) return;
+
+        _errorMessage = null;
+        var result = await PaymentService.DeleteAsync(
+            payment.Id, CurrentUser.TenantId,
+            CurrentUser.UserId, CurrentUser.UserName);
+
+        if (result.IsSuccess)
+            await Reload();
+        else
+            _errorMessage = result.Error;
+    }
+
+    private async Task OpenVoidDialog()
+    {
+        if (_invoice is null) return;
+        var confirmed = await DialogService.ShowMessageBox(
+            L["Void_Title"].Value,
+            L["Void_Confirm"].Value,
+            yesText: L["Void_Confirm_Yes"].Value,
+            cancelText: L["Cancel"].Value);
+
+        if (confirmed != true) return;
+
+        _errorMessage = null;
+        var result = await InvoiceService.VoidAsync(new VoidInvoiceCommand(
+            Id, CurrentUser.TenantId,
+            CurrentUser.UserId, CurrentUser.UserName));
+
+        if (result.IsSuccess)
+            await Reload();
+        else
+            _errorMessage = result.Error;
+    }
+
+    private async Task DownloadPdf()
+    {
+        await JS.InvokeVoidAsync("open", $"/api/invoices/{Id}/pdf", "_blank");
+    }
+}

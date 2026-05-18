@@ -1,0 +1,37 @@
+<?xml version="1.0" encoding="utf-8"?>
+<root>
+  <resheader name="resmimetype"><value>text/microsoft-resx</value></resheader>
+  <resheader name="version"><value>2.0</value></resheader>
+  <data name="Title" xml:space="preserve"><value>AR Aging Report</value></data>
+  <data name="Back" xml:space="preserve"><value>Back</value></data>
+  <data name="AsOf" xml:space="preserve"><value>As of date</value></data>
+  <data name="FilterCustomer" xml:space="preserve"><value>Filter by customer</value></data>
+  <data name="ShowZero" xml:space="preserve"><value>Show zero-balance customers</value></data>
+  <data name="Generate" xml:space="preserve"><value>Generate</value></data>
+  <data name="ExportPdf" xml:space="preserve"><value>Export PDF</value></data>
+  <data name="ExportCsv" xml:space="preserve"><value>Export CSV</value></data>
+  <data name="NoData" xml:space="preserve"><value>No outstanding receivables found for the selected criteria.</value></data>
+  <data name="Col_Customer" xml:space="preserve"><value>Customer</value></data>
+  <data name="Col_Current" xml:space="preserve"><value>Current</value></data>
+  <data name="Col_1_30" xml:space="preserve"><value>1–30 days</value></data>
+  <data name="Col_31_60" xml:space="preserve"><value>31–60 days</value></data>
+  <data name="Col_61_90" xml:space="preserve"><value>61–90 days</value></data>
+  <data name="Col_91Plus" xml:space="preserve"><value>91+ days</value></data>
+  <data name="Col_Total" xml:space="preserve"><value>Total</value></data>
+  <data name="Row_Total" xml:space="preserve"><value>TOTAL</value></data>
+  <data name="Invoice_Col_Reference" xml:space="preserve"><value>Reference</value></data>
+  <data name="Invoice_Col_Date" xml:space="preserve"><value>Date</value></data>
+  <data name="Invoice_Col_DueDate" xml:space="preserve"><value>Due Date</value></data>
+  <data name="Invoice_Col_DaysOverdue" xml:space="preserve"><value>Days Overdue</value></data>
+  <data name="Invoice_Col_Outstanding" xml:space="preserve"><value>Outstanding</value></data>
+  <data name="SendAllReminders" xml:space="preserve"><value>Send All Reminders</value></data>
+  <data name="Bulk_Title" xml:space="preserve"><value>Send All Payment Reminders</value></data>
+  <data name="Bulk_Intro" xml:space="preserve"><value>The following customers have overdue invoices. Confirm to send a reminder email to each customer with an email address on record.</value></data>
+  <data name="Bulk_Col_Customer" xml:space="preserve"><value>Customer</value></data>
+  <data name="Bulk_Col_Email" xml:space="preserve"><value>Email</value></data>
+  <data name="Bulk_Col_Invoices" xml:space="preserve"><value>Invoices</value></data>
+  <data name="Bulk_Col_Outstanding" xml:space="preserve"><value>Outstanding</value></data>
+  <data name="Bulk_NoEmail" xml:space="preserve"><value>No email – will be skipped</value></data>
+  <data name="Bulk_Confirm" xml:space="preserve"><value>Send Reminders</value></data>
+  <data name="Bulk_Result" xml:space="preserve"><value>{0} reminder(s) sent, {1} skipped.</value></data>
+</root>

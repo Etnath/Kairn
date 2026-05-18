@@ -1,0 +1,44 @@
+@using Kairn.Domain.Entities
+
+<span style="display:inline-flex;align-items:center;padding:2px 10px;border-radius:9999px;
+             font-size:0.75rem;font-weight:500;line-height:1.6;white-space:nowrap;
+             background-color:@_bg;color:@_fg">
+    @StatusLabel
+</span>
+
+@code {
+    [Parameter, EditorRequired] public InvoiceStatus Status { get; set; }
+
+    private string _bg => Status switch
+    {
+        InvoiceStatus.Draft         => "#D6D3CA",
+        InvoiceStatus.Sent          => "#EAF0F6",
+        InvoiceStatus.PartiallyPaid => "#FBF2E0",
+        InvoiceStatus.Paid          => "#E8F4ED",
+        InvoiceStatus.Overdue       => "#FAECE8",
+        InvoiceStatus.Void          => "#D6D3CA",
+        _                           => "#D6D3CA",
+    };
+
+    private string _fg => Status switch
+    {
+        InvoiceStatus.Draft         => "#4A4843",
+        InvoiceStatus.Sent          => "#2A4F6E",
+        InvoiceStatus.PartiallyPaid => "#8F6008",
+        InvoiceStatus.Paid          => "#1F6040",
+        InvoiceStatus.Overdue       => "#7E2A14",
+        InvoiceStatus.Void          => "#8C8980",
+        _                           => "#4A4843",
+    };
+
+    private string StatusLabel => Status switch
+    {
+        InvoiceStatus.Draft         => "Draft",
+        InvoiceStatus.Sent          => "Sent",
+        InvoiceStatus.PartiallyPaid => "Partially Paid",
+        InvoiceStatus.Paid          => "Paid",
+        InvoiceStatus.Overdue       => "Overdue",
+        InvoiceStatus.Void          => "Void",
+        _                           => Status.ToString(),
+    };
+}

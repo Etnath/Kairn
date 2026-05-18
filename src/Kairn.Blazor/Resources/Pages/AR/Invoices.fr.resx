@@ -1,0 +1,143 @@
+<?xml version="1.0" encoding="utf-8"?>
+<root>
+  <resheader name="resmimetype"><value>text/microsoft-resx</value></resheader>
+  <resheader name="version"><value>2.0</value></resheader>
+  <data name="Title" xml:space="preserve"><value>Factures</value></data>
+  <data name="NewInvoice" xml:space="preserve"><value>Nouvelle facture</value></data>
+  <data name="CreateTitle" xml:space="preserve"><value>Nouvelle facture</value></data>
+  <data name="EditTitle" xml:space="preserve"><value>Modifier la facture</value></data>
+  <data name="Save" xml:space="preserve"><value>Enregistrer</value></data>
+  <data name="SaveDraft" xml:space="preserve"><value>Enregistrer le brouillon</value></data>
+  <data name="Cancel" xml:space="preserve"><value>Annuler</value></data>
+  <data name="Back" xml:space="preserve"><value>Retour aux factures</value></data>
+  <data name="Open" xml:space="preserve"><value>Ouvrir</value></data>
+  <data name="NoInvoices" xml:space="preserve"><value>Aucune facture trouvée.</value></data>
+
+  <!-- List filters -->
+  <data name="Filter_Customer" xml:space="preserve"><value>Client</value></data>
+  <data name="Filter_Status" xml:space="preserve"><value>Statut</value></data>
+  <data name="Filter_From" xml:space="preserve"><value>Du</value></data>
+  <data name="Filter_To" xml:space="preserve"><value>Au</value></data>
+  <data name="Filter_Reset" xml:space="preserve"><value>Réinitialiser</value></data>
+  <data name="Filter_ShowAll" xml:space="preserve"><value>Tout afficher</value></data>
+
+  <!-- List columns -->
+  <data name="Col_Reference" xml:space="preserve"><value>Référence</value></data>
+  <data name="Col_Customer" xml:space="preserve"><value>Client</value></data>
+  <data name="Col_Date" xml:space="preserve"><value>Date</value></data>
+  <data name="Col_DueDate" xml:space="preserve"><value>Échéance</value></data>
+  <data name="Col_Status" xml:space="preserve"><value>Statut</value></data>
+  <data name="Col_Amount" xml:space="preserve"><value>Montant</value></data>
+
+  <!-- Form fields -->
+  <data name="Field_Customer" xml:space="preserve"><value>Client</value></data>
+  <data name="Field_Reference" xml:space="preserve"><value>Référence</value></data>
+  <data name="Field_Date" xml:space="preserve"><value>Date de facturation</value></data>
+  <data name="Field_DueDate" xml:space="preserve"><value>Date d'échéance</value></data>
+  <data name="Field_Currency" xml:space="preserve"><value>Devise</value></data>
+  <data name="Field_Notes" xml:space="preserve"><value>Notes</value></data>
+  <data name="Field_RevenueAccount" xml:space="preserve"><value>Compte de produits</value></data>
+  <data name="Field_RevenueAccountHint" xml:space="preserve"><value>Utilisé lors de la comptabilisation lors de l'envoi</value></data>
+
+  <!-- Line items -->
+  <data name="Lines_Title" xml:space="preserve"><value>Lignes de facture</value></data>
+  <data name="Lines_Add" xml:space="preserve"><value>Ajouter une ligne</value></data>
+  <data name="Lines_Empty" xml:space="preserve"><value>Aucune ligne. Cliquez sur « Ajouter une ligne » pour commencer.</value></data>
+  <data name="Col_Description" xml:space="preserve"><value>Description</value></data>
+  <data name="Col_Qty" xml:space="preserve"><value>Qté</value></data>
+  <data name="Col_UnitPrice" xml:space="preserve"><value>Prix unitaire</value></data>
+  <data name="Col_Disc" xml:space="preserve"><value>Remise %</value></data>
+  <data name="Col_TaxRate" xml:space="preserve"><value>TVA %</value></data>
+  <data name="Col_LineTotal" xml:space="preserve"><value>Total ligne</value></data>
+
+  <!-- Totals -->
+  <data name="Totals_Title" xml:space="preserve"><value>Récapitulatif</value></data>
+  <data name="Totals_Subtotal" xml:space="preserve"><value>Sous-total HT</value></data>
+  <data name="Totals_Discount" xml:space="preserve"><value>Remise totale</value></data>
+  <data name="Totals_Tax" xml:space="preserve"><value>TVA</value></data>
+  <data name="Totals_Grand" xml:space="preserve"><value>Total TTC</value></data>
+
+  <!-- Detail page -->
+  <data name="Detail_InvoiceInfo" xml:space="preserve"><value>Détails de la facture</value></data>
+  <data name="Detail_CustomerInfo" xml:space="preserve"><value>Client</value></data>
+
+  <!-- Actions -->
+  <data name="Action_Pdf" xml:space="preserve"><value>Télécharger le PDF</value></data>
+  <data name="Action_Edit" xml:space="preserve"><value>Modifier</value></data>
+  <data name="Action_Send" xml:space="preserve"><value>Envoyer</value></data>
+  <data name="Action_Void" xml:space="preserve"><value>Annuler</value></data>
+
+  <!-- Send dialog -->
+  <data name="Send_Title" xml:space="preserve"><value>Envoyer la facture</value></data>
+  <data name="Send_Confirm" xml:space="preserve"><value>Vous êtes sur le point d'envoyer la facture {0} à {1}. Les écritures comptables correspondantes seront passées automatiquement.</value></data>
+  <data name="Send_Net" xml:space="preserve"><value>Montant HT</value></data>
+  <data name="Send_Tax" xml:space="preserve"><value>TVA</value></data>
+  <data name="Send_Total" xml:space="preserve"><value>Total TTC</value></data>
+  <data name="Send_RevenueAccount" xml:space="preserve"><value>Compte de produits</value></data>
+  <data name="Send_RevenueAccountHint" xml:space="preserve"><value>Compte à créditer dans l'écriture comptable</value></data>
+  <data name="Send_Send" xml:space="preserve"><value>Envoyer la facture</value></data>
+
+  <!-- Void dialog -->
+  <data name="Void_Title" xml:space="preserve"><value>Annuler la facture</value></data>
+  <data name="Void_Confirm" xml:space="preserve"><value>Cette action annulera la facture et passera une écriture de contrepassation. Elle est irréversible. Continuer ?</value></data>
+  <data name="Void_Confirm_Yes" xml:space="preserve"><value>Annuler la facture</value></data>
+
+  <!-- Reminder -->
+  <data name="Action_Reminder" xml:space="preserve"><value>Envoyer une relance</value></data>
+  <data name="Reminder_Title" xml:space="preserve"><value>Envoyer une lettre de relance</value></data>
+  <data name="Reminder_Message" xml:space="preserve"><value>Texte de la relance</value></data>
+  <data name="Reminder_Print" xml:space="preserve"><value>Imprimer</value></data>
+  <data name="Reminder_SendEmail" xml:space="preserve"><value>Envoyer par e-mail</value></data>
+  <data name="Reminder_NoEmail" xml:space="preserve"><value>Le client n'a pas d'adresse e-mail</value></data>
+  <data name="Reminder_SmtpNotConfigured" xml:space="preserve"><value>SMTP non configuré</value></data>
+  <data name="Reminder_History" xml:space="preserve"><value>Historique des relances</value></data>
+  <data name="Reminder_NoReminders" xml:space="preserve"><value>Aucune relance envoyée.</value></data>
+  <data name="Reminder_Col_Date" xml:space="preserve"><value>Date</value></data>
+  <data name="Reminder_Col_Method" xml:space="preserve"><value>Mode</value></data>
+  <data name="Reminder_Col_By" xml:space="preserve"><value>Envoyé par</value></data>
+  <data name="Reminder_Method_Email" xml:space="preserve"><value>E-mail</value></data>
+  <data name="Reminder_Method_Print" xml:space="preserve"><value>Impression</value></data>
+  <data name="Reminder_Method_Bulk" xml:space="preserve"><value>Envoi groupé</value></data>
+
+  <!-- Payment -->
+  <data name="Action_RecordPayment" xml:space="preserve"><value>Enregistrer un règlement</value></data>
+  <data name="Payment_Title" xml:space="preserve"><value>Enregistrer un règlement</value></data>
+  <data name="Payment_Outstanding" xml:space="preserve"><value>Solde restant dû</value></data>
+  <data name="Payment_Date" xml:space="preserve"><value>Date du règlement</value></data>
+  <data name="Payment_Amount" xml:space="preserve"><value>Montant</value></data>
+  <data name="Payment_Method" xml:space="preserve"><value>Mode de règlement</value></data>
+  <data name="Payment_Reference" xml:space="preserve"><value>Référence</value></data>
+  <data name="Payment_BankAccount" xml:space="preserve"><value>Compte banque / caisse</value></data>
+  <data name="Payment_Save" xml:space="preserve"><value>Enregistrer le règlement</value></data>
+  <data name="Payment_History" xml:space="preserve"><value>Historique des règlements</value></data>
+  <data name="Payment_NoPayments" xml:space="preserve"><value>Aucun règlement enregistré.</value></data>
+  <data name="Payment_Col_Date" xml:space="preserve"><value>Date</value></data>
+  <data name="Payment_Col_Amount" xml:space="preserve"><value>Montant</value></data>
+  <data name="Payment_Col_Method" xml:space="preserve"><value>Mode</value></data>
+  <data name="Payment_Col_Reference" xml:space="preserve"><value>Référence</value></data>
+  <data name="Payment_Delete_Title" xml:space="preserve"><value>Supprimer le règlement</value></data>
+  <data name="Payment_Delete_Confirm" xml:space="preserve"><value>Cette action supprimera le règlement et passera une écriture de contrepassation. Continuer ?</value></data>
+  <data name="Payment_Delete_Yes" xml:space="preserve"><value>Supprimer</value></data>
+  <data name="Payment_Paid" xml:space="preserve"><value>Réglé</value></data>
+  <data name="Method_BankTransfer" xml:space="preserve"><value>Virement bancaire</value></data>
+  <data name="Method_Cash" xml:space="preserve"><value>Espèces</value></data>
+  <data name="Method_Card" xml:space="preserve"><value>Carte bancaire</value></data>
+  <data name="Method_Other" xml:space="preserve"><value>Autre</value></data>
+
+  <!-- Avoirs -->
+  <data name="Action_CreditNote" xml:space="preserve"><value>Avoir</value></data>
+  <data name="CreditNote_Label" xml:space="preserve"><value>Avoir</value></data>
+  <data name="CreditNote_Title" xml:space="preserve"><value>Émettre un avoir</value></data>
+  <data name="CreditNote_Subtitle" xml:space="preserve"><value>Sur la facture {0}</value></data>
+  <data name="CreditNote_Date" xml:space="preserve"><value>Date de l'avoir</value></data>
+  <data name="CreditNote_Save" xml:space="preserve"><value>Émettre l'avoir</value></data>
+  <data name="CreditNote_OriginalInvoice" xml:space="preserve"><value>Facture d'origine</value></data>
+  <data name="CreditNote_LinkedTo" xml:space="preserve"><value>Avoir sur</value></data>
+  <data name="CreditNote_History" xml:space="preserve"><value>Avoirs</value></data>
+  <data name="CreditNote_NoHistory" xml:space="preserve"><value>Aucun avoir émis.</value></data>
+  <data name="CreditNote_Col_Reference" xml:space="preserve"><value>Référence</value></data>
+  <data name="CreditNote_Col_Date" xml:space="preserve"><value>Date</value></data>
+  <data name="CreditNote_Col_Amount" xml:space="preserve"><value>Montant</value></data>
+  <data name="CreditNote_MaxExceeded" xml:space="preserve"><value>Le montant de l'avoir ne peut pas dépasser le total de la facture d'origine ({0} {1}).</value></data>
+  <data name="CreditNote_Overpayment" xml:space="preserve"><value>Cet avoir génère un solde créditeur client de {0} {1}. Pensez à le rembourser ou à l'imputer sur une future facture.</value></data>
+</root>

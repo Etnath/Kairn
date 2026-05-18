@@ -39,6 +39,13 @@
                 a.click();
                 document.body.removeChild(a);
                 URL.revokeObjectURL(url);
+            },
+            printHtml: function (html) {
+                const w = window.open('', '_blank', 'width=820,height=700');
+                w.document.write(html);
+                w.document.close();
+                w.focus();
+                setTimeout(function () { w.print(); }, 250);
             }
         };
     </script>

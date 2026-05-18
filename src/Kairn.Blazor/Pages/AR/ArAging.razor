@@ -1,0 +1,239 @@
+@page "/ar-aging"
+@attribute [Authorize(Roles = "Admin,Bookkeeper,Viewer")]
+@inject IStringLocalizer<ArAging> L
+@inject IArAgingService AgingService
+@inject IArAgingExporter Exporter
+@inject IDialogService DialogService
+@inject ICurrentUserContext CurrentUser
+@inject NavigationManager Navigation
+@inject IJSRuntime JS
+
+<PageTitle>@L["Title"] – Kairn</PageTitle>
+
+<MudStack Row="true" AlignItems="AlignItems.Center" Class="mb-4" Spacing="2">
+    <MudIconButton Icon="@Icons.Material.Filled.ArrowBack" Size="Size.Small"
+                   OnClick="@(() => Navigation.NavigateTo("/invoicing"))" />
+    <MudText Typo="Typo.h5">@L["Title"]</MudText>
+</MudStack>
+
+<MudPaper Class="pa-4 mb-4" Elevation="1">
+    <MudStack Row="true" AlignItems="AlignItems.End" Spacing="3" Wrap="Wrap.Wrap">
+        <MudDatePicker Label="@L["AsOf"]"
+                       @bind-Date="_asOf"
+                       DateFormat="dd/MM/yyyy"
+                       MaxDate="DateTime.Today"
+                       Style="max-width:200px" />
+        <MudTextField @bind-Value="_customerFilter" Label="@L["FilterCustomer"]"
+                      Clearable="true" Style="max-width:250px"
+                      Adornment="Adornment.Start" AdornmentIcon="@Icons.Material.Filled.Search" />
+        <MudSwitch @bind-Value="_includeZero" Label="@L["ShowZero"]" Color="Color.Primary" />
+        <MudSpacer />
+        <MudButton Variant="Variant.Filled" Color="Color.Primary"
+                   StartIcon="@Icons.Material.Filled.Refresh"
+                   OnClick="GenerateAsync" Disabled="_loading">
+            @L["Generate"]
+        </MudButton>
+        @if (_report is not null)
+        {
+            <MudButton Variant="Variant.Outlined" Color="Color.Primary"
+                       StartIcon="@Icons.Material.Filled.PictureAsPdf"
+                       OnClick="ExportPdfAsync" Disabled="_loading">
+                @L["ExportPdf"]
+            </MudButton>
+            <MudButton Variant="Variant.Outlined" Color="Color.Primary"
+                       StartIcon="@Icons.Material.Filled.TableChart"
+                       OnClick="ExportCsvAsync" Disabled="_loading">
+                @L["ExportCsv"]
+            </MudButton>
+            @if (_report.Rows.Count > 0)
+            {
+                <MudButton Variant="Variant.Filled" Color="Color.Warning"
+                           StartIcon="@Icons.Material.Filled.NotificationsActive"
+                           OnClick="OpenSendAllRemindersDialog" Disabled="_loading">
+                    @L["SendAllReminders"]
+                </MudButton>
+            }
+        }
+    </MudStack>
+</MudPaper>
+
+@if (_loading)
+{
+    <MudProgressLinear Indeterminate="true" Color="Color.Primary" Class="mb-4" />
+}
+
+@if (_report is not null)
+{
+    @if (_report.Rows.Count == 0)
+    {
+        <MudAlert Severity="Severity.Info">@L["NoData"]</MudAlert>
+    }
+    else
+    {
+        <MudTable Items="_report.Rows" Dense="true" Hover="true" Elevation="1"
+                  RowClass="cursor-pointer">
+            <HeaderContent>
+                <MudTh Style="width:32px" />
+                <MudTh>@L["Col_Customer"]</MudTh>
+                <MudTh Style="text-align:right">@L["Col_Current"]</MudTh>
+                <MudTh Style="text-align:right;color:var(--mud-palette-warning-darken)">@L["Col_1_30"]</MudTh>
+                <MudTh Style="text-align:right;color:var(--mud-palette-warning-default)">@L["Col_31_60"]</MudTh>
+                <MudTh Style="text-align:right;color:var(--mud-palette-error-default)">@L["Col_61_90"]</MudTh>
+                <MudTh Style="text-align:right;color:var(--mud-palette-error-darken)">@L["Col_91Plus"]</MudTh>
+                <MudTh Style="text-align:right;font-weight:700">@L["Col_Total"]</MudTh>
+            </HeaderContent>
+            <RowTemplate Context="row">
+                <MudTd Style="width:32px;padding:0 4px">
+                    <MudIconButton Icon="@(_expandedRows.Contains(row.CustomerId)
+                                         ? Icons.Material.Filled.ExpandLess
+                                         : Icons.Material.Filled.ExpandMore)"
+                                   Size="Size.Small"
+                                   OnClick="@(() => ToggleRow(row.CustomerId))" />
+                </MudTd>
+                <MudTd>@row.CustomerName</MudTd>
+                <MudTd Style="text-align:right;font-variant-numeric:tabular-nums">@FormatBucket(row.Current)</MudTd>
+                <MudTd Style="text-align:right;font-variant-numeric:tabular-nums;color:var(--mud-palette-warning-darken)">@FormatBucket(row.Days1To30)</MudTd>
+                <MudTd Style="text-align:right;font-variant-numeric:tabular-nums;color:var(--mud-palette-warning-default)">@FormatBucket(row.Days31To60)</MudTd>
+                <MudTd Style="text-align:right;font-variant-numeric:tabular-nums;color:var(--mud-palette-error-default)">@FormatBucket(row.Days61To90)</MudTd>
+                <MudTd Style="text-align:right;font-variant-numeric:tabular-nums;color:var(--mud-palette-error-darken)">@FormatBucket(row.Days91Plus)</MudTd>
+                <MudTd Style="text-align:right;font-variant-numeric:tabular-nums;font-weight:700">@row.Total.ToString("N2")</MudTd>
+            </RowTemplate>
+            <ChildRowContent Context="row">
+                @if (_expandedRows.Contains(row.CustomerId))
+                {
+                    <MudTr>
+                        <MudTd colspan="8" Style="padding:0 0 8px 48px;background:var(--mud-palette-background-grey)">
+                            <MudTable Items="row.Invoices" Dense="true" Hover="false" Elevation="0"
+                                      Style="border:1px solid var(--mud-palette-lines-default);margin:8px 16px 4px 0">
+                                <HeaderContent>
+                                    <MudTh>@L["Invoice_Col_Reference"]</MudTh>
+                                    <MudTh>@L["Invoice_Col_Date"]</MudTh>
+                                    <MudTh>@L["Invoice_Col_DueDate"]</MudTh>
+                                    <MudTh Style="text-align:right">@L["Invoice_Col_DaysOverdue"]</MudTh>
+                                    <MudTh Style="text-align:right">@L["Invoice_Col_Outstanding"]</MudTh>
+                                </HeaderContent>
+                                <RowTemplate Context="inv">
+                                    <MudTd>
+                                        <MudLink Href="@($"/invoices/{inv.Id}")">@inv.Reference</MudLink>
+                                    </MudTd>
+                                    <MudTd>@inv.Date.ToString("dd/MM/yyyy")</MudTd>
+                                    <MudTd>
+                                        <MudText Color="@(inv.DaysOverdue > 0 ? Color.Error : Color.Default)">
+                                            @inv.DueDate.ToString("dd/MM/yyyy")
+                                        </MudText>
+                                    </MudTd>
+                                    <MudTd Style="text-align:right">
+                                        @(inv.DaysOverdue > 0 ? inv.DaysOverdue.ToString() : "—")
+                                    </MudTd>
+                                    <MudTd Style="text-align:right;font-variant-numeric:tabular-nums">
+                                        @inv.Outstanding.ToString("N2")
+                                    </MudTd>
+                                </RowTemplate>
+                            </MudTable>
+                        </MudTd>
+                    </MudTr>
+                }
+            </ChildRowContent>
+            <FooterContent>
+                <MudTd colspan="2" Style="font-weight:700;background:var(--mud-palette-lines-default)">
+                    @L["Row_Total"]
+                </MudTd>
+                <MudTd Style="text-align:right;font-weight:700;font-variant-numeric:tabular-nums;background:var(--mud-palette-lines-default)">
+                    @FormatBucket(_report.TotalCurrent)
+                </MudTd>
+                <MudTd Style="text-align:right;font-weight:700;font-variant-numeric:tabular-nums;background:var(--mud-palette-lines-default)">
+                    @FormatBucket(_report.TotalDays1To30)
+                </MudTd>
+                <MudTd Style="text-align:right;font-weight:700;font-variant-numeric:tabular-nums;background:var(--mud-palette-lines-default)">
+                    @FormatBucket(_report.TotalDays31To60)
+                </MudTd>
+                <MudTd Style="text-align:right;font-weight:700;font-variant-numeric:tabular-nums;background:var(--mud-palette-lines-default)">
+                    @FormatBucket(_report.TotalDays61To90)
+                </MudTd>
+                <MudTd Style="text-align:right;font-weight:700;font-variant-numeric:tabular-nums;background:var(--mud-palette-lines-default)">
+                    @FormatBucket(_report.TotalDays91Plus)
+                </MudTd>
+                <MudTd Style="text-align:right;font-weight:700;font-variant-numeric:tabular-nums;background:var(--mud-palette-lines-default)">
+                    @_report.GrandTotal.ToString("N2")
+                </MudTd>
+            </FooterContent>
+        </MudTable>
+    }
+}
+
+@code {
+    private DateTime? _asOf = DateTime.Today;
+    private string? _customerFilter;
+    private bool _includeZero;
+    private bool _loading;
+    private ArAgingReportDto? _report;
+    private readonly HashSet<Guid> _expandedRows = [];
+
+    protected override async Task OnInitializedAsync() => await GenerateAsync();
+
+    private async Task GenerateAsync()
+    {
+        if (_asOf is null) return;
+        _loading = true;
+        _expandedRows.Clear();
+        try
+        {
+            var query = new ArAgingQuery(
+                TenantId: CurrentUser.TenantId,
+                AsOf: DateOnly.FromDateTime(_asOf.Value),
+                CustomerFilter: _customerFilter,
+                IncludeZeroBalance: _includeZero);
+            _report = await AgingService.GenerateAsync(query);
+        }
+        finally
+        {
+            _loading = false;
+        }
+    }
+
+    private void ToggleRow(Guid customerId)
+    {
+        if (!_expandedRows.Remove(customerId))
+            _expandedRows.Add(customerId);
+    }
+
+    private async Task ExportPdfAsync()
+    {
+        if (_report is null) return;
+        _loading = true;
+        try
+        {
+            var bytes = Exporter.ToPdf(_report);
+            await JS.InvokeVoidAsync("kairn.downloadFile",
+                $"ar-aging-{_report.AsOf:yyyy-MM-dd}.pdf",
+                "application/pdf",
+                bytes);
+        }
+        finally { _loading = false; }
+    }
+
+    private async Task ExportCsvAsync()
+    {
+        if (_report is null) return;
+        _loading = true;
+        try
+        {
+            var csv = Exporter.ToCsv(_report);
+            var bytes = System.Text.Encoding.UTF8.GetBytes(csv);
+            await JS.InvokeVoidAsync("kairn.downloadFile",
+                $"ar-aging-{_report.AsOf:yyyy-MM-dd}.csv",
+                "text/csv",
+                bytes);
+        }
+        finally { _loading = false; }
+    }
+
+    private async Task OpenSendAllRemindersDialog()
+    {
+        var dialog = await DialogService.ShowAsync<SendAllRemindersDialog>(L["Bulk_Title"]);
+        await dialog.Result;
+    }
+
+    private static string FormatBucket(decimal value) =>
+        value != 0 ? value.ToString("N2") : "—";
+}

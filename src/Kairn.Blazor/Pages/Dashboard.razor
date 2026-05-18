@@ -1,7 +1,33 @@
 @page "/"
 @attribute [Authorize]
 @inject IStringLocalizer<Dashboard> L
+@inject IInvoiceService InvoiceService
+@inject ICurrentUserContext CurrentUser
 
 <PageTitle>@L["Title"] – Kairn</PageTitle>
 <MudText Typo="Typo.h5" Class="mb-4">@L["Title"]</MudText>
-<MudText Color="Color.Secondary">@L["ComingSoon"]</MudText>
+
+@if (_overdueCount > 0)
+{
+    <MudAlert Severity="Severity.Warning" Class="mb-4" Icon="@Icons.Material.Filled.Warning"
+              ContentAlignment="HorizontalAlignment.Left">
+        <MudStack Row="true" AlignItems="AlignItems.Center" Wrap="Wrap.Wrap" Spacing="2">
+            <MudText>
+                @string.Format(L["Alert_Overdue"].Value, _overdueCount, _overdueTotal.ToString("N2"))
+            </MudText>
+            <MudLink Href="/ar-aging" Color="Color.Warning" Typo="Typo.body2">
+                @L["Alert_ViewAging"] →
+            </MudLink>
+        </MudStack>
+    </MudAlert>
+}
+
+@code {
+    private int _overdueCount;
+    private decimal _overdueTotal;
+
+    protected override async Task OnInitializedAsync()
+    {
+        (_overdueCount, _overdueTotal) = await InvoiceService.GetOverdueSummaryAsync(CurrentUser.TenantId);
+    }
+}

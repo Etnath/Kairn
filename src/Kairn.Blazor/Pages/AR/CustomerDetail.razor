@@ -1,0 +1,182 @@
+@page "/customers/{Id:guid}"
+@attribute [Authorize(Roles = "Admin,Bookkeeper,Viewer")]
+@inject IStringLocalizer<Customers> L
+@inject IStringLocalizer<Invoices> LI
+@inject ICustomerService CustomerService
+@inject IInvoiceService InvoiceService
+@inject ICurrentUserContext CurrentUser
+@inject IDialogService DialogService
+@inject NavigationManager Navigation
+
+<PageTitle>@(_customer?.Name ?? "…") – Kairn</PageTitle>
+
+@if (_customer is null)
+{
+    <MudProgressCircular Indeterminate="true" />
+}
+else
+{
+    <MudStack Row="true" AlignItems="AlignItems.Center" Class="mb-4">
+        <MudIconButton Icon="@Icons.Material.Filled.ArrowBack" Size="Size.Small"
+                       title="@L["Detail_Back"]" OnClick="@(() => Navigation.NavigateTo("/customers"))" />
+        <MudText Typo="Typo.h5">@_customer.Name</MudText>
+        @if (!_customer.IsActive)
+        {
+            <MudChip T="string" Color="Color.Default" Size="Size.Small">@L["Detail_Inactive"]</MudChip>
+        }
+        <MudSpacer />
+        <AuthorizeView Roles="Admin,Bookkeeper">
+            <MudButton Variant="Variant.Outlined" StartIcon="@Icons.Material.Filled.Edit"
+                       OnClick="OpenEditDialog">
+                @L["EditTitle"]
+            </MudButton>
+        </AuthorizeView>
+    </MudStack>
+
+    <MudGrid Spacing="3">
+        @* Contact information *@
+        <MudItem xs="12" md="5">
+            <MudPaper Class="pa-4" Elevation="0" Outlined="true">
+                <MudText Typo="Typo.subtitle1" Class="mb-3"><b>@L["Detail_ContactInfo"]</b></MudText>
+                <MudStack Spacing="2">
+                    @if (!string.IsNullOrWhiteSpace(_customer.Email))
+                    {
+                        <MudStack Row="true" AlignItems="AlignItems.Center" Spacing="1">
+                            <MudIcon Icon="@Icons.Material.Filled.Email" Size="Size.Small" Color="Color.Secondary" />
+                            <MudText Typo="Typo.body2">@_customer.Email</MudText>
+                        </MudStack>
+                    }
+                    @if (!string.IsNullOrWhiteSpace(_customer.Phone))
+                    {
+                        <MudStack Row="true" AlignItems="AlignItems.Center" Spacing="1">
+                            <MudIcon Icon="@Icons.Material.Filled.Phone" Size="Size.Small" Color="Color.Secondary" />
+                            <MudText Typo="Typo.body2">@_customer.Phone</MudText>
+                        </MudStack>
+                    }
+                    @if (!string.IsNullOrWhiteSpace(_customer.Address))
+                    {
+                        <MudStack Row="true" AlignItems="AlignItems.Start" Spacing="1">
+                            <MudIcon Icon="@Icons.Material.Filled.LocationOn" Size="Size.Small" Color="Color.Secondary" />
+                            <MudText Typo="Typo.body2" Style="white-space:pre-wrap">@_customer.Address</MudText>
+                        </MudStack>
+                    }
+                    @if (!string.IsNullOrWhiteSpace(_customer.TaxNumber))
+                    {
+                        <MudStack Row="true" AlignItems="AlignItems.Center" Spacing="1">
+                            <MudIcon Icon="@Icons.Material.Filled.Tag" Size="Size.Small" Color="Color.Secondary" />
+                            <MudText Typo="Typo.body2">@L["Detail_TaxNumber"]: @_customer.TaxNumber</MudText>
+                        </MudStack>
+                    }
+                </MudStack>
+            </MudPaper>
+        </MudItem>
+
+        @* Financial summary *@
+        <MudItem xs="12" md="7">
+            <MudPaper Class="pa-4" Elevation="0" Outlined="true">
+                <MudGrid Spacing="2">
+                    <MudItem xs="6">
+                        <MudText Typo="Typo.caption" Color="Color.Secondary">@L["Detail_OutstandingBalance"]</MudText>
+                        <MudText Typo="Typo.h6" Color="@(_customer.OutstandingBalance > 0 ? Color.Warning : Color.Default)">
+                            @_customer.Currency @_customer.OutstandingBalance.ToString("N2")
+                        </MudText>
+                    </MudItem>
+                    <MudItem xs="6">
+                        <MudText Typo="Typo.caption" Color="Color.Secondary">@L["Detail_PaymentTerms"]</MudText>
+                        <MudText Typo="Typo.h6">@_customer.PaymentTermsDays @L["Detail_Days"]</MudText>
+                    </MudItem>
+                    <MudItem xs="6">
+                        <MudText Typo="Typo.caption" Color="Color.Secondary">@L["Detail_CreditLimit"]</MudText>
+                        <MudText Typo="Typo.h6">
+                            @(_customer.CreditLimit.HasValue
+                                ? $"{_customer.Currency} {_customer.CreditLimit.Value:N2}"
+                                : L["Detail_Unlimited"].Value)
+                        </MudText>
+                    </MudItem>
+                    <MudItem xs="6">
+                        <MudText Typo="Typo.caption" Color="Color.Secondary">@L["Col_Currency"]</MudText>
+                        <MudText Typo="Typo.h6">@_customer.Currency</MudText>
+                    </MudItem>
+                </MudGrid>
+            </MudPaper>
+        </MudItem>
+
+        @* Invoices *@
+        <MudItem xs="12">
+            <MudStack Row="true" AlignItems="AlignItems.Center" Class="mb-2">
+                <MudText Typo="Typo.subtitle1"><b>@L["Detail_Invoices"]</b></MudText>
+                <MudSpacer />
+                <AuthorizeView Roles="Admin,Bookkeeper">
+                    <MudButton Variant="Variant.Outlined" Size="Size.Small"
+                               StartIcon="@Icons.Material.Filled.Add"
+                               OnClick="@(() => Navigation.NavigateTo("/invoices/new"))">
+                        @L["NewCustomer"]
+                    </MudButton>
+                </AuthorizeView>
+            </MudStack>
+            @if (_invoices.Count == 0)
+            {
+                <MudText Color="Color.Secondary" Typo="Typo.body2">@L["Detail_NoInvoices"]</MudText>
+            }
+            else
+            {
+                <MudTable T="InvoiceDto" Items="_invoices" Dense="true" Hover="true"
+                          OnRowClick="@(args => Navigation.NavigateTo($"/invoices/{args.Item!.Id}"))"
+                          RowClass="cursor-pointer" Breakpoint="Breakpoint.Sm" Elevation="0"
+                          RowStyleFunc="@((inv, _) => inv.Status == InvoiceStatus.Overdue ? "background-color:#FAECE8" : string.Empty)"
+                          Style="border:1px solid var(--mud-palette-lines-default)">
+                    <HeaderContent>
+                        <MudTh>@LI["Col_Reference"]</MudTh>
+                        <MudTh>@LI["Col_Date"]</MudTh>
+                        <MudTh>@LI["Col_DueDate"]</MudTh>
+                        <MudTh>@LI["Col_Status"]</MudTh>
+                        <MudTh Class="text-right">@LI["Col_Amount"]</MudTh>
+                    </HeaderContent>
+                    <RowTemplate>
+                        <MudTd>@context.Reference</MudTd>
+                        <MudTd>@context.Date.ToString("dd/MM/yyyy")</MudTd>
+                        <MudTd>@context.DueDate.ToString("dd/MM/yyyy")</MudTd>
+                        <MudTd><InvoiceStatusChip Status="context.Status" /></MudTd>
+                        <MudTd Class="text-right">@context.Currency @context.GrandTotal.ToString("N2")</MudTd>
+                    </RowTemplate>
+                </MudTable>
+            }
+        </MudItem>
+    </MudGrid>
+}
+
+@code {
+    [Parameter] public Guid Id { get; set; }
+
+    private CustomerDto? _customer;
+    private IReadOnlyList<InvoiceDto> _invoices = [];
+
+    protected override async Task OnInitializedAsync()
+    {
+        _customer = await CustomerService.GetByIdAsync(Id, CurrentUser.TenantId);
+
+        var paged = await InvoiceService.GetPagedAsync(new InvoiceQuery(
+            TenantId: CurrentUser.TenantId,
+            CustomerId: Id,
+            PageSize: 50), CancellationToken.None);
+        _invoices = paged.Items;
+    }
+
+    private async Task OpenEditDialog()
+    {
+        if (_customer is null) return;
+        var parameters = new DialogParameters<CustomerFormDialog>
+        {
+            { x => x.Customer, _customer }
+        };
+        var dialog = await DialogService.ShowAsync<CustomerFormDialog>(L["EditTitle"], parameters);
+        var result = await dialog.Result;
+        if (result is { Canceled: false })
+        {
+            _customer = await CustomerService.GetByIdAsync(Id, CurrentUser.TenantId);
+            var paged = await InvoiceService.GetPagedAsync(new InvoiceQuery(
+                TenantId: CurrentUser.TenantId, CustomerId: Id, PageSize: 50), CancellationToken.None);
+            _invoices = paged.Items;
+        }
+    }
+}
