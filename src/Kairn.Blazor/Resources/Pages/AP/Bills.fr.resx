@@ -1,0 +1,63 @@
+<?xml version="1.0" encoding="utf-8"?>
+<root>
+  <resheader name="resmimetype"><value>text/microsoft-resx</value></resheader>
+  <resheader name="version"><value>2.0</value></resheader>
+  <data name="Title" xml:space="preserve"><value>Factures fournisseurs</value></data>
+  <data name="CreateTitle" xml:space="preserve"><value>Nouvelle facture fournisseur</value></data>
+  <data name="EditTitle" xml:space="preserve"><value>Modifier la facture</value></data>
+  <data name="NewBill" xml:space="preserve"><value>Nouvelle facture</value></data>
+  <data name="Search" xml:space="preserve"><value>Rechercher fournisseur ou référence…</value></data>
+  <data name="NoBills" xml:space="preserve"><value>Aucune facture trouvée.</value></data>
+  <data name="Back" xml:space="preserve"><value>Retour</value></data>
+  <data name="Cancel" xml:space="preserve"><value>Annuler</value></data>
+  <data name="SaveDraft" xml:space="preserve"><value>Enregistrer en brouillon</value></data>
+  <data name="Col_Vendor" xml:space="preserve"><value>Fournisseur</value></data>
+  <data name="Col_Reference" xml:space="preserve"><value>Référence</value></data>
+  <data name="Col_Date" xml:space="preserve"><value>Date</value></data>
+  <data name="Col_DueDate" xml:space="preserve"><value>Échéance</value></data>
+  <data name="Col_Status" xml:space="preserve"><value>Statut</value></data>
+  <data name="Col_Amount" xml:space="preserve"><value>Montant</value></data>
+  <data name="Col_Description" xml:space="preserve"><value>Description</value></data>
+  <data name="Col_Qty" xml:space="preserve"><value>Qté</value></data>
+  <data name="Col_UnitPrice" xml:space="preserve"><value>Prix unitaire</value></data>
+  <data name="Col_TaxRate" xml:space="preserve"><value>TVA</value></data>
+  <data name="Col_Account" xml:space="preserve"><value>Compte de charge</value></data>
+  <data name="Col_LineTotal" xml:space="preserve"><value>Total</value></data>
+  <data name="Field_Vendor" xml:space="preserve"><value>Fournisseur</value></data>
+  <data name="Field_Reference" xml:space="preserve"><value>Référence (n° facture fournisseur)</value></data>
+  <data name="Field_ReferenceHint" xml:space="preserve"><value>Le numéro de facture du fournisseur</value></data>
+  <data name="Field_Date" xml:space="preserve"><value>Date de facture</value></data>
+  <data name="Field_DueDate" xml:space="preserve"><value>Date d'échéance</value></data>
+  <data name="Field_Currency" xml:space="preserve"><value>Devise</value></data>
+  <data name="Field_Notes" xml:space="preserve"><value>Notes</value></data>
+  <data name="Totals_Title" xml:space="preserve"><value>Totaux</value></data>
+  <data name="Totals_Subtotal" xml:space="preserve"><value>Sous-total (HT)</value></data>
+  <data name="Totals_Tax" xml:space="preserve"><value>TVA</value></data>
+  <data name="Totals_Grand" xml:space="preserve"><value>Total TTC</value></data>
+  <data name="Attachment_Title" xml:space="preserve"><value>Pièce jointe</value></data>
+  <data name="Attachment_Upload" xml:space="preserve"><value>Joindre un fichier</value></data>
+  <data name="Attachment_Existing" xml:space="preserve"><value>Fichier joint</value></data>
+  <data name="Lines_Title" xml:space="preserve"><value>Lignes</value></data>
+  <data name="Lines_Add" xml:space="preserve"><value>Ajouter une ligne</value></data>
+  <data name="Lines_Empty" xml:space="preserve"><value>Ajoutez au moins une ligne.</value></data>
+  <data name="Action_Edit" xml:space="preserve"><value>Modifier</value></data>
+  <data name="Action_Approve" xml:space="preserve"><value>Approuver</value></data>
+  <data name="Action_Void" xml:space="preserve"><value>Annuler</value></data>
+  <data name="Action_Download" xml:space="preserve"><value>Télécharger la pièce jointe</value></data>
+  <data name="Detail_Info" xml:space="preserve"><value>Informations</value></data>
+  <data name="Detail_Vendor" xml:space="preserve"><value>Fournisseur</value></data>
+  <data name="Detail_Reference" xml:space="preserve"><value>Référence</value></data>
+  <data name="Detail_Date" xml:space="preserve"><value>Date</value></data>
+  <data name="Detail_DueDate" xml:space="preserve"><value>Échéance</value></data>
+  <data name="Detail_Notes" xml:space="preserve"><value>Notes</value></data>
+  <data name="Detail_Summary" xml:space="preserve"><value>Résumé financier</value></data>
+  <data name="Detail_Subtotal" xml:space="preserve"><value>Sous-total</value></data>
+  <data name="Detail_Tax" xml:space="preserve"><value>TVA</value></data>
+  <data name="Detail_Total" xml:space="preserve"><value>Total TTC</value></data>
+  <data name="Detail_Outstanding" xml:space="preserve"><value>Solde dû</value></data>
+  <data name="Void_Title" xml:space="preserve"><value>Annuler la facture</value></data>
+  <data name="Void_Confirm" xml:space="preserve"><value>Êtes-vous sûr de vouloir annuler cette facture ? Une écriture de contrepassation sera générée.</value></data>
+  <data name="Void_Yes" xml:space="preserve"><value>Annuler la facture</value></data>
+  <data name="Error_NoLines" xml:space="preserve"><value>La facture doit comporter au moins une ligne.</value></data>
+  <data name="Error_AccountRequired" xml:space="preserve"><value>Toutes les lignes doivent avoir un compte de charge sélectionné.</value></data>
+</root>

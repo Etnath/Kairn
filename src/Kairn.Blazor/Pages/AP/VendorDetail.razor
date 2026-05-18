@@ -1,0 +1,180 @@
+@page "/vendors/{Id:guid}"
+@attribute [Authorize(Roles = "Admin,Bookkeeper,Viewer")]
+@inject IStringLocalizer<Vendors> L
+@inject IVendorService VendorService
+@inject IBillService BillService
+@inject ICurrentUserContext CurrentUser
+@inject IDialogService DialogService
+@inject NavigationManager Navigation
+
+<PageTitle>@(_vendor?.Name ?? "…") – Kairn</PageTitle>
+
+@if (_vendor is null)
+{
+    <MudProgressCircular Indeterminate="true" />
+}
+else
+{
+    <MudStack Row="true" AlignItems="AlignItems.Center" Class="mb-4">
+        <MudIconButton Icon="@Icons.Material.Filled.ArrowBack" Size="Size.Small"
+                       title="@L["Detail_Back"]"
+                       OnClick="@(() => Navigation.NavigateTo("/vendors"))" />
+        <MudText Typo="Typo.h5">@_vendor.Name</MudText>
+        @if (!_vendor.IsActive)
+        {
+            <MudChip T="string" Color="Color.Default" Size="Size.Small">@L["Detail_Inactive"]</MudChip>
+        }
+        <MudSpacer />
+        <AuthorizeView Roles="Admin,Bookkeeper">
+            <MudButton Variant="Variant.Outlined" StartIcon="@Icons.Material.Filled.Edit"
+                       OnClick="OpenEditDialog">
+                @L["EditTitle"]
+            </MudButton>
+        </AuthorizeView>
+    </MudStack>
+
+    <MudGrid Spacing="3">
+        @* Contact information *@
+        <MudItem xs="12" md="5">
+            <MudPaper Class="pa-4" Elevation="0" Outlined="true">
+                <MudText Typo="Typo.subtitle1" Class="mb-3"><b>@L["Detail_ContactInfo"]</b></MudText>
+                <MudStack Spacing="2">
+                    @if (!string.IsNullOrWhiteSpace(_vendor.ContactEmail))
+                    {
+                        <MudStack Row="true" AlignItems="AlignItems.Center" Spacing="1">
+                            <MudIcon Icon="@Icons.Material.Filled.Email" Size="Size.Small" Color="Color.Secondary" />
+                            <MudText Typo="Typo.body2">@_vendor.ContactEmail</MudText>
+                        </MudStack>
+                    }
+                    @if (!string.IsNullOrWhiteSpace(_vendor.Phone))
+                    {
+                        <MudStack Row="true" AlignItems="AlignItems.Center" Spacing="1">
+                            <MudIcon Icon="@Icons.Material.Filled.Phone" Size="Size.Small" Color="Color.Secondary" />
+                            <MudText Typo="Typo.body2">@_vendor.Phone</MudText>
+                        </MudStack>
+                    }
+                    @if (!string.IsNullOrWhiteSpace(_vendor.Address))
+                    {
+                        <MudStack Row="true" AlignItems="AlignItems.Start" Spacing="1">
+                            <MudIcon Icon="@Icons.Material.Filled.LocationOn" Size="Size.Small" Color="Color.Secondary" />
+                            <MudText Typo="Typo.body2" Style="white-space:pre-wrap">@_vendor.Address</MudText>
+                        </MudStack>
+                    }
+                    @if (!string.IsNullOrWhiteSpace(_vendor.IBAN))
+                    {
+                        <MudStack Row="true" AlignItems="AlignItems.Center" Spacing="1">
+                            <MudIcon Icon="@Icons.Material.Filled.AccountBalance" Size="Size.Small" Color="Color.Secondary" />
+                            <MudText Typo="Typo.body2" Style="font-family:monospace">@_vendor.IBAN</MudText>
+                        </MudStack>
+                    }
+                </MudStack>
+            </MudPaper>
+        </MudItem>
+
+        @* Financial summary *@
+        <MudItem xs="12" md="7">
+            <MudPaper Class="pa-4" Elevation="0" Outlined="true">
+                <MudGrid Spacing="2">
+                    <MudItem xs="6">
+                        <MudText Typo="Typo.caption" Color="Color.Secondary">@L["Detail_OutstandingBalance"]</MudText>
+                        <MudText Typo="Typo.h6" Color="@(_vendor.OutstandingBalance > 0 ? Color.Warning : Color.Default)">
+                            @_vendor.OutstandingBalance.ToString("N2")
+                        </MudText>
+                    </MudItem>
+                    <MudItem xs="6">
+                        <MudText Typo="Typo.caption" Color="Color.Secondary">@L["Detail_PaymentTerms"]</MudText>
+                        <MudText Typo="Typo.h6">@_vendor.PaymentTermsDays @L["Detail_Days"]</MudText>
+                    </MudItem>
+                    @if (!string.IsNullOrWhiteSpace(_vendor.DefaultExpenseAccountName))
+                    {
+                        <MudItem xs="12">
+                            <MudText Typo="Typo.caption" Color="Color.Secondary">@L["Detail_DefaultAccount"]</MudText>
+                            <MudText Typo="Typo.body2">@_vendor.DefaultExpenseAccountName</MudText>
+                        </MudItem>
+                    }
+                </MudGrid>
+            </MudPaper>
+        </MudItem>
+
+        @* Bills *@
+        <MudItem xs="12">
+            <MudPaper Class="pa-4" Elevation="0" Outlined="true">
+                <MudStack Row="true" AlignItems="AlignItems.Center" Class="mb-3">
+                    <MudText Typo="Typo.subtitle2">@L["Detail_Bills"]</MudText>
+                    <MudSpacer />
+                    <AuthorizeView Roles="Admin,Bookkeeper">
+                        <MudButton Variant="Variant.Outlined" Size="Size.Small"
+                                   StartIcon="@Icons.Material.Filled.Add"
+                                   OnClick="@(() => Navigation.NavigateTo("/bills/new"))">
+                            @L["Detail_NewBill"]
+                        </MudButton>
+                    </AuthorizeView>
+                </MudStack>
+                @if (!_bills.Any())
+                {
+                    <MudText Typo="Typo.body2" Color="Color.Secondary">@L["Detail_NoBills"]</MudText>
+                }
+                else
+                {
+                    <MudTable T="BillDto" Items="_bills" Dense="true" Hover="true" Elevation="0"
+                              Style="border:1px solid var(--mud-palette-lines-default)" RowClass="cursor-pointer"
+                              OnRowClick="@((TableRowClickEventArgs<BillDto> args) => Navigation.NavigateTo($"/bills/{args.Item!.Id}"))">
+                        <HeaderContent>
+                            <MudTh>@L["Detail_Col_Reference"]</MudTh>
+                            <MudTh>@L["Detail_Col_Date"]</MudTh>
+                            <MudTh>@L["Detail_Col_DueDate"]</MudTh>
+                            <MudTh>@L["Detail_Col_Status"]</MudTh>
+                            <MudTh Style="text-align:right">@L["Detail_Col_Amount"]</MudTh>
+                            <MudTh Style="text-align:right">@L["Detail_Col_Outstanding"]</MudTh>
+                        </HeaderContent>
+                        <RowTemplate Context="bill">
+                            <MudTd>@bill.Reference</MudTd>
+                            <MudTd>@bill.Date.ToString("dd/MM/yyyy")</MudTd>
+                            <MudTd>@bill.DueDate.ToString("dd/MM/yyyy")</MudTd>
+                            <MudTd><BillStatusChip Status="bill.Status" /></MudTd>
+                            <MudTd Style="text-align:right">@bill.Currency @bill.GrandTotal.ToString("N2")</MudTd>
+                            <MudTd Style="text-align:right">
+                                <MudText Color="@(bill.Outstanding > 0 ? Color.Warning : Color.Default)">
+                                    @bill.Currency @bill.Outstanding.ToString("N2")
+                                </MudText>
+                            </MudTd>
+                        </RowTemplate>
+                    </MudTable>
+                }
+            </MudPaper>
+        </MudItem>
+    </MudGrid>
+}
+
+@code {
+    [Parameter] public Guid Id { get; set; }
+
+    private VendorDto? _vendor;
+    private IReadOnlyList<BillDto> _bills = [];
+
+    protected override async Task OnInitializedAsync() => await Reload();
+
+    private async Task Reload()
+    {
+        _vendor = await VendorService.GetByIdAsync(Id, CurrentUser.TenantId);
+        if (_vendor is null)
+        {
+            Navigation.NavigateTo("/vendors");
+            return;
+        }
+        _bills = await BillService.GetByVendorAsync(Id, CurrentUser.TenantId);
+    }
+
+    private async Task OpenEditDialog()
+    {
+        if (_vendor is null) return;
+        var parameters = new DialogParameters<VendorFormDialog>
+        {
+            { x => x.Vendor, _vendor }
+        };
+        var dialog = await DialogService.ShowAsync<VendorFormDialog>(L["EditTitle"], parameters);
+        var result = await dialog.Result;
+        if (result is { Canceled: false })
+            await Reload();
+    }
+}

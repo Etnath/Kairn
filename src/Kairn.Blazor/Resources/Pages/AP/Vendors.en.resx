@@ -1,0 +1,47 @@
+<?xml version="1.0" encoding="utf-8"?>
+<root>
+  <resheader name="resmimetype"><value>text/microsoft-resx</value></resheader>
+  <resheader name="version"><value>2.0</value></resheader>
+  <data name="Title" xml:space="preserve"><value>Vendors</value></data>
+  <data name="NewVendor" xml:space="preserve"><value>New Vendor</value></data>
+  <data name="Search" xml:space="preserve"><value>Search by name or email…</value></data>
+  <data name="Col_Name" xml:space="preserve"><value>Name</value></data>
+  <data name="Col_Email" xml:space="preserve"><value>Email</value></data>
+  <data name="Col_PaymentTerms" xml:space="preserve"><value>Terms (days)</value></data>
+  <data name="Col_DefaultAccount" xml:space="preserve"><value>Default Account</value></data>
+  <data name="Col_OutstandingBalance" xml:space="preserve"><value>Outstanding</value></data>
+  <data name="Col_Active" xml:space="preserve"><value>Active</value></data>
+  <data name="Col_Actions" xml:space="preserve"><value>Actions</value></data>
+  <data name="CreateTitle" xml:space="preserve"><value>New Vendor</value></data>
+  <data name="EditTitle" xml:space="preserve"><value>Edit Vendor</value></data>
+  <data name="Save" xml:space="preserve"><value>Save</value></data>
+  <data name="Cancel" xml:space="preserve"><value>Cancel</value></data>
+  <data name="Field_Name" xml:space="preserve"><value>Name</value></data>
+  <data name="Field_Email" xml:space="preserve"><value>Contact Email</value></data>
+  <data name="Field_Phone" xml:space="preserve"><value>Phone</value></data>
+  <data name="Field_Address" xml:space="preserve"><value>Address</value></data>
+  <data name="Field_IBAN" xml:space="preserve"><value>IBAN / Bank Details</value></data>
+  <data name="Field_PaymentTerms" xml:space="preserve"><value>Payment Terms (days)</value></data>
+  <data name="Field_DefaultAccount" xml:space="preserve"><value>Default Expense Account</value></data>
+  <data name="Field_DefaultAccountHint" xml:space="preserve"><value>Pre-selected when entering bills for this vendor</value></data>
+  <data name="Field_Active" xml:space="preserve"><value>Active</value></data>
+  <data name="InactiveNote" xml:space="preserve"><value>Inactive vendors cannot receive new bills.</value></data>
+  <data name="EditVendor" xml:space="preserve"><value>Edit vendor</value></data>
+  <data name="Detail_ContactInfo" xml:space="preserve"><value>Contact Information</value></data>
+  <data name="Detail_Bills" xml:space="preserve"><value>Bills</value></data>
+  <data name="Detail_OutstandingBalance" xml:space="preserve"><value>Outstanding Balance</value></data>
+  <data name="Detail_NoBills" xml:space="preserve"><value>No bills yet.</value></data>
+  <data name="Detail_Back" xml:space="preserve"><value>Back to Vendors</value></data>
+  <data name="Detail_PaymentTerms" xml:space="preserve"><value>Payment Terms</value></data>
+  <data name="Detail_Days" xml:space="preserve"><value>days</value></data>
+  <data name="Detail_DefaultAccount" xml:space="preserve"><value>Default Expense Account</value></data>
+  <data name="Detail_IBAN" xml:space="preserve"><value>IBAN / Bank Details</value></data>
+  <data name="Detail_Inactive" xml:space="preserve"><value>Inactive</value></data>
+  <data name="Detail_NewBill" xml:space="preserve"><value>New Bill</value></data>
+  <data name="Detail_Col_Reference" xml:space="preserve"><value>Reference</value></data>
+  <data name="Detail_Col_Date" xml:space="preserve"><value>Date</value></data>
+  <data name="Detail_Col_DueDate" xml:space="preserve"><value>Due Date</value></data>
+  <data name="Detail_Col_Status" xml:space="preserve"><value>Status</value></data>
+  <data name="Detail_Col_Amount" xml:space="preserve"><value>Amount</value></data>
+  <data name="Detail_Col_Outstanding" xml:space="preserve"><value>Outstanding</value></data>
+</root>

@@ -1,0 +1,101 @@
+@page "/bills"
+@attribute [Authorize(Roles = "Admin,Bookkeeper,Viewer")]
+@inject IStringLocalizer<Bills> L
+@inject IBillService BillService
+@inject ICurrentUserContext CurrentUser
+@inject NavigationManager Navigation
+
+<PageTitle>@L["Title"] – Kairn</PageTitle>
+
+<MudStack Row="true" AlignItems="AlignItems.Center" Class="mb-4">
+    <MudText Typo="Typo.h5">@L["Title"]</MudText>
+    <MudSpacer />
+    <AuthorizeView Roles="Admin,Bookkeeper">
+        <MudButton Variant="Variant.Filled" Color="Color.Primary"
+                   StartIcon="@Icons.Material.Filled.Add"
+                   OnClick="@(() => Navigation.NavigateTo("/bills/new"))">
+            @L["NewBill"]
+        </MudButton>
+    </AuthorizeView>
+</MudStack>
+
+<MudStack Row="true" Spacing="2" Class="mb-3">
+    <MudTextField @bind-Value="_search" Placeholder="@L["Search"]"
+                  Adornment="Adornment.Start" AdornmentIcon="@Icons.Material.Filled.Search"
+                  Immediate="true" DebounceInterval="200"
+                  Style="max-width:340px" />
+</MudStack>
+
+@if (_loading)
+{
+    <MudProgressLinear Indeterminate="true" Class="mb-2" />
+}
+
+<MudTable T="BillDto" Items="FilteredItems" Dense="true" Hover="true" Elevation="0"
+          Style="border:1px solid var(--mud-palette-lines-default)" RowClass="cursor-pointer"
+          OnRowClick="OnRowClick">
+    <HeaderContent>
+        <MudTh>@L["Col_Vendor"]</MudTh>
+        <MudTh>@L["Col_Reference"]</MudTh>
+        <MudTh>@L["Col_Date"]</MudTh>
+        <MudTh>@L["Col_DueDate"]</MudTh>
+        <MudTh>@L["Col_Status"]</MudTh>
+        <MudTh Style="text-align:right">@L["Col_Amount"]</MudTh>
+        <MudTh Style="width:60px"></MudTh>
+    </HeaderContent>
+    <RowTemplate Context="bill">
+        <MudTd DataLabel="@L["Col_Vendor"]">@bill.VendorName</MudTd>
+        <MudTd DataLabel="@L["Col_Reference"]">
+            <MudStack Row="true" AlignItems="AlignItems.Center" Spacing="1">
+                @bill.Reference
+                @if (bill.HasAttachment)
+                {
+                    <MudIcon Icon="@Icons.Material.Filled.AttachFile" Size="Size.Small" Color="Color.Secondary" />
+                }
+            </MudStack>
+        </MudTd>
+        <MudTd DataLabel="@L["Col_Date"]">@bill.Date.ToString("dd/MM/yyyy")</MudTd>
+        <MudTd DataLabel="@L["Col_DueDate"]">@bill.DueDate.ToString("dd/MM/yyyy")</MudTd>
+        <MudTd DataLabel="@L["Col_Status"]"><BillStatusChip Status="bill.Status" /></MudTd>
+        <MudTd DataLabel="@L["Col_Amount"]" Style="text-align:right">
+            <MudText Color="@(bill.Outstanding > 0 && bill.Status == BillStatus.Overdue ? Color.Error : Color.Default)">
+                @bill.Currency @bill.GrandTotal.ToString("N2")
+            </MudText>
+        </MudTd>
+        <MudTd @onclick:stopPropagation="true">
+            <AuthorizeView Roles="Admin,Bookkeeper" Context="authCtx">
+                @if (bill.Status == BillStatus.Draft)
+                {
+                    <MudIconButton Icon="@Icons.Material.Filled.Edit" Size="Size.Small"
+                                   OnClick="@(() => Navigation.NavigateTo($"/bills/{bill.Id}/edit"))" />
+                }
+            </AuthorizeView>
+        </MudTd>
+    </RowTemplate>
+    <NoRecordsContent>
+        <MudText Color="Color.Secondary" Class="pa-4">@L["NoBills"]</MudText>
+    </NoRecordsContent>
+</MudTable>
+
+@code {
+    private bool _loading = true;
+    private string _search = "";
+    private IReadOnlyList<BillDto> _bills = [];
+
+    private IEnumerable<BillDto> FilteredItems => string.IsNullOrWhiteSpace(_search)
+        ? _bills
+        : _bills.Where(b =>
+            b.VendorName.Contains(_search, StringComparison.OrdinalIgnoreCase) ||
+            b.Reference.Contains(_search, StringComparison.OrdinalIgnoreCase));
+
+    protected override async Task OnInitializedAsync()
+    {
+        var result = await BillService.GetPagedAsync(
+            new BillQuery(CurrentUser.TenantId, Page: 1, PageSize: 200));
+        _bills = result.Items;
+        _loading = false;
+    }
+
+    private void OnRowClick(TableRowClickEventArgs<BillDto> args) =>
+        Navigation.NavigateTo($"/bills/{args.Item!.Id}");
+}

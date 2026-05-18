@@ -29,6 +29,10 @@ public class AppDbContext : IdentityDbContext<ApplicationUser>
     public DbSet<RecurringJobLog> RecurringJobLogs => Set<RecurringJobLog>();
     public DbSet<CurrencyRate> CurrencyRates => Set<CurrencyRate>();
     public DbSet<Customer> Customers => Set<Customer>();
+    public DbSet<Vendor> Vendors => Set<Vendor>();
+    public DbSet<Bill> Bills => Set<Bill>();
+    public DbSet<BillLine> BillLines => Set<BillLine>();
+    public DbSet<BillAttachment> BillAttachments => Set<BillAttachment>();
     public DbSet<Invoice> Invoices => Set<Invoice>();
     public DbSet<InvoiceLine> InvoiceLines => Set<InvoiceLine>();
     public DbSet<InvoicePayment> InvoicePayments => Set<InvoicePayment>();

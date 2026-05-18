@@ -1,0 +1,432 @@
+@page "/bills/new"
+@page "/bills/{Id:guid}/edit"
+@attribute [Authorize(Roles = "Admin,Bookkeeper")]
+@inject IStringLocalizer<Bills> L
+@inject IBillService BillService
+@inject IVendorService VendorService
+@inject IAccountService AccountService
+@inject ICurrentUserContext CurrentUser
+@inject NavigationManager Navigation
+
+<PageTitle>@(_isEdit ? L["EditTitle"].Value : L["CreateTitle"].Value) – Kairn</PageTitle>
+
+<MudStack Row="true" AlignItems="AlignItems.Center" Class="mb-4">
+    <MudIconButton Icon="@Icons.Material.Filled.ArrowBack" Size="Size.Small"
+                   title="@L["Back"]"
+                   OnClick="@(() => Navigation.NavigateTo(_isEdit ? $"/bills/{Id}" : "/bills"))" />
+    <MudText Typo="Typo.h5">@(_isEdit ? L["EditTitle"].Value : L["CreateTitle"].Value)</MudText>
+</MudStack>
+
+@if (_loading)
+{
+    <MudProgressCircular Indeterminate="true" />
+}
+else
+{
+    <MudForm @ref="_form" @bind-IsValid="_isValid">
+        <MudGrid Spacing="3">
+
+            @* Left – header fields *@
+            <MudItem xs="12" md="8">
+                <MudPaper Class="pa-4" Elevation="0" Outlined="true">
+                    <MudGrid Spacing="2">
+                        <MudItem xs="12" sm="6">
+                            <MudAutocomplete T="VendorDto"
+                                             Value="_selectedVendor"
+                                             ValueChanged="OnVendorChanged"
+                                             Label="@L["Field_Vendor"]"
+                                             SearchFunc="SearchVendors"
+                                             ToStringFunc="@(v => v?.Name ?? "")"
+                                             Required="true"
+                                             RequiredError="@L["Field_Vendor"].Value"
+                                             ResetValueOnEmptyText="false"
+                                             CoerceText="true"
+                                             Immediate="true" />
+                        </MudItem>
+                        <MudItem xs="12" sm="6">
+                            <MudTextField @bind-Value="_reference" Label="@L["Field_Reference"]"
+                                          Required="true" RequiredError="@L["Field_Reference"].Value"
+                                          HelperText="@L["Field_ReferenceHint"]"
+                                          Immediate="true" />
+                        </MudItem>
+                        <MudItem xs="12" sm="4">
+                            <MudDatePicker Date="_date" Label="@L["Field_Date"]"
+                                           DateFormat="dd/MM/yyyy" Editable="true" Required="true"
+                                           DateChanged="OnDateChanged" />
+                        </MudItem>
+                        <MudItem xs="12" sm="4">
+                            <MudDatePicker @bind-Date="_dueDate" Label="@L["Field_DueDate"]"
+                                           DateFormat="dd/MM/yyyy" Editable="true" Required="true" />
+                        </MudItem>
+                        <MudItem xs="12" sm="4">
+                            <MudTextField @bind-Value="_currency" Label="@L["Field_Currency"]"
+                                          Required="true" MaxLength="3" Immediate="true" />
+                        </MudItem>
+                        <MudItem xs="12">
+                            <MudTextField @bind-Value="_notes" Label="@L["Field_Notes"]"
+                                          Lines="2" Immediate="true" />
+                        </MudItem>
+                    </MudGrid>
+                </MudPaper>
+            </MudItem>
+
+            @* Right – totals + attachment *@
+            <MudItem xs="12" md="4">
+                <MudStack Spacing="3">
+                    <MudPaper Class="pa-4" Elevation="0" Outlined="true">
+                        <MudText Typo="Typo.subtitle2" Class="mb-3">@L["Totals_Title"]</MudText>
+                        <MudStack Spacing="1">
+                            <MudStack Row="true" Spacing="0">
+                                <MudText Style="flex:1" Color="Color.Secondary">@L["Totals_Subtotal"]</MudText>
+                                <MudText>@_currency @Subtotal.ToString("N2")</MudText>
+                            </MudStack>
+                            @if (TotalTax > 0)
+                            {
+                                <MudStack Row="true" Spacing="0">
+                                    <MudText Style="flex:1" Color="Color.Secondary">@L["Totals_Tax"]</MudText>
+                                    <MudText>@_currency @TotalTax.ToString("N2")</MudText>
+                                </MudStack>
+                            }
+                            <MudDivider Class="my-2" />
+                            <MudStack Row="true" Spacing="0">
+                                <MudText Style="flex:1"><b>@L["Totals_Grand"]</b></MudText>
+                                <MudText Typo="Typo.h6" Color="Color.Primary">@_currency @GrandTotal.ToString("N2")</MudText>
+                            </MudStack>
+                        </MudStack>
+                    </MudPaper>
+
+                    <MudPaper Class="pa-4" Elevation="0" Outlined="true">
+                        <MudText Typo="Typo.subtitle2" Class="mb-2">@L["Attachment_Title"]</MudText>
+                        @if (_existingAttachment && !_removeAttachment)
+                        {
+                            <MudStack Row="true" AlignItems="AlignItems.Center" Spacing="1">
+                                <MudIcon Icon="@Icons.Material.Filled.AttachFile" Size="Size.Small" />
+                                <MudText Typo="Typo.body2">@L["Attachment_Existing"]</MudText>
+                                <MudSpacer />
+                                <MudIconButton Icon="@Icons.Material.Filled.Delete" Size="Size.Small"
+                                               Color="Color.Error"
+                                               OnClick="@(() => _removeAttachment = true)" />
+                            </MudStack>
+                        }
+                        else
+                        {
+                            <InputFile id="fileInput" OnChange="OnFileSelected" style="display:none" />
+                            <MudButton HtmlTag="label" Variant="Variant.Outlined" Size="Size.Small"
+                                       StartIcon="@Icons.Material.Filled.Upload"
+                                       for="fileInput">
+                                @L["Attachment_Upload"]
+                            </MudButton>
+                            @if (_attachmentFile is not null)
+                            {
+                                <MudText Typo="Typo.caption" Class="mt-1">@_attachmentFile.Name</MudText>
+                            }
+                        }
+                    </MudPaper>
+                </MudStack>
+            </MudItem>
+
+            @* Line items *@
+            <MudItem xs="12">
+                <MudPaper Class="pa-4" Elevation="0" Outlined="true">
+                    <MudStack Row="true" AlignItems="AlignItems.Center" Class="mb-3">
+                        <MudText Typo="Typo.subtitle1"><b>@L["Lines_Title"]</b></MudText>
+                        <MudSpacer />
+                        <MudButton Variant="Variant.Outlined" Size="Size.Small"
+                                   StartIcon="@Icons.Material.Filled.Add"
+                                   OnClick="AddLine">
+                            @L["Lines_Add"]
+                        </MudButton>
+                    </MudStack>
+
+                    <MudTable Items="_lines" Dense="true" Hover="false" Elevation="0"
+                              Style="border:1px solid var(--mud-palette-lines-default)">
+                        <HeaderContent>
+                            <MudTh>@L["Col_Description"]</MudTh>
+                            <MudTh Style="width:90px">@L["Col_Qty"]</MudTh>
+                            <MudTh Style="width:120px">@L["Col_UnitPrice"]</MudTh>
+                            <MudTh Style="width:110px">@L["Col_TaxRate"]</MudTh>
+                            <MudTh Style="width:200px">@L["Col_Account"]</MudTh>
+                            <MudTh Style="width:110px" Class="text-right">@L["Col_LineTotal"]</MudTh>
+                            <MudTh Style="width:50px"></MudTh>
+                        </HeaderContent>
+                        <RowTemplate>
+                            <MudTd>
+                                <MudTextField @bind-Value="context.Description"
+                                              Required="true"
+                                              Margin="Margin.Dense" Immediate="true" />
+                            </MudTd>
+                            <MudTd>
+                                <MudNumericField T="decimal" @bind-Value="context.Quantity"
+                                                 Min="0.001m" Format="N2"
+                                                 HideSpinButtons="true" Margin="Margin.Dense" />
+                            </MudTd>
+                            <MudTd>
+                                <MudNumericField T="decimal" @bind-Value="context.UnitPrice"
+                                                 Min="0" Format="N2"
+                                                 HideSpinButtons="true" Margin="Margin.Dense" />
+                            </MudTd>
+                            <MudTd>
+                                <MudSelect T="decimal" @bind-Value="context.TaxRate"
+                                           Dense="true" Margin="Margin.Dense">
+                                    @foreach (var rate in TaxRates)
+                                    {
+                                        <MudSelectItem T="decimal" Value="@rate">@rate.ToString("N1")%</MudSelectItem>
+                                    }
+                                </MudSelect>
+                            </MudTd>
+                            <MudTd>
+                                <MudSelect T="Guid" @bind-Value="context.ExpenseAccountId"
+                                           Dense="true" Margin="Margin.Dense"
+                                           Required="true">
+                                    @foreach (var acc in _expenseAccounts)
+                                    {
+                                        <MudSelectItem T="Guid" Value="@acc.Id">@acc.Code – @acc.Name</MudSelectItem>
+                                    }
+                                </MudSelect>
+                            </MudTd>
+                            <MudTd Class="text-right">
+                                <MudText Typo="Typo.body2">@context.LineTotal.ToString("N2")</MudText>
+                            </MudTd>
+                            <MudTd>
+                                <MudIconButton Icon="@Icons.Material.Filled.Delete"
+                                               Size="Size.Small" Color="Color.Error"
+                                               OnClick="@(() => RemoveLine(context))" />
+                            </MudTd>
+                        </RowTemplate>
+                        <NoRecordsContent>
+                            <MudText Color="Color.Secondary" Class="pa-4">@L["Lines_Empty"]</MudText>
+                        </NoRecordsContent>
+                    </MudTable>
+                </MudPaper>
+            </MudItem>
+
+            @if (_errorMessage is not null)
+            {
+                <MudItem xs="12">
+                    <MudAlert Severity="Severity.Error" Dense="true">@_errorMessage</MudAlert>
+                </MudItem>
+            }
+
+            <MudItem xs="12">
+                <MudStack Row="true" Spacing="2" Justify="Justify.FlexEnd">
+                    <MudButton OnClick="@(() => Navigation.NavigateTo(_isEdit ? $"/bills/{Id}" : "/bills"))">
+                        @L["Cancel"]
+                    </MudButton>
+                    <MudButton Color="Color.Primary" Variant="Variant.Filled"
+                               OnClick="Save" Disabled="@_saving">
+                        @if (_saving)
+                        {
+                            <MudProgressCircular Size="Size.Small" Indeterminate="true" Class="mr-2" />
+                        }
+                        @L["SaveDraft"]
+                    </MudButton>
+                </MudStack>
+            </MudItem>
+        </MudGrid>
+    </MudForm>
+}
+
+@code {
+    [Parameter] public Guid? Id { get; set; }
+
+    private static readonly decimal[] TaxRates = [0m, 2.1m, 5.5m, 10m, 20m];
+
+    private MudForm _form = null!;
+    private bool _isValid;
+    private bool _loading = true;
+    private bool _saving;
+    private bool _isEdit;
+    private bool _existingAttachment;
+    private bool _removeAttachment;
+    private string? _errorMessage;
+
+    private IReadOnlyList<VendorDto> _vendors = [];
+    private List<Kairn.Domain.Entities.Account> _expenseAccounts = [];
+    private VendorDto? _selectedVendor;
+
+    private string _reference = "";
+    private DateTime? _date = DateTime.Today;
+    private DateTime? _dueDate;
+    private string _currency = "EUR";
+    private string? _notes;
+
+    private List<BillLineModel> _lines = [];
+    private IBrowserFile? _attachmentFile;
+
+    private decimal Subtotal => _lines.Sum(l => l.NetAmount);
+    private decimal TotalTax => _lines.Sum(l => l.TaxAmount);
+    private decimal GrandTotal => Subtotal + TotalTax;
+
+    protected override async Task OnInitializedAsync()
+    {
+        _vendors = await VendorService.GetAllAsync(CurrentUser.TenantId);
+        var accounts = await AccountService.GetAllAsync(CurrentUser.TenantId);
+        _expenseAccounts = accounts
+            .Where(a => a.Type == Kairn.Domain.Entities.AccountType.Expense && a.IsActive)
+            .OrderBy(a => a.Code)
+            .ToList();
+
+        _isEdit = Id.HasValue;
+
+        if (_isEdit)
+        {
+            var bill = await BillService.GetByIdAsync(Id!.Value, CurrentUser.TenantId);
+            if (bill is null)
+            {
+                Navigation.NavigateTo("/bills");
+                return;
+            }
+            if (bill.Status != BillStatus.Draft)
+            {
+                Navigation.NavigateTo($"/bills/{Id}");
+                return;
+            }
+
+            _selectedVendor = _vendors.FirstOrDefault(v => v.Id == bill.VendorId);
+            _reference = bill.Reference;
+            _date = bill.Date.ToDateTime(TimeOnly.MinValue);
+            _dueDate = bill.DueDate.ToDateTime(TimeOnly.MinValue);
+            _currency = bill.Currency;
+            _notes = bill.Notes;
+            _existingAttachment = bill.HasAttachment;
+            _lines = bill.Lines.Select(l => new BillLineModel
+            {
+                Id = l.Id,
+                Description = l.Description,
+                Quantity = l.Quantity,
+                UnitPrice = l.UnitPrice,
+                TaxRate = l.TaxRate,
+                ExpenseAccountId = l.ExpenseAccountId,
+            }).ToList();
+        }
+        else
+        {
+            AddLine();
+        }
+
+        _loading = false;
+    }
+
+    private Task<IEnumerable<VendorDto>> SearchVendors(string? text, CancellationToken ct)
+    {
+        var results = string.IsNullOrWhiteSpace(text)
+            ? _vendors.Where(v => v.IsActive)
+            : _vendors.Where(v => v.IsActive &&
+                v.Name.Contains(text, StringComparison.OrdinalIgnoreCase));
+        return Task.FromResult(results);
+    }
+
+    private void OnVendorChanged(VendorDto? vendor)
+    {
+        _selectedVendor = vendor;
+        if (vendor is not null && _date.HasValue)
+            _dueDate = _date.Value.AddDays(vendor.PaymentTermsDays);
+
+        // Pre-fill default expense account on new lines if vendor has a default
+        if (vendor?.DefaultExpenseAccountId.HasValue == true)
+        {
+            foreach (var line in _lines.Where(l => l.ExpenseAccountId == Guid.Empty))
+                line.ExpenseAccountId = vendor.DefaultExpenseAccountId!.Value;
+        }
+    }
+
+    private void OnDateChanged(DateTime? date)
+    {
+        _date = date;
+        if (date.HasValue && _selectedVendor is not null)
+            _dueDate = date.Value.AddDays(_selectedVendor.PaymentTermsDays);
+    }
+
+    private void AddLine()
+    {
+        var defaultAccount = _selectedVendor?.DefaultExpenseAccountId ?? Guid.Empty;
+        _lines.Add(new BillLineModel { ExpenseAccountId = defaultAccount });
+    }
+
+    private void RemoveLine(BillLineModel line) => _lines.Remove(line);
+
+    private void OnFileSelected(InputFileChangeEventArgs e)
+    {
+        _attachmentFile = e.File;
+        _removeAttachment = false;
+    }
+
+    private async Task Save()
+    {
+        await _form.Validate();
+        if (!_isValid) return;
+        if (_selectedVendor is null) return;
+        if (!_date.HasValue || !_dueDate.HasValue) return;
+        if (!_lines.Any()) { _errorMessage = L["Error_NoLines"].Value; return; }
+        if (_lines.Any(l => l.ExpenseAccountId == Guid.Empty))
+        {
+            _errorMessage = L["Error_AccountRequired"].Value;
+            return;
+        }
+
+        _saving = true;
+        _errorMessage = null;
+
+        byte[]? attachmentData = null;
+        string? attachmentFileName = null;
+        string? attachmentContentType = null;
+
+        if (_attachmentFile is not null)
+        {
+            const long maxSize = 10 * 1024 * 1024; // 10 MB
+            using var ms = new System.IO.MemoryStream();
+            await _attachmentFile.OpenReadStream(maxSize).CopyToAsync(ms);
+            attachmentData = ms.ToArray();
+            attachmentFileName = _attachmentFile.Name;
+            attachmentContentType = _attachmentFile.ContentType;
+        }
+
+        var lines = _lines.Select((l, i) => new BillLineInput(
+            l.Description, l.Quantity, l.UnitPrice, l.TaxRate, l.ExpenseAccountId, i)).ToList();
+
+        Result<BillDto> result;
+        if (_isEdit)
+        {
+            result = await BillService.UpdateAsync(new UpdateBillCommand(
+                Id!.Value, CurrentUser.TenantId,
+                _selectedVendor.Id, _reference,
+                DateOnly.FromDateTime(_date.Value), DateOnly.FromDateTime(_dueDate.Value),
+                _currency, _notes, lines,
+                RemoveAttachment: _removeAttachment,
+                AttachmentData: attachmentData,
+                AttachmentFileName: attachmentFileName,
+                AttachmentContentType: attachmentContentType));
+        }
+        else
+        {
+            result = await BillService.CreateAsync(new CreateBillCommand(
+                CurrentUser.TenantId, _selectedVendor.Id, _reference,
+                DateOnly.FromDateTime(_date.Value), DateOnly.FromDateTime(_dueDate.Value),
+                _currency, _notes, lines,
+                AttachmentData: attachmentData,
+                AttachmentFileName: attachmentFileName,
+                AttachmentContentType: attachmentContentType));
+        }
+
+        _saving = false;
+
+        if (result.IsSuccess)
+            Navigation.NavigateTo($"/bills/{result.Value!.Id}");
+        else
+            _errorMessage = result.Error;
+    }
+
+    private class BillLineModel
+    {
+        public Guid Id { get; set; } = Guid.NewGuid();
+        public string Description { get; set; } = "";
+        public decimal Quantity { get; set; } = 1m;
+        public decimal UnitPrice { get; set; }
+        public decimal TaxRate { get; set; }
+        public Guid ExpenseAccountId { get; set; }
+
+        public decimal NetAmount => Quantity * UnitPrice;
+        public decimal TaxAmount => NetAmount * TaxRate / 100m;
+        public decimal LineTotal => NetAmount + TaxAmount;
+    }
+}

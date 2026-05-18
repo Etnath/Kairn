@@ -1,0 +1,159 @@
+@inject IVendorService VendorService
+@inject IAccountService AccountService
+@inject ICurrentUserContext CurrentUser
+@inject IStringLocalizer<Vendors> L
+
+<MudDialog Style="min-width:560px">
+    <DialogContent>
+        <MudForm @ref="_form" @bind-IsValid="_isValid">
+            <MudStack Spacing="3">
+                <MudTextField @bind-Value="_model.Name" Label="@L["Field_Name"]"
+                              Required="true" RequiredError="@L["Field_Name"]"
+                              Immediate="true" />
+                <MudTextField @bind-Value="_model.ContactEmail" Label="@L["Field_Email"]"
+                              InputType="InputType.Email" Immediate="true" />
+                <MudTextField @bind-Value="_model.Phone" Label="@L["Field_Phone"]"
+                              Immediate="true" />
+                <MudTextField @bind-Value="_model.Address" Label="@L["Field_Address"]"
+                              Lines="3" Immediate="true" />
+                <MudTextField @bind-Value="_model.IBAN" Label="@L["Field_IBAN"]"
+                              Immediate="true" />
+                <MudNumericField T="int" @bind-Value="_model.PaymentTermsDays"
+                                 Label="@L["Field_PaymentTerms"]"
+                                 Min="0" Max="365" Immediate="true" />
+                <MudSelect T="Guid?" @bind-Value="_model.DefaultExpenseAccountId"
+                           Label="@L["Field_DefaultAccount"]"
+                           HelperText="@L["Field_DefaultAccountHint"]"
+                           Clearable="true">
+                    @foreach (var acc in _expenseAccounts)
+                    {
+                        <MudSelectItem T="Guid?" Value="@((Guid?)acc.Id)">
+                            @acc.Code – @acc.Name
+                        </MudSelectItem>
+                    }
+                </MudSelect>
+                @if (_isEdit)
+                {
+                    <MudSwitch T="bool" @bind-Value="_model.IsActive"
+                               Label="@L["Field_Active"]" Color="Color.Primary" />
+                    @if (!_model.IsActive)
+                    {
+                        <MudText Typo="Typo.caption" Color="Color.Warning">
+                            @L["InactiveNote"]
+                        </MudText>
+                    }
+                }
+                @if (_errorMessage is not null)
+                {
+                    <MudAlert Severity="Severity.Error" Dense="true">@_errorMessage</MudAlert>
+                }
+            </MudStack>
+        </MudForm>
+    </DialogContent>
+    <DialogActions>
+        <MudButton OnClick="Cancel">@L["Cancel"]</MudButton>
+        <MudButton OnClick="Submit" Color="Color.Primary" Variant="Variant.Filled"
+                   Disabled="@_saving">
+            @if (_saving)
+            {
+                <MudProgressCircular Size="Size.Small" Indeterminate="true" Class="mr-2" />
+            }
+            @L["Save"]
+        </MudButton>
+    </DialogActions>
+</MudDialog>
+
+@code {
+    [CascadingParameter] private IMudDialogInstance MudDialog { get; set; } = null!;
+    [Parameter] public VendorDto? Vendor { get; set; }
+
+    private MudForm _form = null!;
+    private bool _isValid;
+    private bool _saving;
+    private bool _isEdit;
+    private string? _errorMessage;
+    private VendorFormModel _model = new();
+    private List<Kairn.Domain.Entities.Account> _expenseAccounts = [];
+
+    protected override async Task OnInitializedAsync()
+    {
+        var accounts = await AccountService.GetAllAsync(CurrentUser.TenantId);
+        _expenseAccounts = accounts
+            .Where(a => a.Type == Kairn.Domain.Entities.AccountType.Expense && a.IsActive)
+            .OrderBy(a => a.Code)
+            .ToList();
+    }
+
+    protected override void OnParametersSet()
+    {
+        _isEdit = Vendor is not null;
+        if (_isEdit)
+        {
+            _model = new VendorFormModel
+            {
+                Name = Vendor!.Name,
+                ContactEmail = Vendor.ContactEmail ?? "",
+                Phone = Vendor.Phone ?? "",
+                Address = Vendor.Address ?? "",
+                IBAN = Vendor.IBAN ?? "",
+                PaymentTermsDays = Vendor.PaymentTermsDays,
+                DefaultExpenseAccountId = Vendor.DefaultExpenseAccountId,
+                IsActive = Vendor.IsActive,
+            };
+        }
+    }
+
+    private void Cancel() => MudDialog.Cancel();
+
+    private async Task Submit()
+    {
+        await _form.Validate();
+        if (!_isValid) return;
+
+        _saving = true;
+        _errorMessage = null;
+
+        Kairn.Application.Common.Result<VendorDto> result;
+        if (_isEdit)
+        {
+            result = await VendorService.UpdateAsync(new UpdateVendorCommand(
+                Vendor!.Id, CurrentUser.TenantId,
+                _model.Name,
+                NullIfEmpty(_model.ContactEmail), NullIfEmpty(_model.Phone),
+                NullIfEmpty(_model.Address), NullIfEmpty(_model.IBAN),
+                _model.PaymentTermsDays, _model.DefaultExpenseAccountId,
+                _model.IsActive));
+        }
+        else
+        {
+            result = await VendorService.CreateAsync(new CreateVendorCommand(
+                CurrentUser.TenantId,
+                _model.Name,
+                NullIfEmpty(_model.ContactEmail), NullIfEmpty(_model.Phone),
+                NullIfEmpty(_model.Address), NullIfEmpty(_model.IBAN),
+                _model.PaymentTermsDays, _model.DefaultExpenseAccountId));
+        }
+
+        _saving = false;
+
+        if (result.IsSuccess)
+            MudDialog.Close(DialogResult.Ok(result.Value));
+        else
+            _errorMessage = result.Error;
+    }
+
+    private static string? NullIfEmpty(string? s) =>
+        string.IsNullOrWhiteSpace(s) ? null : s.Trim();
+
+    private class VendorFormModel
+    {
+        public string Name { get; set; } = "";
+        public string ContactEmail { get; set; } = "";
+        public string Phone { get; set; } = "";
+        public string Address { get; set; } = "";
+        public string IBAN { get; set; } = "";
+        public int PaymentTermsDays { get; set; } = 30;
+        public Guid? DefaultExpenseAccountId { get; set; }
+        public bool IsActive { get; set; } = true;
+    }
+}

@@ -1,0 +1,125 @@
+@page "/vendors"
+@attribute [Authorize(Roles = "Admin,Bookkeeper,Viewer")]
+@inject IStringLocalizer<Vendors> L
+@inject IVendorService VendorService
+@inject ICurrentUserContext CurrentUser
+@inject IDialogService DialogService
+@inject NavigationManager Navigation
+
+<PageTitle>@L["Title"] – Kairn</PageTitle>
+
+<MudStack Row="true" AlignItems="AlignItems.Center" Class="mb-4">
+    <MudText Typo="Typo.h5">@L["Title"]</MudText>
+    <MudSpacer />
+    <AuthorizeView Roles="Admin,Bookkeeper">
+        <MudButton Variant="Variant.Filled" Color="Color.Primary"
+                   StartIcon="@Icons.Material.Filled.Add"
+                   OnClick="OpenCreateDialog">
+            @L["NewVendor"]
+        </MudButton>
+    </AuthorizeView>
+</MudStack>
+
+<MudTextField @bind-Value="_search" Placeholder="@L["Search"]"
+              Adornment="Adornment.Start" AdornmentIcon="@Icons.Material.Filled.Search"
+              Immediate="true" Clearable="true" Class="mb-4" />
+
+<MudTable T="VendorDto" Items="_filtered" Dense="true" Hover="true"
+          OnRowClick="OnRowClick" RowClass="cursor-pointer"
+          Breakpoint="Breakpoint.Sm">
+    <HeaderContent>
+        <MudTh>@L["Col_Name"]</MudTh>
+        <MudTh>@L["Col_Email"]</MudTh>
+        <MudTh Style="width:110px">@L["Col_PaymentTerms"]</MudTh>
+        <MudTh>@L["Col_DefaultAccount"]</MudTh>
+        <MudTh Style="width:130px">@L["Col_OutstandingBalance"]</MudTh>
+        <MudTh Style="width:70px">@L["Col_Active"]</MudTh>
+        <MudTh Style="width:80px">@L["Col_Actions"]</MudTh>
+    </HeaderContent>
+    <RowTemplate>
+        <MudTd DataLabel="@L["Col_Name"]">
+            @if (!context.IsActive)
+            {
+                <MudText Typo="Typo.body2" Style="text-decoration:line-through;opacity:0.6">
+                    @context.Name
+                </MudText>
+            }
+            else
+            {
+                @context.Name
+            }
+        </MudTd>
+        <MudTd DataLabel="@L["Col_Email"]">
+            <MudText Typo="Typo.body2" Color="Color.Secondary">@(context.ContactEmail ?? "—")</MudText>
+        </MudTd>
+        <MudTd DataLabel="@L["Col_PaymentTerms"]">@context.PaymentTermsDays</MudTd>
+        <MudTd DataLabel="@L["Col_DefaultAccount"]">
+            <MudText Typo="Typo.body2" Color="Color.Secondary">
+                @(context.DefaultExpenseAccountName ?? "—")
+            </MudText>
+        </MudTd>
+        <MudTd DataLabel="@L["Col_OutstandingBalance"]">
+            <MudText Color="@(context.OutstandingBalance > 0 ? Color.Warning : Color.Default)">
+                @context.OutstandingBalance.ToString("N2")
+            </MudText>
+        </MudTd>
+        <MudTd DataLabel="@L["Col_Active"]">
+            @if (context.IsActive)
+            {
+                <MudIcon Icon="@Icons.Material.Filled.CheckCircle" Color="Color.Success" Size="Size.Small" />
+            }
+            else
+            {
+                <MudIcon Icon="@Icons.Material.Filled.Cancel" Color="Color.Default" Size="Size.Small" />
+            }
+        </MudTd>
+        <MudTd @onclick:stopPropagation="true">
+            <AuthorizeView Roles="Admin,Bookkeeper" Context="authCtx">
+                <MudIconButton Icon="@Icons.Material.Filled.Edit" Size="Size.Small"
+                               title="@L["EditVendor"]"
+                               OnClick="@(() => OpenEditDialog(context))" />
+            </AuthorizeView>
+        </MudTd>
+    </RowTemplate>
+    <NoRecordsContent>
+        <MudText Color="Color.Secondary">—</MudText>
+    </NoRecordsContent>
+</MudTable>
+
+@code {
+    private IReadOnlyList<VendorDto> _vendors = [];
+    private string _search = "";
+
+    private IEnumerable<VendorDto> _filtered =>
+        string.IsNullOrWhiteSpace(_search)
+            ? _vendors
+            : _vendors.Where(v =>
+                v.Name.Contains(_search, StringComparison.OrdinalIgnoreCase) ||
+                (v.ContactEmail ?? "").Contains(_search, StringComparison.OrdinalIgnoreCase));
+
+    protected override async Task OnInitializedAsync() =>
+        _vendors = await VendorService.GetAllAsync(CurrentUser.TenantId);
+
+    private void OnRowClick(TableRowClickEventArgs<VendorDto> args) =>
+        Navigation.NavigateTo($"/vendors/{args.Item!.Id}");
+
+    private async Task OpenCreateDialog()
+    {
+        var dialog = await DialogService.ShowAsync<VendorFormDialog>(L["CreateTitle"]);
+        var result = await dialog.Result;
+        if (result is { Canceled: false })
+            _vendors = await VendorService.GetAllAsync(CurrentUser.TenantId);
+    }
+
+    private async Task OpenEditDialog(VendorDto vendor)
+    {
+        var parameters = new DialogParameters<VendorFormDialog>
+        {
+            { x => x.Vendor, vendor }
+        };
+        var dialog = await DialogService.ShowAsync<VendorFormDialog>(L["EditTitle"], parameters);
+        var result = await dialog.Result;
+        if (result is { Canceled: false })
+            _vendors = await VendorService.GetAllAsync(CurrentUser.TenantId);
+    }
+}

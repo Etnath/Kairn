@@ -1,5 +1,6 @@
 using Fluxor;
 using Kairn.Application.Common;
+using Kairn.Application.Features.AP;
 using Kairn.Application.Features.AR;
 using Kairn.Application.Features.Audit;
 using Kairn.Application.Features.Reconciliation;
@@ -112,6 +113,8 @@ try
     builder.Services.AddScoped<ThemeService>();
     builder.Services.AddScoped<IAccountService, AccountService>();
     builder.Services.AddScoped<ICustomerService, CustomerService>();
+    builder.Services.AddScoped<IVendorService, VendorService>();
+    builder.Services.AddScoped<IBillService, BillService>();
     builder.Services.AddScoped<IInvoiceService, InvoiceService>();
     builder.Services.AddScoped<IInvoicePaymentService, InvoicePaymentService>();
     builder.Services.AddScoped<IArAgingService, ArAgingService>();
@@ -188,6 +191,15 @@ try
         .AddInteractiveServerRenderMode();
     app.MapRazorPages();
     app.MapHealthChecks("/health");
+
+    // Bill attachment download endpoint
+    app.MapGet("/api/bills/{billId:guid}/attachment", async (Guid billId, IBillService billSvc, ICurrentUserContext user) =>
+    {
+        // Attachment ID unknown here – serve the first attachment for this bill
+        var result = await billSvc.DownloadAttachmentAsync(billId, Guid.Empty, user.TenantId);
+        if (result is null) return Results.NotFound();
+        return Results.File(result.Value.Data, result.Value.ContentType, result.Value.FileName);
+    }).RequireAuthorization();
 
     // PDF download endpoint
     app.MapGet("/api/invoices/{id:guid}/pdf", async (Guid id, IInvoiceService invoiceSvc, ICurrentUserContext user) =>

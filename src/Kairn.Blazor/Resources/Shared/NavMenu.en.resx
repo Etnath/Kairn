@@ -7,6 +7,7 @@
   <data name="Nav.Customers" xml:space="preserve"><value>Customers</value></data>
   <data name="Nav.Invoicing" xml:space="preserve"><value>Invoicing</value></data>
   <data name="Nav.ArAging" xml:space="preserve"><value>AR Aging</value></data>
+  <data name="Nav.Vendors" xml:space="preserve"><value>Vendors</value></data>
   <data name="Nav.Bills" xml:space="preserve"><value>Bills</value></data>
   <data name="Nav.Reports" xml:space="preserve"><value>Reports</value></data>
   <data name="Nav.MarginAnalysis" xml:space="preserve"><value>Margin Analysis</value></data>

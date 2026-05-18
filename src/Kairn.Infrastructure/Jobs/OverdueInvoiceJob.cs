@@ -1,3 +1,4 @@
+using Kairn.Application.Features.AP;
 using Kairn.Application.Features.AR;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Hosting;
@@ -46,8 +47,10 @@ public class OverdueInvoiceJob(
         try
         {
             using var scope = scopeFactory.CreateScope();
-            var svc = scope.ServiceProvider.GetRequiredService<IInvoiceService>();
-            await svc.MarkAllOverdueAsync(ct);
+            var invoiceSvc = scope.ServiceProvider.GetRequiredService<IInvoiceService>();
+            await invoiceSvc.MarkAllOverdueAsync(ct);
+            var billSvc = scope.ServiceProvider.GetRequiredService<IBillService>();
+            await billSvc.MarkAllOverdueAsync(ct);
             logger.LogInformation("OverdueInvoiceJob completed");
         }
         catch (Exception ex)

@@ -1,0 +1,227 @@
+@page "/bills/{Id:guid}"
+@attribute [Authorize(Roles = "Admin,Bookkeeper,Viewer")]
+@inject IStringLocalizer<Bills> L
+@inject IBillService BillService
+@inject ICurrentUserContext CurrentUser
+@inject IDialogService DialogService
+@inject NavigationManager Navigation
+@inject IJSRuntime JS
+
+<PageTitle>@(_bill?.Reference ?? "…") – Kairn</PageTitle>
+
+@if (_bill is null)
+{
+    <MudProgressCircular Indeterminate="true" />
+}
+else
+{
+    @* Header *@
+    <MudStack Row="true" AlignItems="AlignItems.Center" Class="mb-4" Wrap="Wrap.Wrap">
+        <MudIconButton Icon="@Icons.Material.Filled.ArrowBack" Size="Size.Small"
+                       title="@L["Back"]"
+                       OnClick="@(() => Navigation.NavigateTo("/bills"))" />
+        <MudText Typo="Typo.h5">@_bill.Reference</MudText>
+        <BillStatusChip Status="_bill.Status" />
+        <MudSpacer />
+
+        <AuthorizeView Roles="Admin,Bookkeeper">
+            <MudStack Row="true" Spacing="1">
+                @if (_bill.Status == BillStatus.Draft)
+                {
+                    <MudButton StartIcon="@Icons.Material.Filled.Edit"
+                               Variant="Variant.Outlined" Size="Size.Small"
+                               OnClick="@(() => Navigation.NavigateTo($"/bills/{Id}/edit"))">
+                        @L["Action_Edit"]
+                    </MudButton>
+                    <MudButton Color="Color.Primary" Variant="Variant.Filled"
+                               StartIcon="@Icons.Material.Filled.CheckCircle"
+                               Size="Size.Small"
+                               OnClick="Approve" Disabled="@_actioning">
+                        @L["Action_Approve"]
+                    </MudButton>
+                }
+                @if (_bill.Status is BillStatus.Draft or BillStatus.Approved or BillStatus.Overdue)
+                {
+                    <MudButton Color="Color.Error" Variant="Variant.Outlined"
+                               StartIcon="@Icons.Material.Filled.Block"
+                               Size="Size.Small"
+                               OnClick="ConfirmVoid" Disabled="@_actioning">
+                        @L["Action_Void"]
+                    </MudButton>
+                }
+            </MudStack>
+        </AuthorizeView>
+    </MudStack>
+
+    @if (_errorMessage is not null)
+    {
+        <MudAlert Severity="Severity.Error" Dense="true" Class="mb-3">@_errorMessage</MudAlert>
+    }
+
+    <MudGrid Spacing="3">
+        @* Bill info *@
+        <MudItem xs="12" md="5">
+            <MudPaper Class="pa-4" Elevation="0" Outlined="true">
+                <MudText Typo="Typo.subtitle1" Class="mb-3"><b>@L["Detail_Info"]</b></MudText>
+                <MudGrid Spacing="2">
+                    <MudItem xs="6">
+                        <MudText Typo="Typo.caption" Color="Color.Secondary">@L["Detail_Vendor"]</MudText>
+                        <MudLink Href="@($"/vendors/{_bill.VendorId}")">
+                            <MudText Typo="Typo.body2">@_bill.VendorName</MudText>
+                        </MudLink>
+                    </MudItem>
+                    <MudItem xs="6">
+                        <MudText Typo="Typo.caption" Color="Color.Secondary">@L["Detail_Reference"]</MudText>
+                        <MudText Typo="Typo.body2">@_bill.Reference</MudText>
+                    </MudItem>
+                    <MudItem xs="6">
+                        <MudText Typo="Typo.caption" Color="Color.Secondary">@L["Detail_Date"]</MudText>
+                        <MudText Typo="Typo.body2">@_bill.Date.ToString("dd/MM/yyyy")</MudText>
+                    </MudItem>
+                    <MudItem xs="6">
+                        <MudText Typo="Typo.caption" Color="Color.Secondary">@L["Detail_DueDate"]</MudText>
+                        <MudText Typo="Typo.body2" Color="@(_bill.Status == BillStatus.Overdue ? Color.Error : Color.Default)">
+                            @_bill.DueDate.ToString("dd/MM/yyyy")
+                        </MudText>
+                    </MudItem>
+                    @if (!string.IsNullOrWhiteSpace(_bill.Notes))
+                    {
+                        <MudItem xs="12">
+                            <MudText Typo="Typo.caption" Color="Color.Secondary">@L["Detail_Notes"]</MudText>
+                            <MudText Typo="Typo.body2" Style="white-space:pre-wrap">@_bill.Notes</MudText>
+                        </MudItem>
+                    }
+                    @if (_bill.HasAttachment && _attachmentId.HasValue)
+                    {
+                        <MudItem xs="12">
+                            <MudButton StartIcon="@Icons.Material.Filled.Download"
+                                       Variant="Variant.Outlined" Size="Size.Small"
+                                       OnClick="DownloadAttachment">
+                                @L["Action_Download"]
+                            </MudButton>
+                        </MudItem>
+                    }
+                </MudGrid>
+            </MudPaper>
+        </MudItem>
+
+        @* Financial summary *@
+        <MudItem xs="12" md="7">
+            <MudPaper Class="pa-4" Elevation="0" Outlined="true">
+                <MudText Typo="Typo.subtitle1" Class="mb-3"><b>@L["Detail_Summary"]</b></MudText>
+                <MudGrid Spacing="2">
+                    <MudItem xs="6" sm="3">
+                        <MudText Typo="Typo.caption" Color="Color.Secondary">@L["Detail_Subtotal"]</MudText>
+                        <MudText Typo="Typo.body1">@_bill.Currency @_bill.Subtotal.ToString("N2")</MudText>
+                    </MudItem>
+                    <MudItem xs="6" sm="3">
+                        <MudText Typo="Typo.caption" Color="Color.Secondary">@L["Detail_Tax"]</MudText>
+                        <MudText Typo="Typo.body1">@_bill.Currency @_bill.TotalTax.ToString("N2")</MudText>
+                    </MudItem>
+                    <MudItem xs="6" sm="3">
+                        <MudText Typo="Typo.caption" Color="Color.Secondary">@L["Detail_Total"]</MudText>
+                        <MudText Typo="Typo.h6">@_bill.Currency @_bill.GrandTotal.ToString("N2")</MudText>
+                    </MudItem>
+                    <MudItem xs="6" sm="3">
+                        <MudText Typo="Typo.caption" Color="Color.Secondary">@L["Detail_Outstanding"]</MudText>
+                        <MudText Typo="Typo.h6" Color="@(_bill.Outstanding > 0 ? Color.Warning : Color.Default)">
+                            @_bill.Currency @_bill.Outstanding.ToString("N2")
+                        </MudText>
+                    </MudItem>
+                </MudGrid>
+            </MudPaper>
+        </MudItem>
+
+        @* Lines *@
+        <MudItem xs="12">
+            <MudPaper Class="pa-4" Elevation="0" Outlined="true">
+                <MudText Typo="Typo.subtitle2" Class="mb-3">@L["Lines_Title"]</MudText>
+                <MudTable Items="_bill.Lines" Dense="true" Hover="false" Elevation="0"
+                          Style="border:1px solid var(--mud-palette-lines-default)">
+                    <HeaderContent>
+                        <MudTh>@L["Col_Description"]</MudTh>
+                        <MudTh Style="width:80px;text-align:right">@L["Col_Qty"]</MudTh>
+                        <MudTh Style="width:110px;text-align:right">@L["Col_UnitPrice"]</MudTh>
+                        <MudTh Style="width:80px;text-align:center">@L["Col_TaxRate"]</MudTh>
+                        <MudTh>@L["Col_Account"]</MudTh>
+                        <MudTh Style="width:110px;text-align:right">@L["Col_LineTotal"]</MudTh>
+                    </HeaderContent>
+                    <RowTemplate>
+                        <MudTd>@context.Description</MudTd>
+                        <MudTd Style="text-align:right">@context.Quantity.ToString("N2")</MudTd>
+                        <MudTd Style="text-align:right">@context.UnitPrice.ToString("N2")</MudTd>
+                        <MudTd Style="text-align:center">@context.TaxRate.ToString("N1")%</MudTd>
+                        <MudTd>@context.ExpenseAccountName</MudTd>
+                        <MudTd Style="text-align:right"><b>@context.LineTotal.ToString("N2")</b></MudTd>
+                    </RowTemplate>
+                </MudTable>
+            </MudPaper>
+        </MudItem>
+    </MudGrid>
+}
+
+@code {
+    [Parameter] public Guid Id { get; set; }
+
+    private BillDto? _bill;
+    private Guid? _attachmentId;
+    private bool _actioning;
+    private string? _errorMessage;
+
+    protected override async Task OnInitializedAsync() => await Reload();
+
+    private async Task Reload()
+    {
+        _bill = await BillService.GetByIdAsync(Id, CurrentUser.TenantId);
+        if (_bill is null)
+        {
+            Navigation.NavigateTo("/bills");
+            return;
+        }
+        // Attachment ID is loaded separately only when needed for download
+        // We store it lazily here – the full attachment data is never loaded with the bill
+    }
+
+    private async Task Approve()
+    {
+        if (_bill is null) return;
+        _actioning = true;
+        _errorMessage = null;
+        var result = await BillService.ApproveAsync(new ApproveBillCommand(
+            Id, CurrentUser.TenantId,
+            CurrentUser.UserId, CurrentUser.UserName));
+        _actioning = false;
+        if (result.IsSuccess)
+            _bill = result.Value;
+        else
+            _errorMessage = result.Error;
+    }
+
+    private async Task ConfirmVoid()
+    {
+        var confirmed = await DialogService.ShowMessageBox(
+            L["Void_Title"].Value,
+            L["Void_Confirm"].Value,
+            yesText: L["Void_Yes"].Value,
+            cancelText: L["Cancel"].Value);
+        if (confirmed != true) return;
+
+        _actioning = true;
+        _errorMessage = null;
+        var result = await BillService.VoidAsync(new VoidBillCommand(
+            Id, CurrentUser.TenantId,
+            CurrentUser.UserId, CurrentUser.UserName));
+        _actioning = false;
+        if (result.IsSuccess)
+            await Reload();
+        else
+            _errorMessage = result.Error;
+    }
+
+    private async Task DownloadAttachment()
+    {
+        // Resolve attachment ID from DB via a lightweight query through service
+        // For now navigate to a download endpoint
+        await JS.InvokeVoidAsync("open", $"/api/bills/{Id}/attachment", "_blank");
+    }
+}

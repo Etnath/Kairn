@@ -3,6 +3,7 @@ using System;
 using Kairn.Infrastructure.Persistence;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore.Infrastructure;
+using Microsoft.EntityFrameworkCore.Migrations;
 using Microsoft.EntityFrameworkCore.Storage.ValueConversion;
 
 #nullable disable
@@ -10,9 +11,11 @@ using Microsoft.EntityFrameworkCore.Storage.ValueConversion;
 namespace Kairn.Infrastructure.Migrations
 {
     [DbContext(typeof(AppDbContext))]
-    partial class AppDbContextModelSnapshot : ModelSnapshot
+    [Migration("20260518045043_AddVendors")]
+    partial class AddVendors
     {
-        protected override void BuildModel(ModelBuilder modelBuilder)
+        /// <inheritdoc />
+        protected override void BuildTargetModel(ModelBuilder modelBuilder)
         {
 #pragma warning disable 612, 618
             modelBuilder.HasAnnotation("ProductVersion", "10.0.5");
@@ -160,146 +163,6 @@ namespace Kairn.Infrastructure.Migrations
                     b.HasIndex("SessionId");
 
                     b.ToTable("BankStatementLines");
-                });
-
-            modelBuilder.Entity("Kairn.Domain.Entities.Bill", b =>
-                {
-                    b.Property<Guid>("Id")
-                        .ValueGeneratedOnAdd()
-                        .HasColumnType("TEXT");
-
-                    b.Property<decimal>("AmountPaid")
-                        .HasPrecision(18, 4)
-                        .HasColumnType("TEXT");
-
-                    b.Property<DateTimeOffset>("CreatedAt")
-                        .HasColumnType("TEXT");
-
-                    b.Property<string>("Currency")
-                        .IsRequired()
-                        .HasMaxLength(3)
-                        .HasColumnType("TEXT");
-
-                    b.Property<DateOnly>("Date")
-                        .HasColumnType("TEXT");
-
-                    b.Property<DateOnly>("DueDate")
-                        .HasColumnType("TEXT");
-
-                    b.Property<decimal>("GrandTotal")
-                        .HasPrecision(18, 4)
-                        .HasColumnType("TEXT");
-
-                    b.Property<Guid?>("JournalEntryId")
-                        .HasColumnType("TEXT");
-
-                    b.Property<string>("Notes")
-                        .HasMaxLength(2000)
-                        .HasColumnType("TEXT");
-
-                    b.Property<string>("Reference")
-                        .IsRequired()
-                        .HasMaxLength(100)
-                        .HasColumnType("TEXT");
-
-                    b.Property<uint>("RowVersion")
-                        .HasColumnType("INTEGER");
-
-                    b.Property<int>("Status")
-                        .HasColumnType("INTEGER");
-
-                    b.Property<Guid>("TenantId")
-                        .HasColumnType("TEXT");
-
-                    b.Property<DateTimeOffset>("UpdatedAt")
-                        .HasColumnType("TEXT");
-
-                    b.Property<Guid>("VendorId")
-                        .HasColumnType("TEXT");
-
-                    b.HasKey("Id");
-
-                    b.HasIndex("VendorId");
-
-                    b.HasIndex("TenantId", "Date");
-
-                    b.HasIndex("TenantId", "VendorId");
-
-                    b.ToTable("Bills");
-                });
-
-            modelBuilder.Entity("Kairn.Domain.Entities.BillAttachment", b =>
-                {
-                    b.Property<Guid>("Id")
-                        .ValueGeneratedOnAdd()
-                        .HasColumnType("TEXT");
-
-                    b.Property<Guid>("BillId")
-                        .HasColumnType("TEXT");
-
-                    b.Property<string>("ContentType")
-                        .IsRequired()
-                        .HasMaxLength(100)
-                        .HasColumnType("TEXT");
-
-                    b.Property<byte[]>("Data")
-                        .IsRequired()
-                        .HasColumnType("BLOB");
-
-                    b.Property<string>("FileName")
-                        .IsRequired()
-                        .HasMaxLength(255)
-                        .HasColumnType("TEXT");
-
-                    b.Property<DateTimeOffset>("UploadedAt")
-                        .HasColumnType("TEXT");
-
-                    b.HasKey("Id");
-
-                    b.HasIndex("BillId");
-
-                    b.ToTable("BillAttachments");
-                });
-
-            modelBuilder.Entity("Kairn.Domain.Entities.BillLine", b =>
-                {
-                    b.Property<Guid>("Id")
-                        .ValueGeneratedOnAdd()
-                        .HasColumnType("TEXT");
-
-                    b.Property<Guid>("BillId")
-                        .HasColumnType("TEXT");
-
-                    b.Property<string>("Description")
-                        .IsRequired()
-                        .HasMaxLength(500)
-                        .HasColumnType("TEXT");
-
-                    b.Property<Guid>("ExpenseAccountId")
-                        .HasColumnType("TEXT");
-
-                    b.Property<decimal>("Quantity")
-                        .HasPrecision(18, 4)
-                        .HasColumnType("TEXT");
-
-                    b.Property<int>("SortOrder")
-                        .HasColumnType("INTEGER");
-
-                    b.Property<decimal>("TaxRate")
-                        .HasPrecision(18, 4)
-                        .HasColumnType("TEXT");
-
-                    b.Property<decimal>("UnitPrice")
-                        .HasPrecision(18, 4)
-                        .HasColumnType("TEXT");
-
-                    b.HasKey("Id");
-
-                    b.HasIndex("BillId");
-
-                    b.HasIndex("ExpenseAccountId");
-
-                    b.ToTable("BillLines");
                 });
 
             modelBuilder.Entity("Kairn.Domain.Entities.CurrencyRate", b =>
@@ -1211,47 +1074,6 @@ namespace Kairn.Infrastructure.Migrations
                     b.Navigation("Session");
                 });
 
-            modelBuilder.Entity("Kairn.Domain.Entities.Bill", b =>
-                {
-                    b.HasOne("Kairn.Domain.Entities.Vendor", "Vendor")
-                        .WithMany()
-                        .HasForeignKey("VendorId")
-                        .OnDelete(DeleteBehavior.Restrict)
-                        .IsRequired();
-
-                    b.Navigation("Vendor");
-                });
-
-            modelBuilder.Entity("Kairn.Domain.Entities.BillAttachment", b =>
-                {
-                    b.HasOne("Kairn.Domain.Entities.Bill", "Bill")
-                        .WithMany("Attachments")
-                        .HasForeignKey("BillId")
-                        .OnDelete(DeleteBehavior.Cascade)
-                        .IsRequired();
-
-                    b.Navigation("Bill");
-                });
-
-            modelBuilder.Entity("Kairn.Domain.Entities.BillLine", b =>
-                {
-                    b.HasOne("Kairn.Domain.Entities.Bill", "Bill")
-                        .WithMany("Lines")
-                        .HasForeignKey("BillId")
-                        .OnDelete(DeleteBehavior.Cascade)
-                        .IsRequired();
-
-                    b.HasOne("Kairn.Domain.Entities.Account", "ExpenseAccount")
-                        .WithMany()
-                        .HasForeignKey("ExpenseAccountId")
-                        .OnDelete(DeleteBehavior.Restrict)
-                        .IsRequired();
-
-                    b.Navigation("Bill");
-
-                    b.Navigation("ExpenseAccount");
-                });
-
             modelBuilder.Entity("Kairn.Domain.Entities.Invoice", b =>
                 {
                     b.HasOne("Kairn.Domain.Entities.Customer", "Customer")
@@ -1443,13 +1265,6 @@ namespace Kairn.Infrastructure.Migrations
             modelBuilder.Entity("Kairn.Domain.Entities.BankStatementLine", b =>
                 {
                     b.Navigation("Matches");
-                });
-
-            modelBuilder.Entity("Kairn.Domain.Entities.Bill", b =>
-                {
-                    b.Navigation("Attachments");
-
-                    b.Navigation("Lines");
                 });
 
             modelBuilder.Entity("Kairn.Domain.Entities.Invoice", b =>
