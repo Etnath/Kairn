@@ -1,0 +1,31 @@
+<?xml version="1.0" encoding="utf-8"?>
+<root>
+  <resheader name="resmimetype"><value>text/microsoft-resx</value></resheader>
+  <resheader name="version"><value>2.0</value></resheader>
+  <data name="Title" xml:space="preserve"><value>Budget {0} — {1}</value></data>
+  <data name="Save" xml:space="preserve"><value>Save</value></data>
+  <data name="Saving" xml:space="preserve"><value>Saving…</value></data>
+  <data name="Saved" xml:space="preserve"><value>Budget saved.</value></data>
+  <data name="Section_Revenue" xml:space="preserve"><value>Revenue</value></data>
+  <data name="Section_Expense" xml:space="preserve"><value>Expenses</value></data>
+  <data name="Col_Code" xml:space="preserve"><value>Code</value></data>
+  <data name="Col_Account" xml:space="preserve"><value>Account</value></data>
+  <data name="Col_Jan" xml:space="preserve"><value>Jan</value></data>
+  <data name="Col_Feb" xml:space="preserve"><value>Feb</value></data>
+  <data name="Col_Mar" xml:space="preserve"><value>Mar</value></data>
+  <data name="Col_Apr" xml:space="preserve"><value>Apr</value></data>
+  <data name="Col_May" xml:space="preserve"><value>May</value></data>
+  <data name="Col_Jun" xml:space="preserve"><value>Jun</value></data>
+  <data name="Col_Jul" xml:space="preserve"><value>Jul</value></data>
+  <data name="Col_Aug" xml:space="preserve"><value>Aug</value></data>
+  <data name="Col_Sep" xml:space="preserve"><value>Sep</value></data>
+  <data name="Col_Oct" xml:space="preserve"><value>Oct</value></data>
+  <data name="Col_Nov" xml:space="preserve"><value>Nov</value></data>
+  <data name="Col_Dec" xml:space="preserve"><value>Dec</value></data>
+  <data name="Col_Total" xml:space="preserve"><value>Total</value></data>
+  <data name="Row_Total" xml:space="preserve"><value>Total</value></data>
+  <data name="Row_Net" xml:space="preserve"><value>Net Income</value></data>
+  <data name="NotFound" xml:space="preserve"><value>Budget not found.</value></data>
+  <data name="ReadOnly" xml:space="preserve"><value>You have read-only access to this budget.</value></data>
+  <data name="Back" xml:space="preserve"><value>Back to Budgets</value></data>
+</root>

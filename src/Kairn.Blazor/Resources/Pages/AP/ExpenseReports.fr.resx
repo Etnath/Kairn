@@ -1,0 +1,69 @@
+<?xml version="1.0" encoding="utf-8"?>
+<root>
+  <resheader name="resmimetype"><value>text/microsoft-resx</value></resheader>
+  <resheader name="version"><value>2.0</value></resheader>
+  <data name="Title" xml:space="preserve"><value>Notes de frais</value></data>
+  <data name="NewReport" xml:space="preserve"><value>Nouvelle note de frais</value></data>
+  <data name="New_Title" xml:space="preserve"><value>Nouvelle note de frais</value></data>
+  <data name="Edit_Title" xml:space="preserve"><value>Modifier la note de frais</value></data>
+  <data name="Back" xml:space="preserve"><value>Retour</value></data>
+  <data name="Cancel" xml:space="preserve"><value>Annuler</value></data>
+  <data name="SaveDraft" xml:space="preserve"><value>Enregistrer le brouillon</value></data>
+  <data name="Resubmit" xml:space="preserve"><value>Resoumettre</value></data>
+  <data name="AddLine" xml:space="preserve"><value>Ajouter une ligne</value></data>
+  <data name="Total" xml:space="preserve"><value>Total</value></data>
+  <data name="NoData" xml:space="preserve"><value>Aucune note de frais trouvée.</value></data>
+  <data name="Filter_Status" xml:space="preserve"><value>Statut</value></data>
+  <data name="Col_Title" xml:space="preserve"><value>Titre</value></data>
+  <data name="Col_SubmittedBy" xml:space="preserve"><value>Soumis par</value></data>
+  <data name="Col_Date" xml:space="preserve"><value>Date</value></data>
+  <data name="Col_Total" xml:space="preserve"><value>Total</value></data>
+  <data name="Col_Status" xml:space="preserve"><value>Statut</value></data>
+  <data name="Field_Title" xml:space="preserve"><value>Titre</value></data>
+  <data name="Field_TitleRequired" xml:space="preserve"><value>Le titre est requis.</value></data>
+  <data name="Field_SubmissionDate" xml:space="preserve"><value>Date de soumission</value></data>
+  <data name="Field_DateRequired" xml:space="preserve"><value>La date de soumission est requise.</value></data>
+  <data name="Field_Currency" xml:space="preserve"><value>Devise</value></data>
+  <data name="Lines_Title" xml:space="preserve"><value>Lignes de dépenses</value></data>
+  <data name="Line_Description" xml:space="preserve"><value>Description</value></data>
+  <data name="Line_Date" xml:space="preserve"><value>Date</value></data>
+  <data name="Line_Amount" xml:space="preserve"><value>Montant</value></data>
+  <data name="Line_Account" xml:space="preserve"><value>Compte de charge</value></data>
+  <data name="Line_AccountRequired" xml:space="preserve"><value>Veuillez sélectionner un compte de charge pour chaque ligne.</value></data>
+  <data name="Line_AttachReceipt" xml:space="preserve"><value>Joindre un justificatif</value></data>
+  <data name="Line_RemoveReceipt" xml:space="preserve"><value>Supprimer</value></data>
+  <data name="Line_Receipt" xml:space="preserve"><value>Justificatif</value></data>
+  <data name="Line_DownloadReceipt" xml:space="preserve"><value>Télécharger le justificatif</value></data>
+  <data name="Row_Total" xml:space="preserve"><value>TOTAL</value></data>
+  <data name="Detail_SubmittedBy" xml:space="preserve"><value>Soumis par</value></data>
+  <data name="Detail_Date" xml:space="preserve"><value>Date</value></data>
+  <data name="Detail_Currency" xml:space="preserve"><value>Devise</value></data>
+  <data name="Detail_Total" xml:space="preserve"><value>Total</value></data>
+  <data name="Action_Edit" xml:space="preserve"><value>Modifier</value></data>
+  <data name="Action_Submit" xml:space="preserve"><value>Soumettre pour approbation</value></data>
+  <data name="Action_Delete" xml:space="preserve"><value>Supprimer</value></data>
+  <data name="Action_Approve" xml:space="preserve"><value>Approuver</value></data>
+  <data name="Action_Reject" xml:space="preserve"><value>Rejeter</value></data>
+  <data name="Action_RecordPayment" xml:space="preserve"><value>Enregistrer le paiement</value></data>
+  <data name="Reject_Title" xml:space="preserve"><value>Rejeter la note de frais</value></data>
+  <data name="Reject_Reason" xml:space="preserve"><value>Motif du rejet</value></data>
+  <data name="Reject_ReasonRequired" xml:space="preserve"><value>Le motif du rejet est requis.</value></data>
+  <data name="Reject_Submit" xml:space="preserve"><value>Rejeter</value></data>
+  <data name="Reject_BannerPrefix" xml:space="preserve"><value>Rejetée :</value></data>
+  <data name="Payment_Title" xml:space="preserve"><value>Enregistrer le paiement</value></data>
+  <data name="Payment_Total" xml:space="preserve"><value>Montant total</value></data>
+  <data name="Payment_Date" xml:space="preserve"><value>Date de paiement</value></data>
+  <data name="Payment_DateRequired" xml:space="preserve"><value>La date de paiement est requise.</value></data>
+  <data name="Payment_Method" xml:space="preserve"><value>Mode de paiement</value></data>
+  <data name="Payment_BankAccount" xml:space="preserve"><value>Compte bancaire</value></data>
+  <data name="Payment_AccountRequired" xml:space="preserve"><value>Veuillez sélectionner un compte bancaire.</value></data>
+  <data name="Payment_Reference" xml:space="preserve"><value>Référence</value></data>
+  <data name="Payment_Save" xml:space="preserve"><value>Enregistrer le paiement</value></data>
+  <data name="Method_BankTransfer" xml:space="preserve"><value>Virement bancaire</value></data>
+  <data name="Method_Cash" xml:space="preserve"><value>Espèces</value></data>
+  <data name="Method_Card" xml:space="preserve"><value>Carte bancaire</value></data>
+  <data name="Method_Other" xml:space="preserve"><value>Autre</value></data>
+  <data name="Confirm_DeleteTitle" xml:space="preserve"><value>Supprimer la note de frais ?</value></data>
+  <data name="Confirm_DeleteText" xml:space="preserve"><value>Cette note de frais sera définitivement supprimée.</value></data>
+  <data name="Confirm_DeleteYes" xml:space="preserve"><value>Supprimer</value></data>
+</root>

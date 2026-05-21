@@ -1,0 +1,14 @@
+<?xml version="1.0" encoding="utf-8"?>
+<root>
+  <resheader name="resmimetype"><value>text/microsoft-resx</value></resheader>
+  <resheader name="version"><value>2.0</value></resheader>
+  <data name="Title" xml:space="preserve"><value>Paramètres AP</value></data>
+  <data name="Back" xml:space="preserve"><value>Retour</value></data>
+  <data name="Section_Approval" xml:space="preserve"><value>Workflow d'approbation des factures</value></data>
+  <data name="Field_ApprovalEnabled" xml:space="preserve"><value>Activer le workflow d'approbation</value></data>
+  <data name="Field_Threshold" xml:space="preserve"><value>Seuil d'approbation (EUR)</value></data>
+  <data name="Field_ApproverRoles" xml:space="preserve"><value>Rôles des approbateurs</value></data>
+  <data name="Field_ApproverRolesHint" xml:space="preserve"><value>Noms des rôles séparés par des virgules, ex. Admin,Bookkeeper</value></data>
+  <data name="Save" xml:space="preserve"><value>Enregistrer</value></data>
+  <data name="Saved" xml:space="preserve"><value>Paramètres enregistrés.</value></data>
+</root>

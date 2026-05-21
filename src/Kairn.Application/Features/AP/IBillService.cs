@@ -10,8 +10,12 @@ public interface IBillService
     Task<Result<BillDto>> CreateAsync(CreateBillCommand cmd, CancellationToken ct = default);
     Task<Result<BillDto>> UpdateAsync(UpdateBillCommand cmd, CancellationToken ct = default);
     Task<Result<BillDto>> ApproveAsync(ApproveBillCommand cmd, CancellationToken ct = default);
+    Task<Result<BillDto>> RejectAsync(RejectBillCommand cmd, CancellationToken ct = default);
     Task<Result> VoidAsync(VoidBillCommand cmd, CancellationToken ct = default);
     Task MarkAllOverdueAsync(CancellationToken ct = default);
     Task<(byte[] Data, string FileName, string ContentType)?> DownloadAttachmentAsync(
         Guid billId, Guid attachmentId, Guid tenantId, CancellationToken ct = default);
+    Task<IReadOnlyList<BillDto>> GetUpcomingAsync(Guid tenantId, CancellationToken ct = default);
+    Task<(int Count, decimal TotalOutstanding)> GetBillsDueSoonSummaryAsync(Guid tenantId, CancellationToken ct = default);
+    Task<int> GetPendingApprovalCountAsync(Guid tenantId, CancellationToken ct = default);
 }

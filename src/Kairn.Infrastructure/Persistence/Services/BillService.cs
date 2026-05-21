@@ -26,7 +26,23 @@ public class BillService(AppDbContext db) : IBillService
         else if (query.ExcludeClosedStatuses)
             q = q.Where(b => b.Status != BillStatus.Void && b.Status != BillStatus.Paid);
 
-        q = q.OrderByDescending(b => b.Date).ThenByDescending(b => b.Reference);
+        if (query.DueDateFrom.HasValue)
+            q = q.Where(b => b.DueDate >= query.DueDateFrom.Value);
+        if (query.DueDateTo.HasValue)
+            q = q.Where(b => b.DueDate <= query.DueDateTo.Value);
+
+        q = query.SortBy?.ToLowerInvariant() switch
+        {
+            "amount" => query.SortDescending
+                ? q.OrderByDescending(b => b.GrandTotal).ThenByDescending(b => b.Date)
+                : q.OrderBy(b => b.GrandTotal).ThenByDescending(b => b.Date),
+            "duedate" => query.SortDescending
+                ? q.OrderByDescending(b => b.DueDate).ThenByDescending(b => b.Date)
+                : q.OrderBy(b => b.DueDate).ThenByDescending(b => b.Date),
+            _ => query.SortDescending
+                ? q.OrderByDescending(b => b.Date).ThenByDescending(b => b.Reference)
+                : q.OrderBy(b => b.Date).ThenBy(b => b.Reference),
+        };
 
         var total = await q.CountAsync(ct);
         var items = await q
@@ -116,6 +132,10 @@ public class BillService(AppDbContext db) : IBillService
 
         bill.GrandTotal = bill.Lines.Sum(l => l.LineTotal);
 
+        var apSettings = await db.TenantApSettings.FindAsync([cmd.TenantId], ct);
+        if (apSettings?.ApprovalEnabled == true && bill.GrandTotal > apSettings.ApprovalThreshold)
+            bill.Status = BillStatus.PendingApproval;
+
         if (cmd.AttachmentData is { Length: > 0 } && cmd.AttachmentFileName is not null)
         {
             bill.Attachments.Add(new BillAttachment
@@ -148,8 +168,8 @@ public class BillService(AppDbContext db) : IBillService
 
         if (bill is null)
             return Result<BillDto>.Fail("Bill not found.");
-        if (bill.Status != BillStatus.Draft)
-            return Result<BillDto>.Fail("Only draft bills can be edited.");
+        if (bill.Status is not (BillStatus.Draft or BillStatus.Rejected))
+            return Result<BillDto>.Fail("Only draft or rejected bills can be edited.");
         if (!cmd.Lines.Any())
             return Result<BillDto>.Fail("A bill must have at least one line.");
 
@@ -178,6 +198,16 @@ public class BillService(AppDbContext db) : IBillService
         }
 
         bill.GrandTotal = bill.Lines.Sum(l => l.LineTotal);
+
+        // Resubmitting a rejected bill: re-apply threshold check
+        if (bill.Status == BillStatus.Rejected)
+        {
+            bill.RejectionReason = null;
+            var apSettings = await db.TenantApSettings.FindAsync([cmd.TenantId], ct);
+            bill.Status = apSettings?.ApprovalEnabled == true && bill.GrandTotal > apSettings.ApprovalThreshold
+                ? BillStatus.PendingApproval
+                : BillStatus.Draft;
+        }
 
         if (cmd.RemoveAttachment)
             db.BillAttachments.RemoveRange(bill.Attachments);
@@ -214,8 +244,8 @@ public class BillService(AppDbContext db) : IBillService
 
         if (bill is null)
             return Result<BillDto>.Fail("Bill not found.");
-        if (bill.Status != BillStatus.Draft)
-            return Result<BillDto>.Fail("Only draft bills can be approved.");
+        if (bill.Status is not (BillStatus.Draft or BillStatus.PendingApproval))
+            return Result<BillDto>.Fail("Only Draft or Pending Approval bills can be approved.");
         if (!bill.Lines.Any())
             return Result<BillDto>.Fail("Cannot approve a bill with no lines.");
 
@@ -302,6 +332,29 @@ public class BillService(AppDbContext db) : IBillService
         var hasAttachment = await db.BillAttachments.AnyAsync(a => a.BillId == bill.Id, ct);
         return Result<BillDto>.Ok(ToDto(bill, hasAttachment));
     }
+
+    public async Task<Result<BillDto>> RejectAsync(RejectBillCommand cmd, CancellationToken ct = default)
+    {
+        var bill = await db.Bills
+            .Include(b => b.Vendor)
+            .Include(b => b.Lines).ThenInclude(l => l.ExpenseAccount)
+            .FirstOrDefaultAsync(b => b.Id == cmd.Id && b.TenantId == cmd.TenantId, ct);
+
+        if (bill is null) return Result<BillDto>.Fail("Bill not found.");
+        if (bill.Status != BillStatus.PendingApproval)
+            return Result<BillDto>.Fail("Only Pending Approval bills can be rejected.");
+
+        bill.Status = BillStatus.Rejected;
+        bill.RejectionReason = cmd.RejectionReason;
+        bill.UpdatedAt = DateTimeOffset.UtcNow;
+
+        await db.SaveChangesAsync(ct);
+        var hasAttachment = await db.BillAttachments.AnyAsync(a => a.BillId == bill.Id, ct);
+        return Result<BillDto>.Ok(ToDto(bill, hasAttachment));
+    }
+
+    public async Task<int> GetPendingApprovalCountAsync(Guid tenantId, CancellationToken ct = default)
+        => await db.Bills.CountAsync(b => b.TenantId == tenantId && b.Status == BillStatus.PendingApproval, ct);
 
     public async Task<Result> VoidAsync(VoidBillCommand cmd, CancellationToken ct = default)
     {
@@ -402,6 +455,50 @@ public class BillService(AppDbContext db) : IBillService
         await db.SaveChangesAsync(ct);
     }
 
+    public async Task<IReadOnlyList<BillDto>> GetUpcomingAsync(Guid tenantId, CancellationToken ct = default)
+    {
+        await MarkOverdueAsync(tenantId, ct);
+
+        var bills = await db.Bills
+            .Include(b => b.Vendor)
+            .Include(b => b.Lines).ThenInclude(l => l.ExpenseAccount)
+            .Where(b => b.TenantId == tenantId
+                        && (b.Status == BillStatus.Approved
+                            || b.Status == BillStatus.PartiallyPaid
+                            || b.Status == BillStatus.Overdue))
+            .OrderBy(b => b.DueDate)
+            .ThenBy(b => b.Vendor.Name)
+            .ToListAsync(ct);
+
+        var billIds = bills.Select(b => b.Id).ToList();
+        var attachedSet = (await db.BillAttachments
+            .Where(a => billIds.Contains(a.BillId))
+            .Select(a => a.BillId)
+            .Distinct()
+            .ToListAsync(ct)).ToHashSet();
+
+        return bills.Select(b => ToDto(b, attachedSet.Contains(b.Id))).ToList();
+    }
+
+    public async Task<(int Count, decimal TotalOutstanding)> GetBillsDueSoonSummaryAsync(
+        Guid tenantId, CancellationToken ct = default)
+    {
+        var today = DateOnly.FromDateTime(DateTime.UtcNow);
+        var cutoff = today.AddDays(7);
+
+        var bills = await db.Bills
+            .Include(b => b.Lines)
+            .Where(b => b.TenantId == tenantId
+                        && (b.Status == BillStatus.Approved || b.Status == BillStatus.PartiallyPaid)
+                        && b.DueDate >= today
+                        && b.DueDate <= cutoff)
+            .ToListAsync(ct);
+
+        var count = bills.Count;
+        var total = bills.Sum(b => b.GrandTotal - b.AmountPaid);
+        return (count, total);
+    }
+
     public async Task<(byte[] Data, string FileName, string ContentType)?> DownloadAttachmentAsync(
         Guid billId, Guid attachmentId, Guid tenantId, CancellationToken ct = default)
     {
@@ -433,6 +530,7 @@ public class BillService(AppDbContext db) : IBillService
         return new BillDto(
             b.Id, b.TenantId, b.VendorId, b.Vendor?.Name ?? "",
             b.Reference, b.Date, b.DueDate, b.Status, b.Currency, b.Notes,
-            subtotal, totalTax, grandTotal, b.AmountPaid, lines, hasAttachment);
+            subtotal, totalTax, grandTotal, b.AmountPaid, lines, hasAttachment,
+            b.RejectionReason);
     }
 }

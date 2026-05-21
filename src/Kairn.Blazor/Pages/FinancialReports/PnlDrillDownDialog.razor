@@ -1,0 +1,105 @@
+@inject IPnlService PnlService
+@inject IStringLocalizer<ProfitLoss> L
+@inject NavigationManager Navigation
+@using System.Globalization
+
+<MudDialog>
+    <TitleContent>
+        <MudStack Spacing="0">
+            <MudText Typo="Typo.h6">@AccountCode – @AccountName</MudText>
+            <MudText Typo="Typo.caption" Color="Color.Secondary">
+                @From.ToString("d MMMM yyyy", CultureInfo.CurrentCulture)
+                – @To.ToString("d MMMM yyyy", CultureInfo.CurrentCulture)
+            </MudText>
+        </MudStack>
+    </TitleContent>
+    <DialogContent>
+        @if (_loading)
+        {
+            <MudProgressCircular Indeterminate="true" Class="d-block mx-auto my-4" />
+        }
+        else if (_lines is not null && _lines.Count > 0)
+        {
+            <MudTable Items="_lines" Dense="true" Hover="true" Elevation="0" Class="mt-2">
+                <HeaderContent>
+                    <MudTh>@L["DrillDown_Date"]</MudTh>
+                    <MudTh>@L["DrillDown_Reference"]</MudTh>
+                    <MudTh>@L["DrillDown_Description"]</MudTh>
+                    <MudTh>@L["DrillDown_Memo"]</MudTh>
+                    <MudTh Style="text-align:right">@L["DrillDown_Amount"]</MudTh>
+                </HeaderContent>
+                <RowTemplate>
+                    <MudTd DataLabel="@L["DrillDown_Date"].Value">
+                        @context.Date.ToString("dd/MM/yyyy")
+                    </MudTd>
+                    <MudTd DataLabel="@L["DrillDown_Reference"].Value">
+                        <MudLink @onclick="NavigateToLedger" Style="cursor:pointer">
+                            @context.Reference
+                        </MudLink>
+                    </MudTd>
+                    <MudTd DataLabel="@L["DrillDown_Description"].Value">
+                        @context.EntryDescription
+                    </MudTd>
+                    <MudTd DataLabel="@L["DrillDown_Memo"].Value" Style="color:#888">
+                        @context.Memo
+                    </MudTd>
+                    <MudTd DataLabel="@L["DrillDown_Amount"].Value"
+                           Style="text-align:right;font-variant-numeric:tabular-nums">
+                        @context.Amount.ToString("N2")
+                    </MudTd>
+                </RowTemplate>
+                <FooterContent>
+                    <MudTd colspan="4" Style="font-weight:700;padding-top:8px">
+                        @L["DrillDown_Total"]
+                    </MudTd>
+                    <MudTd Style="text-align:right;font-weight:700;font-variant-numeric:tabular-nums;padding-top:8px;border-top:2px solid #CCC">
+                        @_total.ToString("N2")
+                    </MudTd>
+                </FooterContent>
+            </MudTable>
+        }
+        else if (_lines is not null)
+        {
+            <MudAlert Severity="Severity.Info" Class="mt-2">@L["DrillDown_NoLines"]</MudAlert>
+        }
+    </DialogContent>
+    <DialogActions>
+        <MudButton Variant="Variant.Outlined" OnClick="@(() => MudDialog.Close())">
+            @L["DrillDown_Close"]
+        </MudButton>
+        <MudButton Color="Color.Primary" Variant="Variant.Text"
+                   StartIcon="@Icons.Material.Filled.OpenInNew"
+                   OnClick="NavigateToLedger">
+            @L["DrillDown_OpenLedger"]
+        </MudButton>
+    </DialogActions>
+</MudDialog>
+
+@code {
+    [CascadingParameter] IMudDialogInstance MudDialog { get; set; } = null!;
+
+    [Parameter] public Guid     AccountId   { get; set; }
+    [Parameter] public string   AccountCode { get; set; } = string.Empty;
+    [Parameter] public string   AccountName { get; set; } = string.Empty;
+    [Parameter] public bool     IsRevenue   { get; set; }
+    [Parameter] public DateOnly From        { get; set; }
+    [Parameter] public DateOnly To          { get; set; }
+    [Parameter] public Guid     TenantId    { get; set; }
+
+    private IReadOnlyList<PnlDrillDownLine>? _lines;
+    private decimal _total;
+    private bool    _loading = true;
+
+    protected override async Task OnInitializedAsync()
+    {
+        _lines   = await PnlService.GetDrillDownAsync(TenantId, AccountId, IsRevenue, From, To);
+        _total   = _lines.Sum(l => l.Amount);
+        _loading = false;
+    }
+
+    private void NavigateToLedger()
+    {
+        MudDialog.Close();
+        Navigation.NavigateTo($"/ledger/account/{AccountId}");
+    }
+}

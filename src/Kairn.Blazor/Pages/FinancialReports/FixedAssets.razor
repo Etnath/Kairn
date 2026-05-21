@@ -1,0 +1,225 @@
+@page "/fixed-assets"
+@attribute [Authorize]
+@inject IStringLocalizer<FixedAssets> L
+@inject IFixedAssetService FixedAssetService
+@inject ICurrentUserContext CurrentUser
+@inject IDialogService DialogService
+@inject ISnackbar Snackbar
+
+<PageTitle>@L["Title"] – Kairn</PageTitle>
+
+<MudStack Row="true" AlignItems="AlignItems.Center" Class="mb-4">
+    <MudText Typo="Typo.h5">@L["Title"]</MudText>
+    <MudSpacer />
+    <AuthorizeView Roles="Admin">
+        <MudButton Variant="Variant.Outlined" Color="Color.Secondary"
+                   StartIcon="@Icons.Material.Filled.PlayArrow"
+                   OnClick="RunDepreciation" Disabled="@_runningDeprec">
+            @if (_runningDeprec)
+            {
+                <MudProgressCircular Size="Size.Small" Indeterminate="true" Class="mr-2" />
+            }
+            @L["RunDepreciation"]
+        </MudButton>
+    </AuthorizeView>
+    <AuthorizeView Roles="Admin,Bookkeeper">
+        <MudButton Variant="Variant.Filled" Color="Color.Primary"
+                   StartIcon="@Icons.Material.Filled.Add"
+                   OnClick="OpenCreateDialog">
+            @L["NewAsset"]
+        </MudButton>
+    </AuthorizeView>
+</MudStack>
+
+@if (_deprecResult is not null)
+{
+    <MudAlert Severity="@(_deprecResult.Failed > 0 ? Severity.Error : Severity.Success)"
+              Class="mb-4" Dense="true" ShowCloseIcon="true" CloseIconClicked="@(() => _deprecResult = null)">
+        @string.Format(L["DeprecResult"].Value, _deprecResult.Posted, _deprecResult.Skipped, _deprecResult.Failed)
+    </MudAlert>
+}
+
+<MudTabs Elevation="0" Rounded="true" ApplyEffectsToContainer="true">
+    <MudTabPanel Text="@L["Tab_Active"]">
+        @if (!_active.Any())
+        {
+            <MudText Color="Color.Secondary" Class="mt-4">@L["NoActiveAssets"]</MudText>
+        }
+        else
+        {
+            <MudTable T="FixedAssetDto" Items="_active" Dense="true" Hover="true" Breakpoint="Breakpoint.Md" Class="mt-2">
+                <HeaderContent>
+                    <MudTh>@L["Col_Name"]</MudTh>
+                    <MudTh>@L["Col_Category"]</MudTh>
+                    <MudTh Style="width:130px">@L["Col_PurchaseDate"]</MudTh>
+                    <MudTh Style="width:130px; text-align:right">@L["Col_PurchaseValue"]</MudTh>
+                    <MudTh Style="width:160px; text-align:right">@L["Col_AccumDeprec"]</MudTh>
+                    <MudTh Style="width:130px; text-align:right">@L["Col_NetBookValue"]</MudTh>
+                    <MudTh Style="width:130px">@L["Col_NextDeprec"]</MudTh>
+                    <MudTh Style="width:100px">@L["Col_Actions"]</MudTh>
+                </HeaderContent>
+                <RowTemplate>
+                    <MudTd DataLabel="@L["Col_Name"]">
+                        <MudStack Row="true" AlignItems="AlignItems.Center" Spacing="1">
+                            <MudText Typo="Typo.body2" Style="font-weight:500">@context.Name</MudText>
+                            @if (context.IsFullyDepreciated)
+                            {
+                                <MudChip T="string" Size="Size.Small" Color="Color.Default" Label="true"
+                                         Style="height:18px;font-size:10px">
+                                    @L["FullyDepreciated"]
+                                </MudChip>
+                            }
+                        </MudStack>
+                    </MudTd>
+                    <MudTd DataLabel="@L["Col_Category"]">
+                        <MudText Typo="Typo.body2" Color="Color.Secondary">@(context.Category ?? "—")</MudText>
+                    </MudTd>
+                    <MudTd DataLabel="@L["Col_PurchaseDate"]">@context.PurchaseDate.ToString("yyyy-MM-dd")</MudTd>
+                    <MudTd DataLabel="@L["Col_PurchaseValue"]" Style="text-align:right">
+                        @context.PurchaseValue.ToString("N2")
+                    </MudTd>
+                    <MudTd DataLabel="@L["Col_AccumDeprec"]" Style="text-align:right">
+                        <MudText Style="color:#8C8980">@context.AccumulatedDepreciation.ToString("N2")</MudText>
+                    </MudTd>
+                    <MudTd DataLabel="@L["Col_NetBookValue"]" Style="text-align:right">
+                        <MudText Style="@NbvStyle(context.NetBookValue)">@context.NetBookValue.ToString("N2")</MudText>
+                    </MudTd>
+                    <MudTd DataLabel="@L["Col_NextDeprec"]">
+                        @if (context.NextDepreciationDate is null)
+                        {
+                            <MudText Typo="Typo.body2" Color="Color.Secondary">
+                                @(context.DepreciationExpenseAccountId is null ? L["NoExpenseAccount"] : L["FullyDepreciated"])
+                            </MudText>
+                        }
+                        else
+                        {
+                            @context.NextDepreciationDate.Value.ToString("yyyy-MM-dd")
+                        }
+                    </MudTd>
+                    <MudTd @onclick:stopPropagation="true">
+                        <AuthorizeView Roles="Admin,Bookkeeper" Context="authCtx">
+                            <MudTooltip Text="@(context.HasDepreciationPostings ? L["EditLockedTooltip"] : L["Action_Edit"])">
+                                <MudIconButton Icon="@Icons.Material.Filled.Edit" Size="Size.Small"
+                                               OnClick="@(() => OpenEditDialog(context))" />
+                            </MudTooltip>
+                            <MudTooltip Text="@L["DisposeTooltip"]">
+                                <MudIconButton Icon="@Icons.Material.Filled.DeleteForever" Size="Size.Small"
+                                               Color="Color.Warning"
+                                               OnClick="@(() => OpenDisposeDialog(context))" />
+                            </MudTooltip>
+                        </AuthorizeView>
+                    </MudTd>
+                </RowTemplate>
+            </MudTable>
+        }
+    </MudTabPanel>
+    <MudTabPanel Text="@L["Tab_Inactive"]">
+        @if (!_inactive.Any())
+        {
+            <MudText Color="Color.Secondary" Class="mt-4">@L["NoInactiveAssets"]</MudText>
+        }
+        else
+        {
+            <MudTable T="FixedAssetDto" Items="_inactive" Dense="true" Hover="true" Breakpoint="Breakpoint.Md" Class="mt-2">
+                <HeaderContent>
+                    <MudTh>@L["Col_Name"]</MudTh>
+                    <MudTh>@L["Col_Category"]</MudTh>
+                    <MudTh Style="width:130px">@L["Col_PurchaseDate"]</MudTh>
+                    <MudTh Style="width:130px; text-align:right">@L["Col_PurchaseValue"]</MudTh>
+                    <MudTh Style="width:160px; text-align:right">@L["Col_AccumDeprec"]</MudTh>
+                    <MudTh Style="width:130px; text-align:right">@L["Col_NetBookValue"]</MudTh>
+                    <MudTh Style="width:130px">@L["Col_DisposalDate"]</MudTh>
+                </HeaderContent>
+                <RowTemplate>
+                    <MudTd DataLabel="@L["Col_Name"]">
+                        <MudText Typo="Typo.body2" Style="opacity:0.7">@context.Name</MudText>
+                    </MudTd>
+                    <MudTd DataLabel="@L["Col_Category"]">
+                        <MudText Typo="Typo.body2" Color="Color.Secondary">@(context.Category ?? "—")</MudText>
+                    </MudTd>
+                    <MudTd DataLabel="@L["Col_PurchaseDate"]">@context.PurchaseDate.ToString("yyyy-MM-dd")</MudTd>
+                    <MudTd DataLabel="@L["Col_PurchaseValue"]" Style="text-align:right">
+                        @context.PurchaseValue.ToString("N2")
+                    </MudTd>
+                    <MudTd DataLabel="@L["Col_AccumDeprec"]" Style="text-align:right">
+                        <MudText Style="color:#8C8980">@context.AccumulatedDepreciation.ToString("N2")</MudText>
+                    </MudTd>
+                    <MudTd DataLabel="@L["Col_NetBookValue"]" Style="text-align:right">
+                        @context.NetBookValue.ToString("N2")
+                    </MudTd>
+                    <MudTd DataLabel="@L["Col_DisposalDate"]">
+                        @(context.DisposalDate?.ToString("yyyy-MM-dd") ?? "—")
+                    </MudTd>
+                </RowTemplate>
+            </MudTable>
+        }
+    </MudTabPanel>
+</MudTabs>
+
+@code {
+    private IReadOnlyList<FixedAssetDto> _active   = [];
+    private IReadOnlyList<FixedAssetDto> _inactive = [];
+    private bool _runningDeprec;
+    private DepreciationRunResult? _deprecResult;
+
+    protected override async Task OnInitializedAsync() => await LoadAsync();
+
+    private async Task LoadAsync()
+    {
+        var all = await FixedAssetService.GetAllAsync(CurrentUser.TenantId, includeInactive: true);
+        _active   = all.Where(a => a.IsActive).ToList();
+        _inactive = all.Where(a => !a.IsActive).ToList();
+    }
+
+    private async Task RunDepreciation()
+    {
+        _runningDeprec = true;
+        _deprecResult  = null;
+        try
+        {
+            var result = await FixedAssetService.RunDepreciationAsync(
+                CurrentUser.TenantId, null, CurrentUser.UserId, CurrentUser.UserName);
+            _deprecResult = result;
+            await LoadAsync();
+        }
+        finally
+        {
+            _runningDeprec = false;
+        }
+    }
+
+    private async Task OpenCreateDialog()
+    {
+        var dialog = await DialogService.ShowAsync<FixedAssetFormDialog>(L["Dialog_NewTitle"]);
+        var result = await dialog.Result;
+        if (result is { Canceled: false })
+            await LoadAsync();
+    }
+
+    private async Task OpenEditDialog(FixedAssetDto asset)
+    {
+        var parameters = new DialogParameters<FixedAssetFormDialog>
+        {
+            { x => x.Asset, asset }
+        };
+        var dialog = await DialogService.ShowAsync<FixedAssetFormDialog>(L["Dialog_EditTitle"], parameters);
+        var result = await dialog.Result;
+        if (result is { Canceled: false })
+            await LoadAsync();
+    }
+
+    private async Task OpenDisposeDialog(FixedAssetDto asset)
+    {
+        var parameters = new DialogParameters<FixedAssetDisposeDialog>
+        {
+            { x => x.Asset, asset }
+        };
+        var dialog = await DialogService.ShowAsync<FixedAssetDisposeDialog>(L["Dispose_Title"], parameters);
+        var result = await dialog.Result;
+        if (result is { Canceled: false })
+            await LoadAsync();
+    }
+
+    private static string NbvStyle(decimal nbv) =>
+        nbv > 0 ? "color:#1F6040" : nbv < 0 ? "color:#7E2A14" : "color:#8C8980";
+}

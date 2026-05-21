@@ -1,0 +1,89 @@
+@inject IBudgetService BudgetService
+@inject ICurrentUserContext CurrentUser
+@inject IStringLocalizer<Budgets> L
+
+<MudDialog>
+    <DialogContent>
+        <MudForm @ref="_form" @bind-IsValid="_isValid">
+            <MudStack Spacing="3">
+                <MudText Typo="Typo.body2" Color="Color.Secondary">
+                    @L["Copy_Source"]: <strong>@SourceBudget.Name (@SourceBudget.FiscalYear)</strong>
+                </MudText>
+                <MudNumericField T="int" @bind-Value="_year" Label="@L["Copy_Year"]"
+                                 Required="true" Min="2000" Max="2100"
+                                 Immediate="true" />
+                <MudTextField @bind-Value="_name" Label="@L["Copy_Name"]"
+                              Required="true" RequiredError="@L["Copy_Name"]"
+                              Immediate="true" />
+                <MudNumericField T="decimal" @bind-Value="_adjustmentPct"
+                                 Label="@L["Copy_AdjustmentPct"]"
+                                 HelperText="@L["Copy_AdjustmentHint"]"
+                                 Min="-100" Max="10000" Step="1"
+                                 Immediate="true" />
+                @if (_errorMessage is not null)
+                {
+                    <MudAlert Severity="Severity.Error" Dense="true">@_errorMessage</MudAlert>
+                }
+            </MudStack>
+        </MudForm>
+    </DialogContent>
+    <DialogActions>
+        <MudButton OnClick="Cancel">@L["Create_Cancel"]</MudButton>
+        <MudButton OnClick="Submit" Color="Color.Primary" Variant="Variant.Filled"
+                   Disabled="@_saving">
+            @if (_saving)
+            {
+                <MudProgressCircular Size="Size.Small" Indeterminate="true" Class="mr-2" />
+            }
+            @L["Copy_Submit"]
+        </MudButton>
+    </DialogActions>
+</MudDialog>
+
+@code {
+    [CascadingParameter] private IMudDialogInstance MudDialog { get; set; } = null!;
+    [Parameter]          public  BudgetSummaryDto   SourceBudget { get; set; } = null!;
+
+    private MudForm  _form         = null!;
+    private bool     _isValid;
+    private bool     _saving;
+    private string?  _errorMessage;
+    private int      _year;
+    private string   _name         = "";
+    private decimal  _adjustmentPct = 0m;
+
+    protected override void OnParametersSet()
+    {
+        _year = SourceBudget.FiscalYear + 1;
+        _name = $"{L["Copy_DefaultName"]} {_year}";
+    }
+
+    private void Cancel() => MudDialog.Cancel();
+
+    private async Task Submit()
+    {
+        await _form.Validate();
+        if (!_isValid) return;
+
+        _saving       = true;
+        _errorMessage = null;
+
+        var result = await BudgetService.CopyAsync(
+            new CopyBudgetCommand(CurrentUser.TenantId, SourceBudget.Id, _year, _name, _adjustmentPct));
+
+        _saving = false;
+
+        if (result.IsSuccess)
+        {
+            MudDialog.Close(DialogResult.Ok(result.Value));
+        }
+        else if (result.Error?.StartsWith("DuplicateYear:") == true)
+        {
+            _errorMessage = string.Format(L["Create_ErrDuplicate"], _year);
+        }
+        else
+        {
+            _errorMessage = result.Error;
+        }
+    }
+}

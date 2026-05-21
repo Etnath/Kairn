@@ -1,0 +1,57 @@
+<?xml version="1.0" encoding="utf-8"?>
+<root>
+  <resheader name="resmimetype"><value>text/microsoft-resx</value></resheader>
+  <resheader name="version"><value>2.0</value></resheader>
+  <data name="Title" xml:space="preserve"><value>Profit &amp; Loss</value></data>
+  <data name="From" xml:space="preserve"><value>From</value></data>
+  <data name="To" xml:space="preserve"><value>To</value></data>
+  <data name="HideZero" xml:space="preserve"><value>Hide zero balances</value></data>
+  <data name="Generate" xml:space="preserve"><value>Generate</value></data>
+  <data name="ExportPdf" xml:space="preserve"><value>Export PDF</value></data>
+  <data name="ExportCsv" xml:space="preserve"><value>Export CSV</value></data>
+  <data name="Preset_ThisMonth" xml:space="preserve"><value>This month</value></data>
+  <data name="Preset_LastMonth" xml:space="preserve"><value>Last month</value></data>
+  <data name="Preset_ThisQuarter" xml:space="preserve"><value>This quarter</value></data>
+  <data name="Preset_Ytd" xml:space="preserve"><value>Year to date</value></data>
+  <data name="Preset_LastYear" xml:space="preserve"><value>Last year</value></data>
+  <data name="ReportTitle" xml:space="preserve"><value>{0} – {1}</value></data>
+  <data name="ReportTitleVs" xml:space="preserve"><value>{0} vs {1}</value></data>
+  <data name="Compare" xml:space="preserve"><value>Compare</value></data>
+  <data name="ComparisonPeriod" xml:space="preserve"><value>Comparison Period</value></data>
+  <data name="CompPreset_PriorMonth" xml:space="preserve"><value>Prior Month</value></data>
+  <data name="CompPreset_PriorQuarter" xml:space="preserve"><value>Prior Quarter</value></data>
+  <data name="CompPreset_PriorYear" xml:space="preserve"><value>Prior Year</value></data>
+  <data name="CompPreset_Custom" xml:space="preserve"><value>Custom</value></data>
+  <data name="Col_Variance" xml:space="preserve"><value>Variance</value></data>
+  <data name="Col_VarPct" xml:space="preserve"><value>Var %</value></data>
+  <data name="NoData" xml:space="preserve"><value>No revenue or expense accounts found for the selected period.</value></data>
+  <data name="Group_Revenue" xml:space="preserve"><value>Revenue</value></data>
+  <data name="Group_Cogs" xml:space="preserve"><value>Cost of Goods Sold</value></data>
+  <data name="Group_OpEx" xml:space="preserve"><value>Operating Expenses</value></data>
+  <data name="Group_Interest" xml:space="preserve"><value>Interest</value></data>
+  <data name="Group_Tax" xml:space="preserve"><value>Tax</value></data>
+  <data name="Sub_Revenue" xml:space="preserve"><value>Total Revenue</value></data>
+  <data name="Sub_Cogs" xml:space="preserve"><value>Total COGS</value></data>
+  <data name="Sub_OpEx" xml:space="preserve"><value>Total Operating Expenses</value></data>
+  <data name="Sub_Interest" xml:space="preserve"><value>Total Interest</value></data>
+  <data name="Sub_Tax" xml:space="preserve"><value>Total Tax</value></data>
+  <data name="GrossProfit" xml:space="preserve"><value>Gross Profit</value></data>
+  <data name="Ebitda" xml:space="preserve"><value>EBITDA</value></data>
+  <data name="EbitdaTooltip" xml:space="preserve"><value>Earnings Before Interest, Taxes, Depreciation &amp; Amortisation. Calculated as Gross Profit minus Operating Expenses plus Depreciation &amp; Amortisation.</value></data>
+  <data name="NetIncome" xml:space="preserve"><value>Net Income</value></data>
+  <data name="DrillDown_Date" xml:space="preserve"><value>Date</value></data>
+  <data name="DrillDown_Reference" xml:space="preserve"><value>Reference</value></data>
+  <data name="DrillDown_Description" xml:space="preserve"><value>Description</value></data>
+  <data name="DrillDown_Memo" xml:space="preserve"><value>Memo</value></data>
+  <data name="DrillDown_Amount" xml:space="preserve"><value>Amount</value></data>
+  <data name="DrillDown_Total" xml:space="preserve"><value>Total</value></data>
+  <data name="DrillDown_NoLines" xml:space="preserve"><value>No journal lines found for this account in the selected period.</value></data>
+  <data name="DrillDown_Close" xml:space="preserve"><value>Close</value></data>
+  <data name="DrillDown_OpenLedger" xml:space="preserve"><value>Open in Ledger</value></data>
+  <data name="Budget_Toggle" xml:space="preserve"><value>Show Budget</value></data>
+  <data name="Budget_NoBudget" xml:space="preserve"><value>No budget found for this period.</value></data>
+  <data name="Budget_CreateLink" xml:space="preserve"><value>Create one in Budgets.</value></data>
+  <data name="Col_Actual" xml:space="preserve"><value>Actual</value></data>
+  <data name="Col_Budget" xml:space="preserve"><value>Budget</value></data>
+  <data name="Budget_NetSummaryLabel" xml:space="preserve"><value>Net Income vs. Budget</value></data>
+</root>

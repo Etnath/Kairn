@@ -6,4 +6,8 @@
   <data name="TrialBalance.Title" xml:space="preserve"><value>Trial Balance</value></data>
   <data name="TrialBalance.Description" xml:space="preserve"><value>Verify debits equal credits across all accounts as of any date</value></data>
   <data name="Open" xml:space="preserve"><value>Open</value></data>
+  <data name="ProfitLoss.Title" xml:space="preserve"><value>Profit &amp; Loss</value></data>
+  <data name="ProfitLoss.Description" xml:space="preserve"><value>Revenue, expenses, and net income for any date range with PDF/CSV export</value></data>
+  <data name="BalanceSheet.Title" xml:space="preserve"><value>Balance Sheet</value></data>
+  <data name="BalanceSheet.Description" xml:space="preserve"><value>Snapshot of assets, liabilities, and equity as of any date with PDF/CSV export</value></data>
 </root>

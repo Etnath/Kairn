@@ -1,0 +1,85 @@
+@page "/settings/dashboard"
+@attribute [Authorize(Roles = "Admin")]
+@inject IStringLocalizer<DashboardSettings> L
+@inject IDashboardSettingsService DashboardSettingsService
+@inject ICurrentUserContext CurrentUser
+@inject NavigationManager Nav
+
+<PageTitle>@L["Title"] – Kairn</PageTitle>
+
+<MudStack Row="true" AlignItems="AlignItems.Center" Class="mb-4">
+    <MudIconButton Icon="@Icons.Material.Filled.ArrowBack" Size="Size.Small"
+                   OnClick="@(() => Nav.NavigateTo("/settings"))" />
+    <MudText Typo="Typo.h5">@L["Title"]</MudText>
+</MudStack>
+
+<MudPaper Class="pa-4" Elevation="0" Outlined="true" Style="max-width:520px">
+    <MudText Typo="Typo.subtitle1" Class="mb-4"><b>@L["Section_Alerts"]</b></MudText>
+
+    @if (_loading)
+    {
+        <MudProgressCircular Indeterminate="true" />
+    }
+    else
+    {
+        <MudStack Spacing="3">
+            <MudNumericField T="decimal" @bind-Value="_cashAlertThreshold"
+                             Label="@L["Field_CashThreshold"]"
+                             HelperText="@L["Field_CashThresholdHint"]"
+                             Format="N2" Min="0m" HideSpinButtons="true" />
+
+            @if (_successMessage is not null)
+            {
+                <MudAlert Severity="Severity.Success" Dense="true">@_successMessage</MudAlert>
+            }
+            @if (_errorMessage is not null)
+            {
+                <MudAlert Severity="Severity.Error" Dense="true">@_errorMessage</MudAlert>
+            }
+
+            <MudStack Row="true" Justify="Justify.FlexEnd">
+                <MudButton Color="Color.Primary" Variant="Variant.Filled"
+                           OnClick="SaveAsync" Disabled="@_saving">
+                    @if (_saving)
+                    {
+                        <MudProgressCircular Size="Size.Small" Indeterminate="true" Class="mr-2" />
+                    }
+                    @L["Save"]
+                </MudButton>
+            </MudStack>
+        </MudStack>
+    }
+</MudPaper>
+
+@code {
+    private bool    _loading  = true;
+    private bool    _saving;
+    private decimal _cashAlertThreshold = 5_000m;
+    private string? _successMessage;
+    private string? _errorMessage;
+
+    protected override async Task OnInitializedAsync()
+    {
+        var s = await DashboardSettingsService.GetAsync(CurrentUser.TenantId);
+        _cashAlertThreshold = s.CashAlertThreshold;
+        _loading = false;
+    }
+
+    private async Task SaveAsync()
+    {
+        _saving = true;
+        _successMessage = null;
+        _errorMessage = null;
+        try
+        {
+            await DashboardSettingsService.SaveAsync(
+                new SaveDashboardSettingsCommand(CurrentUser.TenantId, _cashAlertThreshold));
+            _successMessage = L["Saved"];
+        }
+        catch
+        {
+            _errorMessage = L["SaveError"];
+        }
+        finally { _saving = false; }
+    }
+}

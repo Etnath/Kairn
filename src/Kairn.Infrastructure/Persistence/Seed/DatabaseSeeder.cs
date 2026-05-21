@@ -64,6 +64,7 @@ public static class DatabaseSeeder
             Acct("101000", "Capital social",                           AccountType.Equity,    tenantId, now),
             Acct("106100", "Réserve légale",                           AccountType.Equity,    tenantId, now),
             Acct("106800", "Autres réserves",                          AccountType.Equity,    tenantId, now),
+            Acct("108000", "Compte de l'exploitant",                   AccountType.Equity,    tenantId, now),
             Acct("110000", "Report à nouveau (solde créditeur)",       AccountType.Equity,    tenantId, now),
             Acct("119000", "Report à nouveau (solde débiteur)",        AccountType.Equity,    tenantId, now),
             Acct("120000", "Résultat de l'exercice (bénéfice)",        AccountType.Equity,    tenantId, now),

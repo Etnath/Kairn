@@ -1,0 +1,17 @@
+<?xml version="1.0" encoding="utf-8"?>
+<root>
+  <resheader name="resmimetype"><value>text/microsoft-resx</value></resheader>
+  <resheader name="version"><value>2.0</value></resheader>
+  <data name="Title" xml:space="preserve"><value>Échéancier fournisseurs</value></data>
+  <data name="NoBillsDue" xml:space="preserve"><value>Aucune facture à régler.</value></data>
+  <data name="Col_DueDate" xml:space="preserve"><value>Échéance</value></data>
+  <data name="Col_DaysUntilDue" xml:space="preserve"><value>Jours</value></data>
+  <data name="Col_Vendor" xml:space="preserve"><value>Fournisseur</value></data>
+  <data name="Col_Reference" xml:space="preserve"><value>Référence</value></data>
+  <data name="Col_Status" xml:space="preserve"><value>Statut</value></data>
+  <data name="Col_Outstanding" xml:space="preserve"><value>Solde dû</value></data>
+  <data name="DaysOverdue" xml:space="preserve"><value>j. de retard</value></data>
+  <data name="Today" xml:space="preserve"><value>Aujourd'hui</value></data>
+  <data name="Days" xml:space="preserve"><value>j.</value></data>
+  <data name="Total" xml:space="preserve"><value>Total dû</value></data>
+</root>

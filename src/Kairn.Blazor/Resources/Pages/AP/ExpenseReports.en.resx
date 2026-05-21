@@ -1,0 +1,69 @@
+<?xml version="1.0" encoding="utf-8"?>
+<root>
+  <resheader name="resmimetype"><value>text/microsoft-resx</value></resheader>
+  <resheader name="version"><value>2.0</value></resheader>
+  <data name="Title" xml:space="preserve"><value>Expense Reports</value></data>
+  <data name="NewReport" xml:space="preserve"><value>New Expense Report</value></data>
+  <data name="New_Title" xml:space="preserve"><value>New Expense Report</value></data>
+  <data name="Edit_Title" xml:space="preserve"><value>Edit Expense Report</value></data>
+  <data name="Back" xml:space="preserve"><value>Back</value></data>
+  <data name="Cancel" xml:space="preserve"><value>Cancel</value></data>
+  <data name="SaveDraft" xml:space="preserve"><value>Save Draft</value></data>
+  <data name="Resubmit" xml:space="preserve"><value>Resubmit</value></data>
+  <data name="AddLine" xml:space="preserve"><value>Add Line</value></data>
+  <data name="Total" xml:space="preserve"><value>Total</value></data>
+  <data name="NoData" xml:space="preserve"><value>No expense reports found.</value></data>
+  <data name="Filter_Status" xml:space="preserve"><value>Status</value></data>
+  <data name="Col_Title" xml:space="preserve"><value>Title</value></data>
+  <data name="Col_SubmittedBy" xml:space="preserve"><value>Submitted by</value></data>
+  <data name="Col_Date" xml:space="preserve"><value>Date</value></data>
+  <data name="Col_Total" xml:space="preserve"><value>Total</value></data>
+  <data name="Col_Status" xml:space="preserve"><value>Status</value></data>
+  <data name="Field_Title" xml:space="preserve"><value>Title</value></data>
+  <data name="Field_TitleRequired" xml:space="preserve"><value>Title is required.</value></data>
+  <data name="Field_SubmissionDate" xml:space="preserve"><value>Submission Date</value></data>
+  <data name="Field_DateRequired" xml:space="preserve"><value>Submission date is required.</value></data>
+  <data name="Field_Currency" xml:space="preserve"><value>Currency</value></data>
+  <data name="Lines_Title" xml:space="preserve"><value>Expense Lines</value></data>
+  <data name="Line_Description" xml:space="preserve"><value>Description</value></data>
+  <data name="Line_Date" xml:space="preserve"><value>Date</value></data>
+  <data name="Line_Amount" xml:space="preserve"><value>Amount</value></data>
+  <data name="Line_Account" xml:space="preserve"><value>Expense Account</value></data>
+  <data name="Line_AccountRequired" xml:space="preserve"><value>Please select an expense account for each line.</value></data>
+  <data name="Line_AttachReceipt" xml:space="preserve"><value>Attach Receipt</value></data>
+  <data name="Line_RemoveReceipt" xml:space="preserve"><value>Remove</value></data>
+  <data name="Line_Receipt" xml:space="preserve"><value>Receipt</value></data>
+  <data name="Line_DownloadReceipt" xml:space="preserve"><value>Download receipt</value></data>
+  <data name="Row_Total" xml:space="preserve"><value>TOTAL</value></data>
+  <data name="Detail_SubmittedBy" xml:space="preserve"><value>Submitted by</value></data>
+  <data name="Detail_Date" xml:space="preserve"><value>Date</value></data>
+  <data name="Detail_Currency" xml:space="preserve"><value>Currency</value></data>
+  <data name="Detail_Total" xml:space="preserve"><value>Total</value></data>
+  <data name="Action_Edit" xml:space="preserve"><value>Edit</value></data>
+  <data name="Action_Submit" xml:space="preserve"><value>Submit for Approval</value></data>
+  <data name="Action_Delete" xml:space="preserve"><value>Delete</value></data>
+  <data name="Action_Approve" xml:space="preserve"><value>Approve</value></data>
+  <data name="Action_Reject" xml:space="preserve"><value>Reject</value></data>
+  <data name="Action_RecordPayment" xml:space="preserve"><value>Record Payment</value></data>
+  <data name="Reject_Title" xml:space="preserve"><value>Reject Expense Report</value></data>
+  <data name="Reject_Reason" xml:space="preserve"><value>Rejection Reason</value></data>
+  <data name="Reject_ReasonRequired" xml:space="preserve"><value>A rejection reason is required.</value></data>
+  <data name="Reject_Submit" xml:space="preserve"><value>Reject</value></data>
+  <data name="Reject_BannerPrefix" xml:space="preserve"><value>Rejected:</value></data>
+  <data name="Payment_Title" xml:space="preserve"><value>Record Payment</value></data>
+  <data name="Payment_Total" xml:space="preserve"><value>Total amount</value></data>
+  <data name="Payment_Date" xml:space="preserve"><value>Payment Date</value></data>
+  <data name="Payment_DateRequired" xml:space="preserve"><value>Payment date is required.</value></data>
+  <data name="Payment_Method" xml:space="preserve"><value>Payment Method</value></data>
+  <data name="Payment_BankAccount" xml:space="preserve"><value>Bank Account</value></data>
+  <data name="Payment_AccountRequired" xml:space="preserve"><value>Please select a bank account.</value></data>
+  <data name="Payment_Reference" xml:space="preserve"><value>Reference</value></data>
+  <data name="Payment_Save" xml:space="preserve"><value>Record Payment</value></data>
+  <data name="Method_BankTransfer" xml:space="preserve"><value>Bank Transfer</value></data>
+  <data name="Method_Cash" xml:space="preserve"><value>Cash</value></data>
+  <data name="Method_Card" xml:space="preserve"><value>Card</value></data>
+  <data name="Method_Other" xml:space="preserve"><value>Other</value></data>
+  <data name="Confirm_DeleteTitle" xml:space="preserve"><value>Delete Expense Report?</value></data>
+  <data name="Confirm_DeleteText" xml:space="preserve"><value>This expense report will be permanently deleted.</value></data>
+  <data name="Confirm_DeleteYes" xml:space="preserve"><value>Delete</value></data>
+</root>

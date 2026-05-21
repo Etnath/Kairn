@@ -1,0 +1,47 @@
+<?xml version="1.0" encoding="utf-8"?>
+<root>
+  <resheader name="resmimetype"><value>text/microsoft-resx</value></resheader>
+  <resheader name="version"><value>2.0</value></resheader>
+  <data name="Title" xml:space="preserve"><value>Bilan</value></data>
+  <data name="AsOf" xml:space="preserve"><value>Au</value></data>
+  <data name="HideZero" xml:space="preserve"><value>Masquer les soldes nuls</value></data>
+  <data name="Generate" xml:space="preserve"><value>Générer</value></data>
+  <data name="ExportPdf" xml:space="preserve"><value>Exporter PDF</value></data>
+  <data name="ExportCsv" xml:space="preserve"><value>Exporter CSV</value></data>
+  <data name="Section_Assets" xml:space="preserve"><value>Actif</value></data>
+  <data name="Section_Liabilities" xml:space="preserve"><value>Passif</value></data>
+  <data name="Section_Equity" xml:space="preserve"><value>Capitaux propres</value></data>
+  <data name="Sub_CurrentAssets" xml:space="preserve"><value>Actif circulant</value></data>
+  <data name="Sub_NonCurrentAssets" xml:space="preserve"><value>Actif immobilisé</value></data>
+  <data name="Sub_CurrentLiabilities" xml:space="preserve"><value>Dettes à court terme</value></data>
+  <data name="Sub_NonCurrentLiabilities" xml:space="preserve"><value>Dettes à long terme</value></data>
+  <data name="Sub_ShareCapital" xml:space="preserve"><value>Capital social</value></data>
+  <data name="Total_CurrentAssets" xml:space="preserve"><value>Total actif circulant</value></data>
+  <data name="Total_NonCurrentAssets" xml:space="preserve"><value>Total actif immobilisé</value></data>
+  <data name="Total_Assets" xml:space="preserve"><value>Total actif</value></data>
+  <data name="Total_CurrentLiabilities" xml:space="preserve"><value>Total dettes à court terme</value></data>
+  <data name="Total_NonCurrentLiabilities" xml:space="preserve"><value>Total dettes à long terme</value></data>
+  <data name="Total_Liabilities" xml:space="preserve"><value>Total passif</value></data>
+  <data name="Total_ShareCapital" xml:space="preserve"><value>Total capital social</value></data>
+  <data name="RetainedEarnings" xml:space="preserve"><value>Résultats reportés</value></data>
+  <data name="CurrentYearEarnings" xml:space="preserve"><value>Résultat de l'exercice</value></data>
+  <data name="Total_Equity" xml:space="preserve"><value>Total capitaux propres</value></data>
+  <data name="Total_LiabilitiesEquity" xml:space="preserve"><value>Total passif + capitaux propres</value></data>
+  <data name="UnbalancedWarning" xml:space="preserve"><value>Attention : le bilan ne s'équilibre pas. Le total actif ne correspond pas au total passif + capitaux propres.</value></data>
+  <data name="CloseYear" xml:space="preserve"><value>Clôturer l'exercice</value></data>
+  <data name="CloseYear_Title" xml:space="preserve"><value>Clôture de l'exercice</value></data>
+  <data name="CloseYear_Warning" xml:space="preserve"><value>La clôture d'un exercice est irréversible. Une écriture de clôture verrouillée sera générée et aucune saisie supplémentaire ne sera autorisée pour cet exercice.</value></data>
+  <data name="CloseYear_Year" xml:space="preserve"><value>Exercice</value></data>
+  <data name="CloseYear_Confirm" xml:space="preserve"><value>Confirmer la clôture</value></data>
+  <data name="CloseYear_Cancel" xml:space="preserve"><value>Annuler</value></data>
+  <data name="CloseYear_Success" xml:space="preserve"><value>L'exercice {0} a été clôturé avec succès.</value></data>
+  <data name="YearClosed" xml:space="preserve"><value>Clôturé</value></data>
+  <data name="ClosedYears" xml:space="preserve"><value>Exercices clôturés : {0}</value></data>
+  <data name="Compare" xml:space="preserve"><value>Comparer</value></data>
+  <data name="CompareDate" xml:space="preserve"><value>Date de comparaison</value></data>
+  <data name="Col_Primary" xml:space="preserve"><value>Principal</value></data>
+  <data name="Col_Comparison" xml:space="preserve"><value>Comparaison</value></data>
+  <data name="Col_Movement" xml:space="preserve"><value>Variation</value></data>
+  <data name="Balance_CompareOk" xml:space="preserve"><value>{0} : ✓ Actif = Passif + Capitaux propres ({1})</value></data>
+  <data name="Balance_CompareFail" xml:space="preserve"><value>{0} : ⚠ Déséquilibre — Actif ({1}) ≠ Passif + Capitaux propres ({2})</value></data>
+</root>

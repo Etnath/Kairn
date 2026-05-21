@@ -60,4 +60,43 @@
   <data name="Void_Yes" xml:space="preserve"><value>Void</value></data>
   <data name="Error_NoLines" xml:space="preserve"><value>A bill must have at least one line.</value></data>
   <data name="Error_AccountRequired" xml:space="preserve"><value>All lines must have an expense account selected.</value></data>
+  <data name="Filter_Vendor" xml:space="preserve"><value>Vendor</value></data>
+  <data name="Filter_Status" xml:space="preserve"><value>Status</value></data>
+  <data name="Filter_DueFrom" xml:space="preserve"><value>Due from</value></data>
+  <data name="Filter_DueTo" xml:space="preserve"><value>Due to</value></data>
+  <data name="Filter_ShowAll" xml:space="preserve"><value>Show all</value></data>
+  <data name="Filter_Reset" xml:space="preserve"><value>Reset</value></data>
+  <data name="Action_RecordPayment" xml:space="preserve"><value>Record Payment</value></data>
+  <data name="Payment_Title" xml:space="preserve"><value>Record Payment</value></data>
+  <data name="Payment_Outstanding" xml:space="preserve"><value>Outstanding</value></data>
+  <data name="Payment_Date" xml:space="preserve"><value>Payment Date</value></data>
+  <data name="Payment_Amount" xml:space="preserve"><value>Amount</value></data>
+  <data name="Payment_Method" xml:space="preserve"><value>Payment Method</value></data>
+  <data name="Payment_BankAccount" xml:space="preserve"><value>Bank / Cash Account</value></data>
+  <data name="Payment_Reference" xml:space="preserve"><value>Reference</value></data>
+  <data name="Payment_Save" xml:space="preserve"><value>Save Payment</value></data>
+  <data name="Payment_DateRequired" xml:space="preserve"><value>Payment date is required.</value></data>
+  <data name="Payment_AccountRequired" xml:space="preserve"><value>Please select a bank or cash account.</value></data>
+  <data name="Payment_History" xml:space="preserve"><value>Payment History</value></data>
+  <data name="Payment_Paid" xml:space="preserve"><value>Paid in full</value></data>
+  <data name="Payment_NoPayments" xml:space="preserve"><value>No payments recorded.</value></data>
+  <data name="Payment_Col_Date" xml:space="preserve"><value>Date</value></data>
+  <data name="Payment_Col_Amount" xml:space="preserve"><value>Amount</value></data>
+  <data name="Payment_Col_Method" xml:space="preserve"><value>Method</value></data>
+  <data name="Payment_Col_Reference" xml:space="preserve"><value>Reference</value></data>
+  <data name="Payment_Reverse" xml:space="preserve"><value>Reverse payment</value></data>
+  <data name="Payment_Reverse_Title" xml:space="preserve"><value>Reverse Payment</value></data>
+  <data name="Payment_Reverse_Confirm" xml:space="preserve"><value>Are you sure you want to reverse this payment? A reversing journal entry will be posted and the bill status will be restored.</value></data>
+  <data name="Payment_Reverse_Yes" xml:space="preserve"><value>Reverse</value></data>
+  <data name="Method_BankTransfer" xml:space="preserve"><value>Bank Transfer</value></data>
+  <data name="Method_Cash" xml:space="preserve"><value>Cash</value></data>
+  <data name="Method_Card" xml:space="preserve"><value>Card</value></data>
+  <data name="Method_Other" xml:space="preserve"><value>Other</value></data>
+  <data name="Action_Reject" xml:space="preserve"><value>Reject</value></data>
+  <data name="Reject_Title" xml:space="preserve"><value>Reject Bill</value></data>
+  <data name="Reject_Reason" xml:space="preserve"><value>Rejection Reason</value></data>
+  <data name="Reject_ReasonRequired" xml:space="preserve"><value>A rejection reason is required.</value></data>
+  <data name="Reject_Submit" xml:space="preserve"><value>Reject Bill</value></data>
+  <data name="Reject_BannerPrefix" xml:space="preserve"><value>Rejected</value></data>
+  <data name="Resubmit" xml:space="preserve"><value>Resubmit</value></data>
 </root>

@@ -1,0 +1,65 @@
+@inject IStringLocalizer<BalanceSheet> L
+@inject IFiscalYearCloseService FiscalYearCloseService
+@inject ICurrentUserContext CurrentUser
+
+<MudDialog>
+    <TitleContent>
+        <MudText Typo="Typo.h6">@L["CloseYear_Title"]</MudText>
+    </TitleContent>
+    <DialogContent>
+        <MudAlert Severity="Severity.Warning" Class="mb-4">@L["CloseYear_Warning"]</MudAlert>
+
+        <MudStack Spacing="3">
+            <MudNumericField T="int" @bind-Value="_fiscalYear"
+                             Label="@L["CloseYear_Year"]"
+                             Min="2000" Max="@(DateTime.Today.Year - 1)"
+                             Variant="Variant.Outlined" />
+        </MudStack>
+
+        @if (_error is not null)
+        {
+            <MudAlert Severity="Severity.Error" Class="mt-3">@_error</MudAlert>
+        }
+    </DialogContent>
+    <DialogActions>
+        <MudButton OnClick="Cancel" Disabled="_busy">@L["CloseYear_Cancel"]</MudButton>
+        <MudButton Color="Color.Warning" Variant="Variant.Filled"
+                   OnClick="ConfirmAsync" Disabled="_busy || _fiscalYear <= 0">
+            @if (_busy)
+            {
+                <MudProgressCircular Size="Size.Small" Indeterminate="true" Class="mr-2" />
+            }
+            @L["CloseYear_Confirm"]
+        </MudButton>
+    </DialogActions>
+</MudDialog>
+
+@code {
+    [CascadingParameter] IMudDialogInstance MudDialog { get; set; } = null!;
+
+    private int _fiscalYear = DateTime.Today.Year - 1;
+    private bool _busy;
+    private string? _error;
+
+    private void Cancel() => MudDialog.Cancel();
+
+    private async Task ConfirmAsync()
+    {
+        _busy  = true;
+        _error = null;
+        try
+        {
+            var result = await FiscalYearCloseService.CloseYearAsync(
+                new CloseYearCommand(CurrentUser.TenantId, _fiscalYear, CurrentUser.UserId, CurrentUser.UserName));
+
+            if (!result.IsSuccess)
+            {
+                _error = result.Error;
+                return;
+            }
+
+            MudDialog.Close(DialogResult.Ok(result.Value));
+        }
+        finally { _busy = false; }
+    }
+}

@@ -1,0 +1,96 @@
+@page "/settings/ap"
+@attribute [Authorize(Roles = "Admin")]
+@inject IStringLocalizer<ApSettings> L
+@inject IApSettingsService ApSettingsService
+@inject ICurrentUserContext CurrentUser
+@inject NavigationManager Navigation
+
+<PageTitle>@L["Title"] – Kairn</PageTitle>
+
+<MudStack Row="true" AlignItems="AlignItems.Center" Class="mb-4">
+    <MudIconButton Icon="@Icons.Material.Filled.ArrowBack" Size="Size.Small"
+                   title="@L["Back"]"
+                   OnClick="@(() => Navigation.NavigateTo("/settings"))" />
+    <MudText Typo="Typo.h5">@L["Title"]</MudText>
+</MudStack>
+
+<MudPaper Class="pa-4" Elevation="0" Outlined="true" Style="max-width:520px">
+    <MudText Typo="Typo.subtitle1" Class="mb-4"><b>@L["Section_Approval"]</b></MudText>
+
+    @if (_loading)
+    {
+        <MudProgressCircular Indeterminate="true" />
+    }
+    else
+    {
+        <MudStack Spacing="3">
+            <MudSwitch @bind-Value="_approvalEnabled"
+                       Label="@L["Field_ApprovalEnabled"]"
+                       Color="Color.Primary" />
+
+            @if (_approvalEnabled)
+            {
+                <MudNumericField T="decimal" @bind-Value="_approvalThreshold"
+                                 Label="@L["Field_Threshold"]"
+                                 Format="N2" Min="0m" HideSpinButtons="true" />
+                <MudTextField @bind-Value="_approverRoles"
+                              Label="@L["Field_ApproverRoles"]"
+                              HelperText="@L["Field_ApproverRolesHint"]"
+                              Immediate="true" />
+            }
+
+            @if (_successMessage is not null)
+            {
+                <MudAlert Severity="Severity.Success" Dense="true">@_successMessage</MudAlert>
+            }
+            @if (_errorMessage is not null)
+            {
+                <MudAlert Severity="Severity.Error" Dense="true">@_errorMessage</MudAlert>
+            }
+
+            <MudStack Row="true" Justify="Justify.FlexEnd">
+                <MudButton Color="Color.Primary" Variant="Variant.Filled"
+                           OnClick="Save" Disabled="@_saving">
+                    @if (_saving)
+                    {
+                        <MudProgressCircular Size="Size.Small" Indeterminate="true" Class="mr-2" />
+                    }
+                    @L["Save"]
+                </MudButton>
+            </MudStack>
+        </MudStack>
+    }
+</MudPaper>
+
+@code {
+    private bool _loading = true;
+    private bool _saving;
+    private bool _approvalEnabled;
+    private decimal _approvalThreshold = 1000m;
+    private string _approverRoles = "Admin";
+    private string? _successMessage;
+    private string? _errorMessage;
+
+    protected override async Task OnInitializedAsync()
+    {
+        var settings = await ApSettingsService.GetAsync(CurrentUser.TenantId);
+        _approvalEnabled = settings.ApprovalEnabled;
+        _approvalThreshold = settings.ApprovalThreshold;
+        _approverRoles = settings.ApproverRoles;
+        _loading = false;
+    }
+
+    private async Task Save()
+    {
+        _saving = true;
+        _successMessage = null;
+        _errorMessage = null;
+        var result = await ApSettingsService.SaveAsync(new SaveApSettingsCommand(
+            CurrentUser.TenantId, _approvalEnabled, _approvalThreshold, _approverRoles));
+        _saving = false;
+        if (result.IsSuccess)
+            _successMessage = L["Saved"];
+        else
+            _errorMessage = result.Error;
+    }
+}

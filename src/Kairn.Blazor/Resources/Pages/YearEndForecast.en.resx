@@ -1,0 +1,35 @@
+<?xml version="1.0" encoding="utf-8"?>
+<root>
+  <resheader name="resmimetype"><value>text/microsoft-resx</value></resheader>
+  <resheader name="version"><value>2.0</value></resheader>
+  <data name="Title" xml:space="preserve"><value>Year-end Forecast</value></data>
+  <data name="FiscalYear" xml:space="preserve"><value>Fiscal Year</value></data>
+  <data name="ActualThroughMonth" xml:space="preserve"><value>Actuals through</value></data>
+  <data name="Generate" xml:space="preserve"><value>Generate</value></data>
+  <data name="NoBudgets" xml:space="preserve"><value>No budgets found. Create one first.</value></data>
+  <data name="NoBudgetForYear" xml:space="preserve"><value>No active budget found for this fiscal year.</value></data>
+  <data name="NoData" xml:space="preserve"><value>No revenue or expense accounts found for the selected period.</value></data>
+  <data name="CreateBudgetLink" xml:space="preserve"><value>Create one in Budgets.</value></data>
+  <data name="ReportSubtitle" xml:space="preserve"><value>{0} – Actuals through {1}</value></data>
+  <data name="Col_YtdActual" xml:space="preserve"><value>YTD Actual</value></data>
+  <data name="Col_RemBudget" xml:space="preserve"><value>Remaining Budget</value></data>
+  <data name="Col_Forecast" xml:space="preserve"><value>Forecast</value></data>
+  <data name="Col_AnnualBudget" xml:space="preserve"><value>Annual Budget</value></data>
+  <data name="Col_FcstVsBud" xml:space="preserve"><value>Variance</value></data>
+  <data name="Col_FcstVsBudPct" xml:space="preserve"><value>Var %</value></data>
+  <data name="Group_Revenue" xml:space="preserve"><value>Revenue</value></data>
+  <data name="Group_Cogs" xml:space="preserve"><value>Cost of Goods Sold</value></data>
+  <data name="Group_OpEx" xml:space="preserve"><value>Operating Expenses</value></data>
+  <data name="Group_Interest" xml:space="preserve"><value>Interest &amp; Finance Costs</value></data>
+  <data name="Group_Tax" xml:space="preserve"><value>Income Tax</value></data>
+  <data name="Sub_Revenue" xml:space="preserve"><value>Total Revenue</value></data>
+  <data name="Sub_Cogs" xml:space="preserve"><value>Total COGS</value></data>
+  <data name="Sub_OpEx" xml:space="preserve"><value>Total Operating Expenses</value></data>
+  <data name="Sub_Interest" xml:space="preserve"><value>Total Interest</value></data>
+  <data name="Sub_Tax" xml:space="preserve"><value>Total Tax</value></data>
+  <data name="GrossProfit" xml:space="preserve"><value>Gross Profit</value></data>
+  <data name="Ebitda" xml:space="preserve"><value>EBITDA</value></data>
+  <data name="EbitdaTooltip" xml:space="preserve"><value>Earnings before interest, taxes, depreciation and amortisation.</value></data>
+  <data name="NetIncome" xml:space="preserve"><value>Net Income</value></data>
+  <data name="NetSummaryLabel" xml:space="preserve"><value>Net Income Forecast vs. Budget</value></data>
+</root>

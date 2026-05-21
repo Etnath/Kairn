@@ -33,6 +33,17 @@ public class AppDbContext : IdentityDbContext<ApplicationUser>
     public DbSet<Bill> Bills => Set<Bill>();
     public DbSet<BillLine> BillLines => Set<BillLine>();
     public DbSet<BillAttachment> BillAttachments => Set<BillAttachment>();
+    public DbSet<BillPayment> BillPayments => Set<BillPayment>();
+    public DbSet<TenantApSettings> TenantApSettings => Set<TenantApSettings>();
+    public DbSet<TenantDashboardSettings>    TenantDashboardSettings    => Set<TenantDashboardSettings>();
+    public DbSet<UserDashboardPreferences>   UserDashboardPreferences   => Set<UserDashboardPreferences>();
+    public DbSet<ExpenseReport> ExpenseReports => Set<ExpenseReport>();
+    public DbSet<ExpenseReportLine> ExpenseReportLines => Set<ExpenseReportLine>();
+    public DbSet<Budget> Budgets => Set<Budget>();
+    public DbSet<BudgetLine> BudgetLines => Set<BudgetLine>();
+    public DbSet<FiscalYearClose> FiscalYearCloses => Set<FiscalYearClose>();
+    public DbSet<FixedAsset> FixedAssets => Set<FixedAsset>();
+    public DbSet<DepreciationLog> DepreciationLogs => Set<DepreciationLog>();
     public DbSet<Invoice> Invoices => Set<Invoice>();
     public DbSet<InvoiceLine> InvoiceLines => Set<InvoiceLine>();
     public DbSet<InvoicePayment> InvoicePayments => Set<InvoicePayment>();

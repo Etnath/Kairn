@@ -1,0 +1,248 @@
+@page "/expense-reports/{Id:guid}"
+@attribute [Authorize]
+@inject IStringLocalizer<ExpenseReports> L
+@inject IExpenseReportService ExpenseReportService
+@inject ICurrentUserContext CurrentUser
+@inject IDialogService DialogService
+@inject NavigationManager Navigation
+@inject IJSRuntime JS
+
+<PageTitle>@(_report?.Title ?? "…") – Kairn</PageTitle>
+
+@if (_report is null)
+{
+    <MudProgressCircular Indeterminate="true" />
+}
+else
+{
+    @* Header *@
+    <MudStack Row="true" AlignItems="AlignItems.Center" Class="mb-4" Wrap="Wrap.Wrap">
+        <MudIconButton Icon="@Icons.Material.Filled.ArrowBack" Size="Size.Small"
+                       title="@L["Back"]"
+                       OnClick="@(() => Navigation.NavigateTo("/expense-reports"))" />
+        <MudText Typo="Typo.h5">@_report.Title</MudText>
+        <ExpenseReportStatusChip Status="_report.Status" />
+        <MudSpacer />
+
+        @* Actions visible to the submitter (draft/rejected) *@
+        @if (_report.SubmittedByUserId == CurrentUser.UserId &&
+             _report.Status is ExpenseReportStatus.Draft or ExpenseReportStatus.Rejected)
+        {
+            <MudStack Row="true" Spacing="1">
+                <MudButton StartIcon="@Icons.Material.Filled.Edit"
+                           Variant="Variant.Outlined" Size="Size.Small"
+                           OnClick="@(() => Navigation.NavigateTo($"/expense-reports/{Id}/edit"))">
+                    @L["Action_Edit"]
+                </MudButton>
+                <MudButton Color="Color.Primary" Variant="Variant.Filled"
+                           StartIcon="@Icons.Material.Filled.Send"
+                           Size="Size.Small"
+                           OnClick="Submit" Disabled="_actioning">
+                    @L["Action_Submit"]
+                </MudButton>
+                <MudButton Color="Color.Error" Variant="Variant.Outlined"
+                           StartIcon="@Icons.Material.Filled.Delete"
+                           Size="Size.Small"
+                           OnClick="Delete" Disabled="_actioning">
+                    @L["Action_Delete"]
+                </MudButton>
+            </MudStack>
+        }
+
+        @* Approval actions for Admin/Bookkeeper *@
+        <AuthorizeView Roles="Admin,Bookkeeper">
+            <MudStack Row="true" Spacing="1">
+                @if (_report.Status == ExpenseReportStatus.PendingApproval)
+                {
+                    <MudButton Color="Color.Primary" Variant="Variant.Filled"
+                               StartIcon="@Icons.Material.Filled.CheckCircle"
+                               Size="Size.Small"
+                               OnClick="Approve" Disabled="_actioning">
+                        @L["Action_Approve"]
+                    </MudButton>
+                    <MudButton Color="Color.Error" Variant="Variant.Outlined"
+                               StartIcon="@Icons.Material.Filled.ThumbDown"
+                               Size="Size.Small"
+                               OnClick="OpenRejectDialog" Disabled="_actioning">
+                        @L["Action_Reject"]
+                    </MudButton>
+                }
+                @if (_report.Status == ExpenseReportStatus.Approved)
+                {
+                    <MudButton Color="Color.Success" Variant="Variant.Filled"
+                               StartIcon="@Icons.Material.Filled.Payment"
+                               Size="Size.Small"
+                               OnClick="OpenPaymentDialog" Disabled="_actioning">
+                        @L["Action_RecordPayment"]
+                    </MudButton>
+                }
+            </MudStack>
+        </AuthorizeView>
+    </MudStack>
+
+    @* Rejection banner *@
+    @if (_report.Status == ExpenseReportStatus.Rejected && _report.RejectionReason is not null)
+    {
+        <MudAlert Severity="Severity.Error" Class="mb-4">
+            @L["Reject_BannerPrefix"] @_report.RejectionReason
+        </MudAlert>
+    }
+
+    @* Error *@
+    @if (_error is not null)
+    {
+        <MudAlert Severity="Severity.Error" Class="mb-4" ShowCloseIcon="true" CloseIconClicked="@(() => _error = null)">
+            @_error
+        </MudAlert>
+    }
+
+    @* Summary *@
+    <MudPaper Class="pa-4 mb-4">
+        <MudGrid Spacing="2">
+            <MudItem xs="12" sm="4">
+                <MudText Typo="Typo.caption" Color="Color.Secondary">@L["Detail_SubmittedBy"]</MudText>
+                <MudText>@_report.SubmittedByName</MudText>
+            </MudItem>
+            <MudItem xs="6" sm="2">
+                <MudText Typo="Typo.caption" Color="Color.Secondary">@L["Detail_Date"]</MudText>
+                <MudText>@_report.SubmissionDate.ToString("dd/MM/yyyy")</MudText>
+            </MudItem>
+            <MudItem xs="6" sm="2">
+                <MudText Typo="Typo.caption" Color="Color.Secondary">@L["Detail_Currency"]</MudText>
+                <MudText>@_report.Currency</MudText>
+            </MudItem>
+            <MudItem xs="12" sm="4">
+                <MudText Typo="Typo.caption" Color="Color.Secondary">@L["Detail_Total"]</MudText>
+                <MudText Typo="Typo.h6" Color="Color.Primary">@_report.Currency @_report.TotalAmount.ToString("N2")</MudText>
+            </MudItem>
+        </MudGrid>
+    </MudPaper>
+
+    @* Lines *@
+    <MudText Typo="Typo.h6" Class="mb-2">@L["Lines_Title"]</MudText>
+    <MudTable Items="_report.Lines" Dense="true" Hover="true" Striped="true" Elevation="1">
+        <HeaderContent>
+            <MudTh>@L["Line_Description"]</MudTh>
+            <MudTh>@L["Line_Date"]</MudTh>
+            <MudTh>@L["Line_Account"]</MudTh>
+            <MudTh Style="text-align:right">@L["Line_Amount"]</MudTh>
+            <MudTh>@L["Line_Receipt"]</MudTh>
+        </HeaderContent>
+        <RowTemplate>
+            <MudTd DataLabel="@L["Line_Description"]">@context.Description</MudTd>
+            <MudTd DataLabel="@L["Line_Date"]">@context.Date.ToString("dd/MM/yyyy")</MudTd>
+            <MudTd DataLabel="@L["Line_Account"]">@context.ExpenseAccountName</MudTd>
+            <MudTd DataLabel="@L["Line_Amount"]" Style="text-align:right">
+                @context.Currency @context.Amount.ToString("N2")
+            </MudTd>
+            <MudTd DataLabel="@L["Line_Receipt"]">
+                @if (context.HasReceipt)
+                {
+                    <MudIconButton Icon="@Icons.Material.Filled.Download"
+                                   Size="Size.Small"
+                                   title="@L["Line_DownloadReceipt"]"
+                                   OnClick="@(() => DownloadReceipt(context.Id))" />
+                }
+            </MudTd>
+        </RowTemplate>
+        <FooterContent>
+            <MudTd colspan="3"><b>@L["Row_Total"]</b></MudTd>
+            <MudTd Style="text-align:right"><b>@_report.Currency @_report.TotalAmount.ToString("N2")</b></MudTd>
+            <MudTd />
+        </FooterContent>
+    </MudTable>
+}
+
+@code {
+    [Parameter] public Guid Id { get; set; }
+
+    private ExpenseReportDto? _report;
+    private bool _actioning;
+    private string? _error;
+
+    protected override async Task OnInitializedAsync()
+    {
+        await LoadAsync();
+    }
+
+    private async Task LoadAsync()
+    {
+        _report = await ExpenseReportService.GetByIdAsync(Id, CurrentUser.TenantId);
+    }
+
+    private async Task Submit()
+    {
+        _actioning = true;
+        _error = null;
+        var result = await ExpenseReportService.SubmitAsync(Id, CurrentUser.TenantId);
+        _actioning = false;
+        if (result.IsSuccess) _report = result.Value;
+        else _error = result.Error;
+    }
+
+    private async Task Approve()
+    {
+        _actioning = true;
+        _error = null;
+        var result = await ExpenseReportService.ApproveAsync(
+            new ApproveExpenseReportCommand(Id, CurrentUser.TenantId, CurrentUser.UserId, CurrentUser.UserName));
+        _actioning = false;
+        if (result.IsSuccess) _report = result.Value;
+        else _error = result.Error;
+    }
+
+    private async Task OpenRejectDialog()
+    {
+        var parameters = new DialogParameters<RejectExpenseReportDialog>
+        {
+            { d => d.ReportId, Id }
+        };
+        var dialog = await DialogService.ShowAsync<RejectExpenseReportDialog>(
+            string.Empty, parameters,
+            new DialogOptions { MaxWidth = MaxWidth.Small, FullWidth = true });
+        var result = await dialog.Result;
+        if (result is { Canceled: false })
+            await LoadAsync();
+    }
+
+    private async Task OpenPaymentDialog()
+    {
+        var parameters = new DialogParameters<RecordExpensePaymentDialog>
+        {
+            { d => d.Report, _report! }
+        };
+        var dialog = await DialogService.ShowAsync<RecordExpensePaymentDialog>(
+            string.Empty, parameters,
+            new DialogOptions { MaxWidth = MaxWidth.Small, FullWidth = true });
+        var result = await dialog.Result;
+        if (result is { Canceled: false })
+            await LoadAsync();
+    }
+
+    private async Task Delete()
+    {
+        var confirm = await DialogService.ShowMessageBox(
+            L["Confirm_DeleteTitle"].Value,
+            L["Confirm_DeleteText"].Value,
+            yesText: L["Confirm_DeleteYes"].Value,
+            cancelText: L["Cancel"].Value);
+        if (confirm != true) return;
+
+        _actioning = true;
+        _error = null;
+        var result = await ExpenseReportService.DeleteAsync(Id, CurrentUser.TenantId);
+        _actioning = false;
+        if (result.IsSuccess)
+            Navigation.NavigateTo("/expense-reports");
+        else
+            _error = result.Error;
+    }
+
+    private async Task DownloadReceipt(Guid lineId)
+    {
+        var receipt = await ExpenseReportService.DownloadReceiptAsync(lineId, CurrentUser.TenantId);
+        if (receipt is null) return;
+        var base64 = Convert.ToBase64String(receipt.Value.Data);
+        await JS.InvokeVoidAsync("kairn.downloadFile", receipt.Value.FileName, receipt.Value.ContentType, base64);
+    }
+}

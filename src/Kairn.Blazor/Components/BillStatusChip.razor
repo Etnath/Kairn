@@ -11,34 +11,40 @@
 
     private string _bg => Status switch
     {
-        BillStatus.Draft         => "#D6D3CA",
-        BillStatus.Approved      => "#EAF0F6",
-        BillStatus.PartiallyPaid => "#FBF2E0",
-        BillStatus.Paid          => "#E8F4ED",
-        BillStatus.Overdue       => "#FAECE8",
-        BillStatus.Void          => "#D6D3CA",
-        _                        => "#D6D3CA",
+        BillStatus.Draft            => "#D6D3CA",
+        BillStatus.PendingApproval  => "#FBF2E0",
+        BillStatus.Approved         => "#EAF0F6",
+        BillStatus.PartiallyPaid    => "#FBF2E0",
+        BillStatus.Paid             => "#E8F4ED",
+        BillStatus.Overdue          => "#FAECE8",
+        BillStatus.Void             => "#D6D3CA",
+        BillStatus.Rejected         => "#FAECE8",
+        _                           => "#D6D3CA",
     };
 
     private string _fg => Status switch
     {
-        BillStatus.Draft         => "#4A4843",
-        BillStatus.Approved      => "#2A4F6E",
-        BillStatus.PartiallyPaid => "#8F6008",
-        BillStatus.Paid          => "#1F6040",
-        BillStatus.Overdue       => "#7E2A14",
-        BillStatus.Void          => "#8C8980",
-        _                        => "#4A4843",
+        BillStatus.Draft            => "#4A4843",
+        BillStatus.PendingApproval  => "#8F6008",
+        BillStatus.Approved         => "#2A4F6E",
+        BillStatus.PartiallyPaid    => "#8F6008",
+        BillStatus.Paid             => "#1F6040",
+        BillStatus.Overdue          => "#7E2A14",
+        BillStatus.Void             => "#8C8980",
+        BillStatus.Rejected         => "#7E2A14",
+        _                           => "#4A4843",
     };
 
     private string _label => Status switch
     {
-        BillStatus.Draft         => "Draft",
-        BillStatus.Approved      => "Approved",
-        BillStatus.PartiallyPaid => "Partially Paid",
-        BillStatus.Paid          => "Paid",
-        BillStatus.Overdue       => "Overdue",
-        BillStatus.Void          => "Void",
-        _                        => Status.ToString(),
+        BillStatus.Draft            => "Draft",
+        BillStatus.PendingApproval  => "Pending Approval",
+        BillStatus.Approved         => "Approved",
+        BillStatus.PartiallyPaid    => "Partially Paid",
+        BillStatus.Paid             => "Paid",
+        BillStatus.Overdue          => "Overdue",
+        BillStatus.Void             => "Void",
+        BillStatus.Rejected         => "Rejected",
+        _                           => Status.ToString(),
     };
 }

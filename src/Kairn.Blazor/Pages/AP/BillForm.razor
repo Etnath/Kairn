@@ -23,6 +23,13 @@
 }
 else
 {
+    @if (_isRejected)
+    {
+        <MudAlert Severity="Severity.Warning" Dense="true" Class="mb-3" Icon="@Icons.Material.Filled.ThumbDown">
+            @L["Reject_BannerPrefix"]
+        </MudAlert>
+    }
+
     <MudForm @ref="_form" @bind-IsValid="_isValid">
         <MudGrid Spacing="3">
 
@@ -218,7 +225,7 @@ else
                         {
                             <MudProgressCircular Size="Size.Small" Indeterminate="true" Class="mr-2" />
                         }
-                        @L["SaveDraft"]
+                        @(_isRejected ? L["Resubmit"].Value : L["SaveDraft"].Value)
                     </MudButton>
                 </MudStack>
             </MudItem>
@@ -236,6 +243,7 @@ else
     private bool _loading = true;
     private bool _saving;
     private bool _isEdit;
+    private bool _isRejected;
     private bool _existingAttachment;
     private bool _removeAttachment;
     private string? _errorMessage;
@@ -276,12 +284,13 @@ else
                 Navigation.NavigateTo("/bills");
                 return;
             }
-            if (bill.Status != BillStatus.Draft)
+            if (bill.Status is not (BillStatus.Draft or BillStatus.Rejected))
             {
                 Navigation.NavigateTo($"/bills/{Id}");
                 return;
             }
 
+            _isRejected = bill.Status == BillStatus.Rejected;
             _selectedVendor = _vendors.FirstOrDefault(v => v.Id == bill.VendorId);
             _reference = bill.Reference;
             _date = bill.Date.ToDateTime(TimeOnly.MinValue);

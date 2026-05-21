@@ -1,33 +1,594 @@
 @page "/"
 @attribute [Authorize]
+@implements IDisposable
+@using ApexCharts
+@using Color = MudBlazor.Color
+@using ChartType = ApexCharts.ChartType
+@using Size = MudBlazor.Size
 @inject IStringLocalizer<Dashboard> L
 @inject IInvoiceService InvoiceService
+@inject IBillService BillService
+@inject IExpenseReportService ExpenseReportService
+@inject IFixedAssetService FixedAssetService
+@inject IDashboardSettingsService DashboardSettingsService
+@inject IUserDashboardPreferencesService PreferencesService
 @inject ICurrentUserContext CurrentUser
+@inject IState<DashboardState> KpiState
+@inject IDispatcher Dispatcher
+@inject NavigationManager Nav
 
 <PageTitle>@L["Title"] – Kairn</PageTitle>
-<MudText Typo="Typo.h5" Class="mb-4">@L["Title"]</MudText>
 
-@if (_overdueCount > 0)
+<MudStack Row="true" AlignItems="AlignItems.Center" Justify="Justify.SpaceBetween" Class="mb-4">
+    <MudText Typo="Typo.h5">@L["Title"]</MudText>
+    <MudButton StartIcon="@Icons.Material.Filled.Tune" Size="Size.Small"
+               Variant="Variant.Outlined" OnClick="OpenCustomize">
+        @L["Customize_Button"]
+    </MudButton>
+</MudStack>
+
+@if (_customizeOpen)
 {
-    <MudAlert Severity="Severity.Warning" Class="mb-4" Icon="@Icons.Material.Filled.Warning"
-              ContentAlignment="HorizontalAlignment.Left">
-        <MudStack Row="true" AlignItems="AlignItems.Center" Wrap="Wrap.Wrap" Spacing="2">
-            <MudText>
-                @string.Format(L["Alert_Overdue"].Value, _overdueCount, _overdueTotal.ToString("N2"))
+    <MudPaper Class="pa-4 mb-4" Elevation="0" Outlined="true" Style="max-width:680px">
+        <MudText Typo="Typo.subtitle1" Class="mb-3"><b>@L["Customize_Title"]</b></MudText>
+        <MudGrid Spacing="2">
+            <MudItem xs="12" sm="6">
+                <MudStack Row="true" AlignItems="AlignItems.Center" Justify="Justify.SpaceBetween">
+                    <MudText Typo="Typo.body2">@L["Kpi_MonthlyRevenue"]</MudText>
+                    <MudSwitch @bind-Value="_showMonthlyRevenue" Color="Color.Primary"
+                               Disabled="@(_showMonthlyRevenue && VisibleCount == 1)" />
+                </MudStack>
+            </MudItem>
+            <MudItem xs="12" sm="6">
+                <MudStack Row="true" AlignItems="AlignItems.Center" Justify="Justify.SpaceBetween">
+                    <MudText Typo="Typo.body2">@L["Kpi_MonthlyExpenses"]</MudText>
+                    <MudSwitch @bind-Value="_showMonthlyExpenses" Color="Color.Primary"
+                               Disabled="@(_showMonthlyExpenses && VisibleCount == 1)" />
+                </MudStack>
+            </MudItem>
+            <MudItem xs="12" sm="6">
+                <MudStack Row="true" AlignItems="AlignItems.Center" Justify="Justify.SpaceBetween">
+                    <MudText Typo="Typo.body2">@L["Kpi_NetProfit"]</MudText>
+                    <MudSwitch @bind-Value="_showNetProfit" Color="Color.Primary"
+                               Disabled="@(_showNetProfit && VisibleCount == 1)" />
+                </MudStack>
+            </MudItem>
+            <MudItem xs="12" sm="6">
+                <MudStack Row="true" AlignItems="AlignItems.Center" Justify="Justify.SpaceBetween">
+                    <MudText Typo="Typo.body2">@L["Kpi_OutstandingAr"]</MudText>
+                    <MudSwitch @bind-Value="_showOutstandingAr" Color="Color.Primary"
+                               Disabled="@(_showOutstandingAr && VisibleCount == 1)" />
+                </MudStack>
+            </MudItem>
+            <MudItem xs="12" sm="6">
+                <MudStack Row="true" AlignItems="AlignItems.Center" Justify="Justify.SpaceBetween">
+                    <MudText Typo="Typo.body2">@L["Kpi_OutstandingAp"]</MudText>
+                    <MudSwitch @bind-Value="_showOutstandingAp" Color="Color.Primary"
+                               Disabled="@(_showOutstandingAp && VisibleCount == 1)" />
+                </MudStack>
+            </MudItem>
+            <MudItem xs="12" sm="6">
+                <MudStack Row="true" AlignItems="AlignItems.Center" Justify="Justify.SpaceBetween">
+                    <MudText Typo="Typo.body2">@L["Kpi_CashBalance"]</MudText>
+                    <MudSwitch @bind-Value="_showCashBalance" Color="Color.Primary"
+                               Disabled="@(_showCashBalance && VisibleCount == 1)" />
+                </MudStack>
+            </MudItem>
+        </MudGrid>
+        @if (VisibleCount == 1)
+        {
+            <MudText Typo="Typo.caption" Class="mt-2 d-block" Style="color:#8F6008">
+                @L["Customize_AtLeastOne"]
             </MudText>
-            <MudLink Href="/ar-aging" Color="Color.Warning" Typo="Typo.body2">
-                @L["Alert_ViewAging"] →
-            </MudLink>
+        }
+        <MudStack Row="true" Justify="Justify.FlexEnd" Class="mt-4" Spacing="2">
+            <MudButton Variant="Variant.Text" OnClick="CancelCustomize">@L["Customize_Cancel"]</MudButton>
+            <MudButton Color="Color.Primary" Variant="Variant.Filled"
+                       OnClick="SavePreferencesAsync" Disabled="@_customizeSaving">
+                @if (_customizeSaving)
+                {
+                    <MudProgressCircular Size="Size.Small" Indeterminate="true" Class="mr-2" />
+                }
+                @L["Customize_Save"]
+            </MudButton>
         </MudStack>
-    </MudAlert>
+    </MudPaper>
+}
+
+<MudGrid Class="mb-4">
+    @if (_showMonthlyRevenue)
+    {
+        <MudItem xs="12" sm="6" md="4">
+            <KpiCard Title="@L["Kpi_MonthlyRevenue"]"
+                     Value="@(KpiState.Value.Kpis?.MonthlyRevenue.Current ?? 0)"
+                     DeltaPct="@KpiState.Value.Kpis?.MonthlyRevenue.DeltaPct"
+                     IsHigherBetter="true"
+                     Loading="@KpiState.Value.IsLoading" />
+        </MudItem>
+    }
+    @if (_showMonthlyExpenses)
+    {
+        <MudItem xs="12" sm="6" md="4">
+            <KpiCard Title="@L["Kpi_MonthlyExpenses"]"
+                     Value="@(KpiState.Value.Kpis?.MonthlyExpenses.Current ?? 0)"
+                     DeltaPct="@KpiState.Value.Kpis?.MonthlyExpenses.DeltaPct"
+                     IsHigherBetter="false"
+                     Loading="@KpiState.Value.IsLoading" />
+        </MudItem>
+    }
+    @if (_showNetProfit)
+    {
+        <MudItem xs="12" sm="6" md="4">
+            <KpiCard Title="@L["Kpi_NetProfit"]"
+                     Value="@(KpiState.Value.Kpis?.NetProfit.Current ?? 0)"
+                     DeltaPct="@KpiState.Value.Kpis?.NetProfit.DeltaPct"
+                     IsHigherBetter="true"
+                     Loading="@KpiState.Value.IsLoading" />
+        </MudItem>
+    }
+    @if (_showOutstandingAr)
+    {
+        <MudItem xs="12" sm="6" md="4">
+            <KpiCard Title="@L["Kpi_OutstandingAr"]"
+                     Value="@(KpiState.Value.Kpis?.OutstandingAr.Current ?? 0)"
+                     DeltaPct="@KpiState.Value.Kpis?.OutstandingAr.DeltaPct"
+                     IsHigherBetter="false"
+                     Loading="@KpiState.Value.IsLoading" />
+        </MudItem>
+    }
+    @if (_showOutstandingAp)
+    {
+        <MudItem xs="12" sm="6" md="4">
+            <KpiCard Title="@L["Kpi_OutstandingAp"]"
+                     Value="@(KpiState.Value.Kpis?.OutstandingAp.Current ?? 0)"
+                     DeltaPct="@KpiState.Value.Kpis?.OutstandingAp.DeltaPct"
+                     IsHigherBetter="false"
+                     Loading="@KpiState.Value.IsLoading" />
+        </MudItem>
+    }
+    @if (_showCashBalance)
+    {
+        <MudItem xs="12" sm="6" md="4">
+            <KpiCard Title="@L["Kpi_CashBalance"]"
+                     Value="@(KpiState.Value.Kpis?.CashBalance.Current ?? 0)"
+                     DeltaPct="@KpiState.Value.Kpis?.CashBalance.DeltaPct"
+                     IsHigherBetter="true"
+                     Loading="@KpiState.Value.IsLoading" />
+        </MudItem>
+    }
+</MudGrid>
+
+<AuthorizeView Roles="Admin,Bookkeeper" Context="approvalCtx">
+    @if (_pendingApprovalCount > 0)
+    {
+        <MudAlert Severity="Severity.Warning" Class="mb-4" Icon="@Icons.Material.Filled.Pending"
+                  ContentAlignment="HorizontalAlignment.Left">
+            <MudStack Row="true" AlignItems="AlignItems.Center" Wrap="Wrap.Wrap" Spacing="2">
+                <MudText>
+                    @string.Format(L["Alert_PendingApproval"].Value, _pendingApprovalCount)
+                </MudText>
+                <MudLink Href="/bills" Color="Color.Warning" Typo="Typo.body2">
+                    @L["Alert_ReviewBills"] →
+                </MudLink>
+            </MudStack>
+        </MudAlert>
+    }
+    @if (_pendingExpenseCount > 0)
+    {
+        <MudAlert Severity="Severity.Warning" Class="mb-4" Icon="@Icons.Material.Filled.ReceiptLong"
+                  ContentAlignment="HorizontalAlignment.Left">
+            <MudStack Row="true" AlignItems="AlignItems.Center" Wrap="Wrap.Wrap" Spacing="2">
+                <MudText>
+                    @string.Format(L["Alert_PendingExpenses"].Value, _pendingExpenseCount)
+                </MudText>
+                <MudLink Href="/expense-reports" Color="Color.Warning" Typo="Typo.body2">
+                    @L["Alert_ReviewExpenses"] →
+                </MudLink>
+            </MudStack>
+        </MudAlert>
+    }
+    @if (_deprecFailureCount > 0)
+    {
+        <MudAlert Severity="Severity.Error" Class="mb-4" Icon="@Icons.Material.Filled.Error"
+                  ContentAlignment="HorizontalAlignment.Left">
+            <MudStack Row="true" AlignItems="AlignItems.Center" Wrap="Wrap.Wrap" Spacing="2">
+                <MudText>
+                    @string.Format(L["Alert_DeprecFailed"].Value, _deprecFailureCount)
+                </MudText>
+                <MudLink Href="/fixed-assets" Color="Color.Error" Typo="Typo.body2">
+                    @L["Alert_ReviewDepreciation"] →
+                </MudLink>
+            </MudStack>
+        </MudAlert>
+    }
+</AuthorizeView>
+
+<MudDivider Class="my-4" />
+<MudText Typo="Typo.h6" Class="mb-3">@L["Charts_Title"]</MudText>
+
+@if (KpiState.Value.IsChartsLoading)
+{
+    <MudGrid>
+        <MudItem xs="12" md="6">
+            <MudPaper Class="pa-4" Elevation="1">
+                <MudSkeleton SkeletonType="SkeletonType.Rectangle" Height="280px" />
+            </MudPaper>
+        </MudItem>
+        <MudItem xs="12" md="6">
+            <MudPaper Class="pa-4" Elevation="1">
+                <MudSkeleton SkeletonType="SkeletonType.Rectangle" Height="280px" />
+            </MudPaper>
+        </MudItem>
+        <MudItem xs="12">
+            <MudPaper Class="pa-4" Elevation="1">
+                <MudSkeleton SkeletonType="SkeletonType.Rectangle" Height="220px" />
+            </MudPaper>
+        </MudItem>
+    </MudGrid>
+}
+else if (KpiState.Value.HasChartsError)
+{
+    <MudAlert Severity="Severity.Error" Class="mb-4">@L["Charts_Error"]</MudAlert>
+}
+else if (KpiState.Value.Charts is { } charts)
+{
+    <MudGrid>
+        <MudItem xs="12" md="6">
+            <MudPaper Class="pa-4" Elevation="1">
+                <MudText Typo="Typo.subtitle2" Class="mb-2">@L["Chart_RevExp"]</MudText>
+                <ApexChart TItem="MonthlyPnlPoint"
+                           Options="_revExpOptions"
+                           OnDataPointSelection="OnRevExpBarClick">
+                    <ApexPointSeries TItem="MonthlyPnlPoint"
+                                     Items="@charts.MonthlyPnl"
+                                     Name="@L["Chart_Revenue"]"
+                                     SeriesType="SeriesType.Bar"
+                                     XValue="@(p => MonthLabel(p.Year, p.Month))"
+                                     YValue="@(p => (decimal?)p.Revenue)" />
+                    <ApexPointSeries TItem="MonthlyPnlPoint"
+                                     Items="@charts.MonthlyPnl"
+                                     Name="@L["Chart_Expenses"]"
+                                     SeriesType="SeriesType.Bar"
+                                     XValue="@(p => MonthLabel(p.Year, p.Month))"
+                                     YValue="@(p => (decimal?)p.Expenses)" />
+                </ApexChart>
+            </MudPaper>
+        </MudItem>
+        <MudItem xs="12" md="6">
+            <MudPaper Class="pa-4" Elevation="1">
+                <MudText Typo="Typo.subtitle2" Class="mb-2">@L["Chart_PnlTrend"]</MudText>
+                <ApexChart TItem="MonthlyPnlPoint"
+                           Options="_pnlOptions">
+                    <ApexPointSeries TItem="MonthlyPnlPoint"
+                                     Items="@charts.MonthlyPnl"
+                                     Name="@L["Chart_NetProfit"]"
+                                     SeriesType="SeriesType.Bar"
+                                     XValue="@(p => MonthLabel(p.Year, p.Month))"
+                                     YValue="@(p => (decimal?)p.NetProfit)" />
+                </ApexChart>
+            </MudPaper>
+        </MudItem>
+        <MudItem xs="12">
+            <MudPaper Class="pa-4" Elevation="1">
+                <MudText Typo="Typo.subtitle2" Class="mb-2">@L["Chart_Cash"]</MudText>
+                <ApexChart TItem="MonthlyCashPoint"
+                           Options="_cashOptions">
+                    <ApexPointSeries TItem="MonthlyCashPoint"
+                                     Items="@charts.CashPosition"
+                                     Name="@L["Chart_CashBalance"]"
+                                     SeriesType="SeriesType.Line"
+                                     XValue="@(p => MonthLabel(p.Year, p.Month))"
+                                     YValue="@(p => (decimal?)p.Balance)" />
+                </ApexChart>
+            </MudPaper>
+        </MudItem>
+    </MudGrid>
+}
+
+<MudDivider Class="my-4" />
+<MudText Typo="Typo.h6" Class="mb-3">@L["Alerts_Title"]</MudText>
+
+@if (_alertsLoading)
+{
+    <MudGrid>
+        <MudItem xs="12" md="4"><MudSkeleton SkeletonType="SkeletonType.Rectangle" Height="64px" /></MudItem>
+        <MudItem xs="12" md="4"><MudSkeleton SkeletonType="SkeletonType.Rectangle" Height="64px" /></MudItem>
+        <MudItem xs="12" md="4"><MudSkeleton SkeletonType="SkeletonType.Rectangle" Height="64px" /></MudItem>
+    </MudGrid>
+}
+else
+{
+    var cashBalance  = KpiState.Value.Kpis?.CashBalance.Current ?? 0m;
+    var cashLow      = cashBalance < _cashAlertThreshold;
+    var allClear     = _overdueCount == 0 && _billsDueSoonCount == 0 && !cashLow;
+
+    <MudGrid>
+        @if (allClear)
+        {
+            <MudItem xs="12">
+                <AlertCard Title="@L["Alert_AllClear"]"
+                           Icon="@Icons.Material.Filled.CheckCircle"
+                           Background="#E8F4ED"
+                           IconColor="#3A9463"
+                           TextColor="#1D4D33" />
+            </MudItem>
+        }
+        else
+        {
+            <MudItem xs="12" md="4">
+                @if (_overdueCount > 0)
+                {
+                    <AlertCard Title="@string.Format(L["Alert_Overdue_Title"].Value, _overdueCount)"
+                               Body="@string.Format(L["Alert_Overdue_Body"].Value, _overdueTotal.ToString("N2"))"
+                               Icon="@Icons.Material.Filled.ErrorOutline"
+                               Background="#FAECE8"
+                               IconColor="#7E2A14"
+                               TextColor="#7E2A14"
+                               Href="/ar-aging"
+                               LinkText="@L["Alert_Overdue_Link"]" />
+                }
+                else
+                {
+                    <AlertCard Title="@L["Alert_AllClear"]"
+                               Icon="@Icons.Material.Filled.CheckCircle"
+                               Background="#E8F4ED"
+                               IconColor="#3A9463"
+                               TextColor="#1D4D33" />
+                }
+            </MudItem>
+            <MudItem xs="12" md="4">
+                @if (_billsDueSoonCount > 0)
+                {
+                    <AlertCard Title="@string.Format(L["Alert_Bills_Title"].Value, _billsDueSoonCount)"
+                               Body="@string.Format(L["Alert_Bills_Body"].Value, _billsDueSoonTotal.ToString("N2"))"
+                               Icon="@Icons.Material.Filled.Schedule"
+                               Background="#FBF2E0"
+                               IconColor="#8F6008"
+                               TextColor="#8F6008"
+                               Href="/ap-payment-schedule"
+                               LinkText="@L["Alert_Bills_Link"]" />
+                }
+                else
+                {
+                    <AlertCard Title="@L["Alert_AllClear"]"
+                               Icon="@Icons.Material.Filled.CheckCircle"
+                               Background="#E8F4ED"
+                               IconColor="#3A9463"
+                               TextColor="#1D4D33" />
+                }
+            </MudItem>
+            <MudItem xs="12" md="4">
+                @if (cashLow)
+                {
+                    <AlertCard Title="@L["Alert_Cash_Title"]"
+                               Body="@string.Format(L["Alert_Cash_Body"].Value, cashBalance.ToString("N2"), _cashAlertThreshold.ToString("N2"))"
+                               Icon="@Icons.Material.Filled.AccountBalanceWallet"
+                               Background="#FAECE8"
+                               IconColor="#7E2A14"
+                               TextColor="#7E2A14" />
+                }
+                else
+                {
+                    <AlertCard Title="@L["Alert_Cash_Ok"]"
+                               Icon="@Icons.Material.Filled.CheckCircle"
+                               Background="#E8F4ED"
+                               IconColor="#3A9463"
+                               TextColor="#1D4D33" />
+                }
+            </MudItem>
+        }
+    </MudGrid>
 }
 
 @code {
-    private int _overdueCount;
+    // ── Alert data ───────────────────────────────────────────────────────────
+    private int     _overdueCount;
     private decimal _overdueTotal;
+    private int     _billsDueSoonCount;
+    private decimal _billsDueSoonTotal;
+    private int     _pendingApprovalCount;
+    private int     _pendingExpenseCount;
+    private int     _deprecFailureCount;
+    private decimal _cashAlertThreshold = 5_000m;
+    private bool    _alertsLoading = true;
+    private Timer?  _refreshTimer;
 
+    // ── Widget visibility ────────────────────────────────────────────────────
+    private bool _showMonthlyRevenue   = true;
+    private bool _showMonthlyExpenses  = true;
+    private bool _showNetProfit        = true;
+    private bool _showOutstandingAr    = true;
+    private bool _showOutstandingAp    = true;
+    private bool _showCashBalance      = true;
+
+    // Snapshot taken when customize panel opens, restored on cancel
+    private bool _origMonthlyRevenue;
+    private bool _origMonthlyExpenses;
+    private bool _origNetProfit;
+    private bool _origOutstandingAr;
+    private bool _origOutstandingAp;
+    private bool _origCashBalance;
+
+    private bool _customizeOpen   = false;
+    private bool _customizeSaving = false;
+
+    private int VisibleCount =>
+        (_showMonthlyRevenue  ? 1 : 0) +
+        (_showMonthlyExpenses ? 1 : 0) +
+        (_showNetProfit       ? 1 : 0) +
+        (_showOutstandingAr   ? 1 : 0) +
+        (_showOutstandingAp   ? 1 : 0) +
+        (_showCashBalance     ? 1 : 0);
+
+    // ── Chart options ────────────────────────────────────────────────────────
+    private ApexChartOptions<MonthlyPnlPoint> _revExpOptions = new()
+    {
+        Chart       = new Chart { Type = ChartType.Bar },
+        Colors      = new List<string> { "#3A9463", "#C2492A" },
+        DataLabels  = new DataLabels { Enabled = false },
+        Grid        = new Grid { BorderColor = "#D6D3CA" },
+        PlotOptions = new PlotOptions { Bar = new PlotOptionsBar { ColumnWidth = "55%" } },
+        Xaxis       = new XAxis { Labels = new XAxisLabels { Style = new AxisLabelStyle { Colors = "#8C8980" } } },
+        Yaxis       = new List<YAxis> { new() { Labels = new YAxisLabels { Style = new AxisLabelStyle { Colors = "#8C8980" } } } },
+    };
+
+    private ApexChartOptions<MonthlyCashPoint> _cashOptions = new()
+    {
+        Chart       = new Chart { Type = ChartType.Line },
+        Colors      = new List<string> { "#4D7A9E" },
+        DataLabels  = new DataLabels { Enabled = false },
+        Grid        = new Grid { BorderColor = "#D6D3CA" },
+        Stroke      = new Stroke { Curve = Curve.Smooth },
+        Xaxis       = new XAxis { Labels = new XAxisLabels { Style = new AxisLabelStyle { Colors = "#8C8980" } } },
+        Yaxis       = new List<YAxis> { new() { Labels = new YAxisLabels { Style = new AxisLabelStyle { Colors = "#8C8980" } } } },
+    };
+
+    private ApexChartOptions<MonthlyPnlPoint> _pnlOptions = new()
+    {
+        Chart       = new Chart { Type = ChartType.Bar },
+        DataLabels  = new DataLabels { Enabled = false },
+        Legend      = new Legend { Show = false },
+        Grid        = new Grid { BorderColor = "#D6D3CA" },
+        PlotOptions = new PlotOptions { Bar = new PlotOptionsBar { Distributed = true, ColumnWidth = "55%" } },
+        Xaxis       = new XAxis { Labels = new XAxisLabels { Style = new AxisLabelStyle { Colors = "#8C8980" } } },
+        Yaxis       = new List<YAxis> { new() { Labels = new YAxisLabels { Style = new AxisLabelStyle { Colors = "#8C8980" } } } },
+    };
+
+    // ── Lifecycle ────────────────────────────────────────────────────────────
     protected override async Task OnInitializedAsync()
     {
-        (_overdueCount, _overdueTotal) = await InvoiceService.GetOverdueSummaryAsync(CurrentUser.TenantId);
+        KpiState.StateChanged += OnKpiStateChanged;
+        Dispatcher.Dispatch(new LoadDashboardKpisAction());
+        _refreshTimer = new Timer(
+            _ => InvokeAsync(RefreshAlertDataAsync),
+            null,
+            TimeSpan.FromMinutes(5),
+            TimeSpan.FromMinutes(5));
+
+        var prefsTask    = PreferencesService.GetAsync(CurrentUser.UserId);
+        var settingsTask = DashboardSettingsService.GetAsync(CurrentUser.TenantId);
+        await Task.WhenAll(prefsTask, settingsTask);
+
+        var prefs = prefsTask.Result;
+        _showMonthlyRevenue  = prefs.ShowMonthlyRevenue;
+        _showMonthlyExpenses = prefs.ShowMonthlyExpenses;
+        _showNetProfit       = prefs.ShowNetProfit;
+        _showOutstandingAr   = prefs.ShowOutstandingAr;
+        _showOutstandingAp   = prefs.ShowOutstandingAp;
+        _showCashBalance     = prefs.ShowCashBalance;
+
+        _cashAlertThreshold = settingsTask.Result.CashAlertThreshold;
+
+        await LoadAlertDataAsync();
+    }
+
+    protected override Task OnAfterRenderAsync(bool firstRender)
+    {
+        if (firstRender)
+            Dispatcher.Dispatch(new LoadDashboardChartsAction());
+        return Task.CompletedTask;
+    }
+
+    // ── Alert data ───────────────────────────────────────────────────────────
+    private async Task LoadAlertDataAsync()
+    {
+        _alertsLoading = true;
+        var t1 = InvoiceService.GetOverdueSummaryAsync(CurrentUser.TenantId);
+        var t2 = BillService.GetBillsDueSoonSummaryAsync(CurrentUser.TenantId);
+        var t3 = BillService.GetPendingApprovalCountAsync(CurrentUser.TenantId);
+        var t4 = ExpenseReportService.GetPendingApprovalCountAsync(CurrentUser.TenantId);
+        var t5 = FixedAssetService.GetRecentFailureCountAsync(CurrentUser.TenantId);
+        await Task.WhenAll(t1, t2, t3, t4, t5);
+        (_overdueCount, _overdueTotal)           = t1.Result;
+        (_billsDueSoonCount, _billsDueSoonTotal)  = t2.Result;
+        _pendingApprovalCount = t3.Result;
+        _pendingExpenseCount  = t4.Result;
+        _deprecFailureCount   = t5.Result;
+        _alertsLoading = false;
+    }
+
+    private async Task RefreshAlertDataAsync()
+    {
+        Dispatcher.Dispatch(new LoadDashboardKpisAction());
+        await LoadAlertDataAsync();
+        StateHasChanged();
+    }
+
+    // ── KPI state ────────────────────────────────────────────────────────────
+    private void OnKpiStateChanged(object? sender, EventArgs e)
+    {
+        RebuildPnlChartOptions();
+        InvokeAsync(StateHasChanged);
+    }
+
+    private void RebuildPnlChartOptions()
+    {
+        var points = KpiState.Value.Charts?.MonthlyPnl;
+        if (points is null) return;
+        _pnlOptions = new ApexChartOptions<MonthlyPnlPoint>
+        {
+            Chart       = new Chart { Type = ChartType.Bar },
+            Colors      = points.Select(p => p.NetProfit >= 0m ? "#3A9463" : "#C2492A").ToList(),
+            DataLabels  = new DataLabels { Enabled = false },
+            Legend      = new Legend { Show = false },
+            Grid        = new Grid { BorderColor = "#D6D3CA" },
+            PlotOptions = new PlotOptions { Bar = new PlotOptionsBar { Distributed = true, ColumnWidth = "55%" } },
+            Xaxis       = new XAxis { Labels = new XAxisLabels { Style = new AxisLabelStyle { Colors = "#8C8980" } } },
+            Yaxis       = new List<YAxis> { new() { Labels = new YAxisLabels { Style = new AxisLabelStyle { Colors = "#8C8980" } } } },
+        };
+    }
+
+    private void OnRevExpBarClick(SelectedData<MonthlyPnlPoint> data)
+    {
+        var points = KpiState.Value.Charts?.MonthlyPnl;
+        if (points is null || data.DataPointIndex < 0 || data.DataPointIndex >= points.Count) return;
+        var pt   = points[data.DataPointIndex];
+        var from = new DateOnly(pt.Year, pt.Month, 1);
+        var to   = new DateOnly(pt.Year, pt.Month, DateTime.DaysInMonth(pt.Year, pt.Month));
+        Nav.NavigateTo($"/reports/profit-loss?from={from:yyyy-MM-dd}&to={to:yyyy-MM-dd}");
+    }
+
+    private static string MonthLabel(int year, int month) =>
+        new DateTime(year, month, 1).ToString("MMM yy");
+
+    // ── Customize panel ──────────────────────────────────────────────────────
+    private void OpenCustomize()
+    {
+        _origMonthlyRevenue  = _showMonthlyRevenue;
+        _origMonthlyExpenses = _showMonthlyExpenses;
+        _origNetProfit       = _showNetProfit;
+        _origOutstandingAr   = _showOutstandingAr;
+        _origOutstandingAp   = _showOutstandingAp;
+        _origCashBalance     = _showCashBalance;
+        _customizeOpen = true;
+    }
+
+    private void CancelCustomize()
+    {
+        _showMonthlyRevenue  = _origMonthlyRevenue;
+        _showMonthlyExpenses = _origMonthlyExpenses;
+        _showNetProfit       = _origNetProfit;
+        _showOutstandingAr   = _origOutstandingAr;
+        _showOutstandingAp   = _origOutstandingAp;
+        _showCashBalance     = _origCashBalance;
+        _customizeOpen = false;
+    }
+
+    private async Task SavePreferencesAsync()
+    {
+        _customizeSaving = true;
+        await PreferencesService.SaveAsync(new SaveUserDashboardPreferencesCommand(
+            CurrentUser.UserId,
+            _showMonthlyRevenue, _showMonthlyExpenses, _showNetProfit,
+            _showOutstandingAr,  _showOutstandingAp,  _showCashBalance));
+        _customizeSaving = false;
+        _customizeOpen   = false;
+    }
+
+    // ── Dispose ──────────────────────────────────────────────────────────────
+    public void Dispose()
+    {
+        KpiState.StateChanged -= OnKpiStateChanged;
+        _refreshTimer?.Dispose();
     }
 }

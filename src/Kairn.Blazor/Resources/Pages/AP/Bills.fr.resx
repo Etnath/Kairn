@@ -60,4 +60,43 @@
   <data name="Void_Yes" xml:space="preserve"><value>Annuler la facture</value></data>
   <data name="Error_NoLines" xml:space="preserve"><value>La facture doit comporter au moins une ligne.</value></data>
   <data name="Error_AccountRequired" xml:space="preserve"><value>Toutes les lignes doivent avoir un compte de charge sélectionné.</value></data>
+  <data name="Filter_Vendor" xml:space="preserve"><value>Fournisseur</value></data>
+  <data name="Filter_Status" xml:space="preserve"><value>Statut</value></data>
+  <data name="Filter_DueFrom" xml:space="preserve"><value>Échéance du</value></data>
+  <data name="Filter_DueTo" xml:space="preserve"><value>Échéance au</value></data>
+  <data name="Filter_ShowAll" xml:space="preserve"><value>Tout afficher</value></data>
+  <data name="Filter_Reset" xml:space="preserve"><value>Réinitialiser</value></data>
+  <data name="Action_RecordPayment" xml:space="preserve"><value>Enregistrer un paiement</value></data>
+  <data name="Payment_Title" xml:space="preserve"><value>Enregistrer un paiement</value></data>
+  <data name="Payment_Outstanding" xml:space="preserve"><value>Solde dû</value></data>
+  <data name="Payment_Date" xml:space="preserve"><value>Date de paiement</value></data>
+  <data name="Payment_Amount" xml:space="preserve"><value>Montant</value></data>
+  <data name="Payment_Method" xml:space="preserve"><value>Mode de règlement</value></data>
+  <data name="Payment_BankAccount" xml:space="preserve"><value>Compte bancaire / caisse</value></data>
+  <data name="Payment_Reference" xml:space="preserve"><value>Référence</value></data>
+  <data name="Payment_Save" xml:space="preserve"><value>Enregistrer</value></data>
+  <data name="Payment_DateRequired" xml:space="preserve"><value>La date de paiement est obligatoire.</value></data>
+  <data name="Payment_AccountRequired" xml:space="preserve"><value>Veuillez sélectionner un compte bancaire ou de caisse.</value></data>
+  <data name="Payment_History" xml:space="preserve"><value>Historique des paiements</value></data>
+  <data name="Payment_Paid" xml:space="preserve"><value>Payé intégralement</value></data>
+  <data name="Payment_NoPayments" xml:space="preserve"><value>Aucun paiement enregistré.</value></data>
+  <data name="Payment_Col_Date" xml:space="preserve"><value>Date</value></data>
+  <data name="Payment_Col_Amount" xml:space="preserve"><value>Montant</value></data>
+  <data name="Payment_Col_Method" xml:space="preserve"><value>Mode</value></data>
+  <data name="Payment_Col_Reference" xml:space="preserve"><value>Référence</value></data>
+  <data name="Payment_Reverse" xml:space="preserve"><value>Contrepasser le paiement</value></data>
+  <data name="Payment_Reverse_Title" xml:space="preserve"><value>Contrepasser le paiement</value></data>
+  <data name="Payment_Reverse_Confirm" xml:space="preserve"><value>Êtes-vous sûr de vouloir contrepasser ce paiement ? Une écriture de contrepassation sera générée et le statut de la facture sera restauré.</value></data>
+  <data name="Payment_Reverse_Yes" xml:space="preserve"><value>Contrepasser</value></data>
+  <data name="Method_BankTransfer" xml:space="preserve"><value>Virement bancaire</value></data>
+  <data name="Method_Cash" xml:space="preserve"><value>Espèces</value></data>
+  <data name="Method_Card" xml:space="preserve"><value>Carte</value></data>
+  <data name="Method_Other" xml:space="preserve"><value>Autre</value></data>
+  <data name="Action_Reject" xml:space="preserve"><value>Rejeter</value></data>
+  <data name="Reject_Title" xml:space="preserve"><value>Rejeter la facture</value></data>
+  <data name="Reject_Reason" xml:space="preserve"><value>Motif du rejet</value></data>
+  <data name="Reject_ReasonRequired" xml:space="preserve"><value>Un motif de rejet est obligatoire.</value></data>
+  <data name="Reject_Submit" xml:space="preserve"><value>Rejeter la facture</value></data>
+  <data name="Reject_BannerPrefix" xml:space="preserve"><value>Rejeté</value></data>
+  <data name="Resubmit" xml:space="preserve"><value>Soumettre à nouveau</value></data>
 </root>

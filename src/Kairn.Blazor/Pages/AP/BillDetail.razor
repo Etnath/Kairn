@@ -2,6 +2,7 @@
 @attribute [Authorize(Roles = "Admin,Bookkeeper,Viewer")]
 @inject IStringLocalizer<Bills> L
 @inject IBillService BillService
+@inject IBillPaymentService PaymentService
 @inject ICurrentUserContext CurrentUser
 @inject IDialogService DialogService
 @inject NavigationManager Navigation
@@ -26,13 +27,16 @@ else
 
         <AuthorizeView Roles="Admin,Bookkeeper">
             <MudStack Row="true" Spacing="1">
-                @if (_bill.Status == BillStatus.Draft)
+                @if (_bill.Status is BillStatus.Draft or BillStatus.Rejected)
                 {
                     <MudButton StartIcon="@Icons.Material.Filled.Edit"
                                Variant="Variant.Outlined" Size="Size.Small"
                                OnClick="@(() => Navigation.NavigateTo($"/bills/{Id}/edit"))">
                         @L["Action_Edit"]
                     </MudButton>
+                }
+                @if (_bill.Status is BillStatus.Draft or BillStatus.PendingApproval)
+                {
                     <MudButton Color="Color.Primary" Variant="Variant.Filled"
                                StartIcon="@Icons.Material.Filled.CheckCircle"
                                Size="Size.Small"
@@ -40,7 +44,25 @@ else
                         @L["Action_Approve"]
                     </MudButton>
                 }
-                @if (_bill.Status is BillStatus.Draft or BillStatus.Approved or BillStatus.Overdue)
+                @if (_bill.Status == BillStatus.PendingApproval)
+                {
+                    <MudButton Color="Color.Error" Variant="Variant.Outlined"
+                               StartIcon="@Icons.Material.Filled.ThumbDown"
+                               Size="Size.Small"
+                               OnClick="OpenRejectDialog" Disabled="@_actioning">
+                        @L["Action_Reject"]
+                    </MudButton>
+                }
+                @if (_bill.Status is BillStatus.Approved or BillStatus.PartiallyPaid or BillStatus.Overdue)
+                {
+                    <MudButton Color="Color.Success" Variant="Variant.Filled"
+                               StartIcon="@Icons.Material.Filled.Payment"
+                               Size="Size.Small"
+                               OnClick="OpenRecordPaymentDialog" Disabled="@_actioning">
+                        @L["Action_RecordPayment"]
+                    </MudButton>
+                }
+                @if (_bill.Status is BillStatus.Draft or BillStatus.PendingApproval or BillStatus.Approved or BillStatus.Overdue)
                 {
                     <MudButton Color="Color.Error" Variant="Variant.Outlined"
                                StartIcon="@Icons.Material.Filled.Block"
@@ -52,6 +74,13 @@ else
             </MudStack>
         </AuthorizeView>
     </MudStack>
+
+    @if (_bill.Status == BillStatus.Rejected && !string.IsNullOrWhiteSpace(_bill.RejectionReason))
+    {
+        <MudAlert Severity="Severity.Error" Dense="true" Class="mb-3" Icon="@Icons.Material.Filled.ThumbDown">
+            @L["Reject_BannerPrefix"]: <b>@_bill.RejectionReason</b>
+        </MudAlert>
+    }
 
     @if (_errorMessage is not null)
     {
@@ -157,6 +186,62 @@ else
                 </MudTable>
             </MudPaper>
         </MudItem>
+
+        @* Payment history *@
+        @if (_bill.Status is BillStatus.Approved or BillStatus.PartiallyPaid or BillStatus.Paid or BillStatus.Overdue)
+        {
+            <MudItem xs="12">
+                <MudPaper Class="pa-4" Elevation="0" Outlined="true">
+                    <MudStack Row="true" AlignItems="AlignItems.Center" Class="mb-3">
+                        <MudText Typo="Typo.subtitle2" Style="flex:1">@L["Payment_History"]</MudText>
+                        @if (_bill.Outstanding > 0)
+                        {
+                            <MudText Typo="Typo.body2" Color="Color.Secondary">
+                                @L["Payment_Outstanding"]: <b>@_bill.Currency @_bill.Outstanding.ToString("N2")</b>
+                            </MudText>
+                        }
+                        else
+                        {
+                            <MudChip T="string" Color="Color.Success" Size="Size.Small">@L["Payment_Paid"]</MudChip>
+                        }
+                    </MudStack>
+
+                    @if (_payments.Count == 0)
+                    {
+                        <MudText Typo="Typo.body2" Color="Color.Secondary">@L["Payment_NoPayments"]</MudText>
+                    }
+                    else
+                    {
+                        <MudTable Items="_payments" Dense="true" Hover="false" Elevation="0"
+                                  Style="border:1px solid var(--mud-palette-lines-default)">
+                            <HeaderContent>
+                                <MudTh>@L["Payment_Col_Date"]</MudTh>
+                                <MudTh Style="text-align:right">@L["Payment_Col_Amount"]</MudTh>
+                                <MudTh>@L["Payment_Col_Method"]</MudTh>
+                                <MudTh>@L["Payment_Col_Reference"]</MudTh>
+                                <AuthorizeView Roles="Admin" Context="adminCtxH">
+                                    <MudTh Style="width:60px" />
+                                </AuthorizeView>
+                            </HeaderContent>
+                            <RowTemplate Context="payment">
+                                <MudTd>@payment.Date.ToString("dd/MM/yyyy")</MudTd>
+                                <MudTd Style="text-align:right">@_bill.Currency @payment.Amount.ToString("N2")</MudTd>
+                                <MudTd>@L[$"Method_{payment.Method}"]</MudTd>
+                                <MudTd>@(payment.Reference ?? "—")</MudTd>
+                                <AuthorizeView Roles="Admin" Context="adminCtx">
+                                    <MudTd>
+                                        <MudIconButton Icon="@Icons.Material.Filled.Delete"
+                                                       Size="Size.Small" Color="Color.Error"
+                                                       title="@L["Payment_Reverse"]"
+                                                       OnClick="@(() => ReversePayment(payment))" />
+                                    </MudTd>
+                                </AuthorizeView>
+                            </RowTemplate>
+                        </MudTable>
+                    }
+                </MudPaper>
+            </MudItem>
+        }
     </MudGrid>
 }
 
@@ -164,6 +249,7 @@ else
     [Parameter] public Guid Id { get; set; }
 
     private BillDto? _bill;
+    private IReadOnlyList<BillPaymentDto> _payments = [];
     private Guid? _attachmentId;
     private bool _actioning;
     private string? _errorMessage;
@@ -178,8 +264,7 @@ else
             Navigation.NavigateTo("/bills");
             return;
         }
-        // Attachment ID is loaded separately only when needed for download
-        // We store it lazily here – the full attachment data is never loaded with the bill
+        _payments = await PaymentService.GetByBillAsync(Id, CurrentUser.TenantId);
     }
 
     private async Task Approve()
@@ -218,10 +303,53 @@ else
             _errorMessage = result.Error;
     }
 
+    private async Task OpenRejectDialog()
+    {
+        if (_bill is null) return;
+        var parameters = new DialogParameters<RejectBillDialog>
+        {
+            { x => x.BillId, Id }
+        };
+        var dialog = await DialogService.ShowAsync<RejectBillDialog>(L["Reject_Title"], parameters);
+        var result = await dialog.Result;
+        if (result is { Canceled: false })
+            await Reload();
+    }
+
+    private async Task OpenRecordPaymentDialog()
+    {
+        if (_bill is null) return;
+        var parameters = new DialogParameters<RecordBillPaymentDialog>
+        {
+            { x => x.Bill, _bill }
+        };
+        var dialog = await DialogService.ShowAsync<RecordBillPaymentDialog>(L["Payment_Title"], parameters);
+        var result = await dialog.Result;
+        if (result is { Canceled: false })
+            await Reload();
+    }
+
+    private async Task ReversePayment(BillPaymentDto payment)
+    {
+        var confirmed = await DialogService.ShowMessageBox(
+            L["Payment_Reverse_Title"].Value,
+            L["Payment_Reverse_Confirm"].Value,
+            yesText: L["Payment_Reverse_Yes"].Value,
+            cancelText: L["Cancel"].Value);
+        if (confirmed != true) return;
+
+        _errorMessage = null;
+        var result = await PaymentService.DeleteAsync(
+            payment.Id, CurrentUser.TenantId,
+            CurrentUser.UserId, CurrentUser.UserName);
+        if (result.IsSuccess)
+            await Reload();
+        else
+            _errorMessage = result.Error;
+    }
+
     private async Task DownloadAttachment()
     {
-        // Resolve attachment ID from DB via a lightweight query through service
-        // For now navigate to a download endpoint
         await JS.InvokeVoidAsync("open", $"/api/bills/{Id}/attachment", "_blank");
     }
 }

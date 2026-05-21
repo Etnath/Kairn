@@ -1,7 +1,113 @@
 @page "/budgets"
-@attribute [Authorize]
+@attribute [Authorize(Roles = "Admin,Bookkeeper,Viewer")]
 @inject IStringLocalizer<Budgets> L
+@inject IBudgetService BudgetService
+@inject ICurrentUserContext CurrentUser
+@inject IDialogService DialogService
+@inject NavigationManager Nav
 
 <PageTitle>@L["Title"] – Kairn</PageTitle>
-<MudText Typo="Typo.h5" Class="mb-4">@L["Title"]</MudText>
-<MudText Color="Color.Secondary">@L["ComingSoon"]</MudText>
+
+<MudStack Row="true" AlignItems="AlignItems.Center" Class="mb-4">
+    <MudText Typo="Typo.h5">@L["Title"]</MudText>
+    <MudSpacer />
+    <MudButton Variant="Variant.Outlined" Color="Color.Primary"
+               StartIcon="@Icons.Material.Filled.TrendingUp"
+               Href="/budgets/forecast">
+        @L["YearEndForecast"]
+    </MudButton>
+    <MudButton Variant="Variant.Outlined" Color="Color.Primary"
+               StartIcon="@Icons.Material.Filled.Analytics"
+               Href="/budgets/variance">
+        @L["VarianceAnalysis"]
+    </MudButton>
+    <AuthorizeView Roles="Admin,Bookkeeper">
+        <MudButton Variant="Variant.Filled" Color="Color.Primary"
+                   StartIcon="@Icons.Material.Filled.Add"
+                   OnClick="OpenCreateDialog">
+            @L["NewBudget"]
+        </MudButton>
+    </AuthorizeView>
+</MudStack>
+
+@if (_loading)
+{
+    <MudProgressLinear Indeterminate="true" />
+}
+else if (_budgets.Count == 0)
+{
+    <MudText Color="Color.Secondary">@L["Empty"]</MudText>
+}
+else
+{
+    <MudTable T="BudgetSummaryDto" Items="_budgets" Dense="true" Hover="true"
+              Breakpoint="Breakpoint.Sm">
+        <HeaderContent>
+            <MudTh Style="width:120px">@L["Col_FiscalYear"]</MudTh>
+            <MudTh>@L["Col_Name"]</MudTh>
+            <MudTh Style="width:100px">@L["Col_Status"]</MudTh>
+            <MudTh Style="width:130px">@L["Col_Actions"]</MudTh>
+        </HeaderContent>
+        <RowTemplate>
+            <MudTd DataLabel="@L["Col_FiscalYear"]">
+                <MudText Typo="Typo.body2" Style="font-family:monospace">@context.FiscalYear</MudText>
+            </MudTd>
+            <MudTd DataLabel="@L["Col_Name"]">@context.Name</MudTd>
+            <MudTd DataLabel="@L["Col_Status"]">
+                @if (context.IsActive)
+                {
+                    <MudChip T="string" Size="Size.Small" Color="Color.Success">@L["Status_Active"]</MudChip>
+                }
+                else
+                {
+                    <MudChip T="string" Size="Size.Small" Color="Color.Default">@L["Status_Inactive"]</MudChip>
+                }
+            </MudTd>
+            <MudTd DataLabel="@L["Col_Actions"]">
+                <MudIconButton Icon="@Icons.Material.Filled.Edit" Size="Size.Small"
+                               Title="@L["Edit"]"
+                               OnClick="@(() => Nav.NavigateTo($"/budgets/{context.Id}"))" />
+                <AuthorizeView Roles="Admin,Bookkeeper" Context="authCtx">
+                    <MudIconButton Icon="@Icons.Material.Filled.ContentCopy" Size="Size.Small"
+                                   Title="@L["Copy"]"
+                                   OnClick="@(() => OpenCopyDialogAsync(context))" />
+                </AuthorizeView>
+            </MudTd>
+        </RowTemplate>
+    </MudTable>
+}
+
+@code {
+    private bool _loading = true;
+    private List<BudgetSummaryDto> _budgets = [];
+
+    protected override async Task OnInitializedAsync()
+    {
+        var result = await BudgetService.GetAllAsync(CurrentUser.TenantId);
+        _budgets = result.ToList();
+        _loading = false;
+    }
+
+    private async Task OpenCreateDialog()
+    {
+        var dialog = await DialogService.ShowAsync<BudgetCreateDialog>(L["Create_Title"]);
+        var result = await dialog.Result;
+        if (result is { Canceled: false, Data: BudgetSummaryDto created })
+            _budgets.Insert(0, created);
+    }
+
+    private async Task OpenCopyDialogAsync(BudgetSummaryDto source)
+    {
+        var parameters = new DialogParameters<BudgetCopyDialog>
+        {
+            { x => x.SourceBudget, source }
+        };
+        var dialog = await DialogService.ShowAsync<BudgetCopyDialog>(L["Copy_Title"], parameters);
+        var result = await dialog.Result;
+        if (result is { Canceled: false, Data: BudgetSummaryDto copied })
+        {
+            _budgets.Insert(0, copied);
+            _budgets = _budgets.OrderByDescending(b => b.FiscalYear).ToList();
+        }
+    }
+}

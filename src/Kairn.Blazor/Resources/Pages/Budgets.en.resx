@@ -1,7 +1,32 @@
-﻿<?xml version="1.0" encoding="utf-8"?>
+<?xml version="1.0" encoding="utf-8"?>
 <root>
   <resheader name="resmimetype"><value>text/microsoft-resx</value></resheader>
   <resheader name="version"><value>2.0</value></resheader>
   <data name="Title" xml:space="preserve"><value>Budgets</value></data>
-  <data name="ComingSoon" xml:space="preserve"><value>This module is coming soon.</value></data>
+  <data name="NewBudget" xml:space="preserve"><value>New Budget</value></data>
+  <data name="Col_FiscalYear" xml:space="preserve"><value>Fiscal Year</value></data>
+  <data name="Col_Name" xml:space="preserve"><value>Name</value></data>
+  <data name="Col_Status" xml:space="preserve"><value>Status</value></data>
+  <data name="Col_Actions" xml:space="preserve"><value>Actions</value></data>
+  <data name="Edit" xml:space="preserve"><value>Edit</value></data>
+  <data name="Status_Active" xml:space="preserve"><value>Active</value></data>
+  <data name="Status_Inactive" xml:space="preserve"><value>Inactive</value></data>
+  <data name="Empty" xml:space="preserve"><value>No budgets yet. Create your first budget to get started.</value></data>
+  <data name="Create_Title" xml:space="preserve"><value>New Budget</value></data>
+  <data name="Create_Year" xml:space="preserve"><value>Fiscal Year</value></data>
+  <data name="Create_Name" xml:space="preserve"><value>Budget Name</value></data>
+  <data name="Create_Submit" xml:space="preserve"><value>Create</value></data>
+  <data name="Create_Cancel" xml:space="preserve"><value>Cancel</value></data>
+  <data name="Create_ErrDuplicate" xml:space="preserve"><value>A budget for fiscal year {0} already exists.</value></data>
+  <data name="VarianceAnalysis" xml:space="preserve"><value>Variance Analysis</value></data>
+  <data name="YearEndForecast" xml:space="preserve"><value>Year-end Forecast</value></data>
+  <data name="Copy" xml:space="preserve"><value>Copy</value></data>
+  <data name="Copy_Title" xml:space="preserve"><value>Copy Budget</value></data>
+  <data name="Copy_Source" xml:space="preserve"><value>Copying from</value></data>
+  <data name="Copy_Year" xml:space="preserve"><value>Target Fiscal Year</value></data>
+  <data name="Copy_Name" xml:space="preserve"><value>Budget Name</value></data>
+  <data name="Copy_AdjustmentPct" xml:space="preserve"><value>Adjustment (%)</value></data>
+  <data name="Copy_AdjustmentHint" xml:space="preserve"><value>E.g. 5 for +5%, -10 for -10%. Leave at 0 to copy as-is.</value></data>
+  <data name="Copy_Submit" xml:space="preserve"><value>Copy</value></data>
+  <data name="Copy_DefaultName" xml:space="preserve"><value>Budget</value></data>
 </root>

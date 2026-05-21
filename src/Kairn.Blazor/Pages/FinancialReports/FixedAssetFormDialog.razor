@@ -1,0 +1,187 @@
+@inject IFixedAssetService FixedAssetService
+@inject IAccountService AccountService
+@inject ICurrentUserContext CurrentUser
+@inject IStringLocalizer<FixedAssets> L
+
+<MudDialog Style="min-width:600px">
+    <DialogContent>
+        <MudForm @ref="_form" @bind-IsValid="_isValid">
+            <MudStack Spacing="3">
+                @if (_isEdit && Asset!.HasDepreciationPostings)
+                {
+                    <MudAlert Severity="Severity.Warning" Dense="true">@L["EditLocked_Alert"]</MudAlert>
+                }
+                <MudTextField @bind-Value="_name" Label="@L["Field_Name"]"
+                              Required="true" RequiredError="@L["Field_Name"]"
+                              Disabled="@_isEdit" Immediate="true" />
+                <MudTextField @bind-Value="_category" Label="@L["Field_Category"]"
+                              Immediate="true" />
+                <MudDatePicker @bind-Date="_purchaseDateRaw" Label="@L["Field_PurchaseDate"]"
+                               Required="true" Disabled="@_isEdit"
+                               DateFormat="yyyy-MM-dd" />
+                <MudNumericField T="decimal" @bind-Value="_purchaseValue" Label="@L["Field_PurchaseValue"]"
+                                 Required="true" Min="0.01m" Format="N2"
+                                 Disabled="@_isEdit" Immediate="true" />
+                <MudNumericField T="decimal" @bind-Value="_residualValue" Label="@L["Field_ResidualValue"]"
+                                 Min="0" Format="N2"
+                                 Disabled="@_deprecLocked" Immediate="true" />
+                <MudSelect T="DepreciationMethod" @bind-Value="_method" Label="@L["Field_Method"]"
+                           Disabled="@_deprecLocked">
+                    <MudSelectItem Value="DepreciationMethod.StraightLine">@L["Field_Method_SL"]</MudSelectItem>
+                    <MudSelectItem Value="DepreciationMethod.DecliningBalance">@L["Field_Method_DB"]</MudSelectItem>
+                </MudSelect>
+                <MudNumericField T="int" @bind-Value="_usefulLifeYears" Label="@L["Field_UsefulLifeYears"]"
+                                 Required="true" Min="1" Max="100"
+                                 Disabled="@_deprecLocked" Immediate="true" />
+                <MudSelect T="Guid" @bind-Value="_assetAccountId" Label="@L["Field_AssetAccount"]"
+                           Required="true">
+                    @foreach (var acc in _assetAccounts)
+                    {
+                        <MudSelectItem T="Guid" Value="@acc.Id">@acc.Code – @acc.Name</MudSelectItem>
+                    }
+                </MudSelect>
+                <MudSelect T="Guid" @bind-Value="_accumDeprecAccountId" Label="@L["Field_AccumDeprecAccount"]"
+                           Required="true">
+                    @foreach (var acc in _assetAccounts)
+                    {
+                        <MudSelectItem T="Guid" Value="@acc.Id">@acc.Code – @acc.Name</MudSelectItem>
+                    }
+                </MudSelect>
+                <MudSelect T="Guid?" @bind-Value="_deprecExpenseAccountId"
+                           Label="@L["Field_DeprecExpenseAccount"]"
+                           HelperText="@L["Field_DeprecExpenseAccountHint"]"
+                           Clearable="true">
+                    @foreach (var acc in _expenseAccounts)
+                    {
+                        <MudSelectItem T="Guid?" Value="@((Guid?)acc.Id)">@acc.Code – @acc.Name</MudSelectItem>
+                    }
+                </MudSelect>
+                @if (_errorMessage is not null)
+                {
+                    <MudAlert Severity="Severity.Error" Dense="true">@_errorMessage</MudAlert>
+                }
+            </MudStack>
+        </MudForm>
+    </DialogContent>
+    <DialogActions>
+        <MudButton OnClick="Cancel">@L["Cancel"]</MudButton>
+        <MudButton OnClick="Submit" Color="Color.Primary" Variant="Variant.Filled" Disabled="@_saving">
+            @if (_saving)
+            {
+                <MudProgressCircular Size="Size.Small" Indeterminate="true" Class="mr-2" />
+            }
+            @L["Save"]
+        </MudButton>
+    </DialogActions>
+</MudDialog>
+
+@code {
+    [CascadingParameter] private IMudDialogInstance MudDialog { get; set; } = null!;
+    [Parameter] public FixedAssetDto? Asset { get; set; }
+
+    private MudForm _form = null!;
+    private bool _isValid;
+    private bool _saving;
+    private bool _isEdit;
+    private bool _deprecLocked;
+    private string? _errorMessage;
+
+    private string _name              = "";
+    private string? _category;
+    private DateTime? _purchaseDateRaw;
+    private decimal _purchaseValue    = 0m;
+    private decimal _residualValue    = 0m;
+    private DepreciationMethod _method = DepreciationMethod.StraightLine;
+    private int _usefulLifeYears      = 5;
+    private Guid _assetAccountId;
+    private Guid _accumDeprecAccountId;
+    private Guid? _deprecExpenseAccountId;
+
+    private List<Account> _assetAccounts    = [];
+    private List<Account> _expenseAccounts  = [];
+
+    protected override async Task OnInitializedAsync()
+    {
+        var accounts = await AccountService.GetAllAsync(CurrentUser.TenantId);
+        _assetAccounts = accounts
+            .Where(a => a.Type == AccountType.Asset && a.IsActive)
+            .OrderBy(a => a.Code)
+            .ToList();
+        _expenseAccounts = accounts
+            .Where(a => a.Type == AccountType.Expense && a.IsActive)
+            .OrderBy(a => a.Code)
+            .ToList();
+    }
+
+    protected override void OnParametersSet()
+    {
+        _isEdit = Asset is not null;
+        _deprecLocked = _isEdit && Asset!.HasDepreciationPostings;
+
+        if (_isEdit)
+        {
+            _name                   = Asset!.Name;
+            _category               = Asset.Category;
+            _purchaseDateRaw        = Asset.PurchaseDate.ToDateTime(TimeOnly.MinValue);
+            _purchaseValue          = Asset.PurchaseValue;
+            _residualValue          = Asset.ResidualValue;
+            _method                 = Asset.Method;
+            _usefulLifeYears        = Asset.UsefulLifeYears;
+            _assetAccountId         = Asset.AssetAccountId;
+            _accumDeprecAccountId   = Asset.AccumulatedDepreciationAccountId;
+            _deprecExpenseAccountId = Asset.DepreciationExpenseAccountId;
+        }
+    }
+
+    private void Cancel() => MudDialog.Cancel();
+
+    private async Task Submit()
+    {
+        await _form.Validate();
+        if (!_isValid) return;
+
+        _saving = true;
+        _errorMessage = null;
+
+        Result<FixedAssetDto> result;
+
+        if (_isEdit)
+        {
+            result = await FixedAssetService.UpdateAsync(new UpdateFixedAssetCommand(
+                Asset!.Id,
+                CurrentUser.TenantId,
+                string.IsNullOrWhiteSpace(_category) ? null : _category.Trim(),
+                _residualValue,
+                _method,
+                _usefulLifeYears,
+                _assetAccountId,
+                _accumDeprecAccountId,
+                _deprecExpenseAccountId));
+        }
+        else
+        {
+            var purchaseDate = DateOnly.FromDateTime(_purchaseDateRaw!.Value);
+            result = await FixedAssetService.CreateAsync(new CreateFixedAssetCommand(
+                CurrentUser.TenantId,
+                _name.Trim(),
+                string.IsNullOrWhiteSpace(_category) ? null : _category.Trim(),
+                purchaseDate,
+                _purchaseValue,
+                _residualValue,
+                _method,
+                _usefulLifeYears,
+                _assetAccountId,
+                _accumDeprecAccountId,
+                _deprecExpenseAccountId,
+                CurrentUser.UserId,
+                CurrentUser.UserName));
+        }
+
+        _saving = false;
+
+        if (result.IsSuccess)
+            MudDialog.Close(DialogResult.Ok(result.Value));
+        else
+            _errorMessage = result.Error;
+    }
+}

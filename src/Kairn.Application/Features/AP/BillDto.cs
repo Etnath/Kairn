@@ -33,7 +33,8 @@ public record BillDto(
     decimal GrandTotal,
     decimal AmountPaid,
     IReadOnlyList<BillLineDto> Lines,
-    bool HasAttachment)
+    bool HasAttachment,
+    string? RejectionReason = null)
 {
     public decimal Outstanding => GrandTotal - AmountPaid;
 }
@@ -52,7 +53,11 @@ public record BillQuery(
     int PageSize = 25,
     Guid? VendorId = null,
     BillStatus? Status = null,
-    bool ExcludeClosedStatuses = false);
+    bool ExcludeClosedStatuses = false,
+    DateOnly? DueDateFrom = null,
+    DateOnly? DueDateTo = null,
+    string? SortBy = null,
+    bool SortDescending = true);
 
 public record CreateBillCommand(
     Guid TenantId,
@@ -93,3 +98,10 @@ public record VoidBillCommand(
     Guid TenantId,
     string PostedByUserId,
     string PostedByName);
+
+public record RejectBillCommand(
+    Guid Id,
+    Guid TenantId,
+    string RejectionReason,
+    string RejectedByUserId,
+    string RejectedByName);

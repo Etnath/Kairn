@@ -1,0 +1,57 @@
+@inject IStringLocalizer<Bills> L
+@inject IBillService BillService
+@inject ICurrentUserContext CurrentUser
+
+<MudDialog>
+    <TitleContent>@L["Reject_Title"]</TitleContent>
+    <DialogContent>
+        <MudTextField @bind-Value="_reason"
+                      Label="@L["Reject_Reason"]"
+                      Lines="3"
+                      Required="true"
+                      RequiredError="@L["Reject_ReasonRequired"]"
+                      Immediate="true" />
+        @if (_error is not null)
+        {
+            <MudAlert Severity="Severity.Error" Dense="true" Class="mt-3">@_error</MudAlert>
+        }
+    </DialogContent>
+    <DialogActions>
+        <MudButton OnClick="Cancel">@L["Cancel"]</MudButton>
+        <MudButton Color="Color.Error" Variant="Variant.Filled"
+                   OnClick="Submit"
+                   Disabled="@(_saving || string.IsNullOrWhiteSpace(_reason))">
+            @if (_saving)
+            {
+                <MudProgressCircular Size="Size.Small" Indeterminate="true" Class="mr-2" />
+            }
+            @L["Reject_Submit"]
+        </MudButton>
+    </DialogActions>
+</MudDialog>
+
+@code {
+    [CascadingParameter] IMudDialogInstance MudDialog { get; set; } = null!;
+    [Parameter] public Guid BillId { get; set; }
+
+    private string _reason = "";
+    private bool _saving;
+    private string? _error;
+
+    private void Cancel() => MudDialog.Cancel();
+
+    private async Task Submit()
+    {
+        if (string.IsNullOrWhiteSpace(_reason)) return;
+        _saving = true;
+        _error = null;
+        var result = await BillService.RejectAsync(new RejectBillCommand(
+            BillId, CurrentUser.TenantId, _reason,
+            CurrentUser.UserId, CurrentUser.UserName));
+        _saving = false;
+        if (result.IsSuccess)
+            MudDialog.Close(DialogResult.Ok(true));
+        else
+            _error = result.Error;
+    }
+}

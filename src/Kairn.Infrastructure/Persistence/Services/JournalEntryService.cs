@@ -203,6 +203,11 @@ public class JournalEntryService(AppDbContext db) : IJournalEntryService
         var validationError = ValidateLines(cmd.Lines);
         if (validationError is not null) return Result<JournalEntryDto>.Fail(validationError);
 
+        var yearClosed = await db.FiscalYearCloses
+            .AnyAsync(x => x.TenantId == cmd.TenantId && x.FiscalYear == cmd.Date.Year, ct);
+        if (yearClosed)
+            return Result<JournalEntryDto>.Fail($"Fiscal year {cmd.Date.Year} is closed. No new entries can be posted for that year.");
+
         var reference = await GenerateReferenceAsync(cmd.TenantId, cmd.Date, ct);
         var now = DateTimeOffset.UtcNow;
 
@@ -251,6 +256,11 @@ public class JournalEntryService(AppDbContext db) : IJournalEntryService
         if (entry is null) return Result<JournalEntryDto>.Fail("Journal entry not found.");
         if (entry.IsLocked) return Result<JournalEntryDto>.Fail("Journal entry is locked and cannot be edited.");
 
+        var yearClosed = await db.FiscalYearCloses
+            .AnyAsync(x => x.TenantId == cmd.TenantId && x.FiscalYear == entry.Date.Year, ct);
+        if (yearClosed)
+            return Result<JournalEntryDto>.Fail($"Fiscal year {entry.Date.Year} is closed. This entry cannot be edited.");
+
         var validationError = ValidateLines(cmd.Lines);
         if (validationError is not null) return Result<JournalEntryDto>.Fail(validationError);
 
@@ -290,6 +300,11 @@ public class JournalEntryService(AppDbContext db) : IJournalEntryService
 
         if (entry is null) return Result.Fail("Journal entry not found.");
         if (entry.IsLocked) return Result.Fail("This entry is in a locked period.");
+
+        var yearClosed = await db.FiscalYearCloses
+            .AnyAsync(x => x.TenantId == tenantId && x.FiscalYear == entry.Date.Year, ct);
+        if (yearClosed)
+            return Result.Fail($"Fiscal year {entry.Date.Year} is closed. This entry cannot be deleted.");
 
         entry.IsDeleted = true;
         await db.SaveChangesAsync(ct);

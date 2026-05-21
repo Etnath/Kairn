@@ -2,9 +2,13 @@ using Fluxor;
 using Kairn.Application.Common;
 using Kairn.Application.Features.AP;
 using Kairn.Application.Features.AR;
+using Kairn.Application.Features.FixedAssets;
+using Kairn.Application.Features.Equity;
 using Kairn.Application.Features.Audit;
 using Kairn.Application.Features.Reconciliation;
 using Kairn.Application.Features.Reports;
+using Kairn.Application.Features.Budgets;
+using Kairn.Application.Features.Dashboard;
 using Kairn.Application.Features.GL;
 using Kairn.Infrastructure.Email;
 using Kairn.Infrastructure.Jobs;
@@ -19,6 +23,7 @@ using Kairn.Blazor.Services;
 using Microsoft.AspNetCore.Identity;
 using Microsoft.AspNetCore.Localization;
 using Microsoft.EntityFrameworkCore;
+using ApexCharts;
 using MudBlazor;
 using MudBlazor.Services;
 using Serilog;
@@ -56,14 +61,16 @@ try
     {
         builder.Services.AddDbContext<AppDbContext>((sp, options) =>
             options.UseSqlite(builder.Configuration.GetConnectionString("Default") ?? "Data Source=kairn.db")
-                   .AddInterceptors(sp.GetRequiredService<AuditLogInterceptor>()));
+                   .AddInterceptors(sp.GetRequiredService<AuditLogInterceptor>())
+                   .ConfigureWarnings(w => w.Ignore(Microsoft.EntityFrameworkCore.Diagnostics.RelationalEventId.PendingModelChangesWarning)));
     }
     else
     {
         builder.Services.AddDbContext<AppDbContext>((sp, options) =>
             options.UseNpgsql(builder.Configuration.GetConnectionString("Default"),
                        npgsql => npgsql.EnableRetryOnFailure(3).CommandTimeout(60))
-                   .AddInterceptors(sp.GetRequiredService<AuditLogInterceptor>()));
+                   .AddInterceptors(sp.GetRequiredService<AuditLogInterceptor>())
+                   .ConfigureWarnings(w => w.Ignore(Microsoft.EntityFrameworkCore.Diagnostics.RelationalEventId.PendingModelChangesWarning)));
     }
 
     // ── Identity ─────────────────────────────────────────────────────────────
@@ -102,6 +109,9 @@ try
         config.SnackbarConfiguration.ShowCloseIcon = true;
     });
 
+    // ── ApexCharts ───────────────────────────────────────────────────────────
+    builder.Services.AddApexCharts();
+
     // ── Fluxor ───────────────────────────────────────────────────────────────
     builder.Services.AddFluxor(options =>
         options.ScanAssemblies(typeof(Program).Assembly));
@@ -115,6 +125,11 @@ try
     builder.Services.AddScoped<ICustomerService, CustomerService>();
     builder.Services.AddScoped<IVendorService, VendorService>();
     builder.Services.AddScoped<IBillService, BillService>();
+    builder.Services.AddScoped<IBillPaymentService, BillPaymentService>();
+    builder.Services.AddScoped<IApSettingsService, ApSettingsService>();
+    builder.Services.AddScoped<IExpenseReportService, ExpenseReportService>();
+    builder.Services.AddScoped<IApAgingService, ApAgingService>();
+    builder.Services.AddSingleton<IApAgingExporter, ApAgingExporter>();
     builder.Services.AddScoped<IInvoiceService, InvoiceService>();
     builder.Services.AddScoped<IInvoicePaymentService, InvoicePaymentService>();
     builder.Services.AddScoped<IArAgingService, ArAgingService>();
@@ -129,11 +144,22 @@ try
     builder.Services.AddSingleton<ICsvParser, CsvParser>();
     builder.Services.AddScoped<ITrialBalanceService, TrialBalanceService>();
     builder.Services.AddSingleton<ITrialBalanceExporter, TrialBalanceExporter>();
+    builder.Services.AddScoped<IPnlService, PnlService>();
+    builder.Services.AddSingleton<IPnlExporter, PnlExporter>();
+    builder.Services.AddScoped<IBsService, BsService>();
+    builder.Services.AddScoped<IBudgetService, BudgetService>();
+    builder.Services.AddSingleton<IBsExporter, BsExporter>();
+    builder.Services.AddScoped<IFixedAssetService, FixedAssetService>();
+    builder.Services.AddScoped<IDashboardService, DashboardService>();
+    builder.Services.AddScoped<IDashboardSettingsService, DashboardSettingsService>();
+    builder.Services.AddScoped<IUserDashboardPreferencesService, UserDashboardPreferencesService>();
+    builder.Services.AddScoped<IFiscalYearCloseService, FiscalYearCloseService>();
     builder.Services.AddScoped<IRecurringEntryService, RecurringEntryService>();
     builder.Services.AddHostedService<RecurringPostingJob>();
     builder.Services.AddHostedService<OverdueInvoiceJob>();
     builder.Services.AddScoped<IExchangeRateService, ExchangeRateService>();
     builder.Services.AddHostedService<ExchangeRateRefreshJob>();
+    builder.Services.AddHostedService<DepreciationJob>();
     builder.Services.AddHttpClient("Frankfurter", client =>
     {
         client.Timeout = TimeSpan.FromSeconds(10);
@@ -197,6 +223,14 @@ try
     {
         // Attachment ID unknown here – serve the first attachment for this bill
         var result = await billSvc.DownloadAttachmentAsync(billId, Guid.Empty, user.TenantId);
+        if (result is null) return Results.NotFound();
+        return Results.File(result.Value.Data, result.Value.ContentType, result.Value.FileName);
+    }).RequireAuthorization();
+
+    // Expense report receipt download endpoint
+    app.MapGet("/api/expense-reports/lines/{lineId:guid}/receipt", async (Guid lineId, IExpenseReportService svc, ICurrentUserContext user) =>
+    {
+        var result = await svc.DownloadReceiptAsync(lineId, user.TenantId);
         if (result is null) return Results.NotFound();
         return Results.File(result.Value.Data, result.Value.ContentType, result.Value.FileName);
     }).RequireAuthorization();

@@ -1,0 +1,686 @@
+@page "/reports/balance-sheet"
+@attribute [Authorize]
+@inject IStringLocalizer<BalanceSheet> L
+@inject IBsService BsService
+@inject IBsExporter BsExporter
+@inject IFiscalYearCloseService FiscalYearCloseService
+@inject IDialogService DialogService
+@inject ISnackbar Snackbar
+@inject IJSRuntime JS
+@inject ICurrentUserContext CurrentUser
+
+<PageTitle>@L["Title"] – Kairn</PageTitle>
+
+<MudStack Row="true" AlignItems="AlignItems.Center" Class="mb-6" Spacing="2">
+    <MudIconButton Icon="@Icons.Material.Filled.ArrowBack" Href="/reports" />
+    <MudText Typo="Typo.h5">@L["Title"]</MudText>
+</MudStack>
+
+@* Controls *@
+<MudPaper Class="pa-4 mb-4" Elevation="1">
+    <MudStack Row="true" AlignItems="AlignItems.End" Spacing="3" Wrap="Wrap.Wrap">
+        <MudDatePicker Label="@L["AsOf"]"
+                       Date="_asOf" DateChanged="OnAsOfChanged"
+                       DateFormat="dd/MM/yyyy" MaxDate="DateTime.Today"
+                       Style="max-width:180px" />
+        <MudSwitch @bind-Value="_hideZero" Label="@L["HideZero"]" Color="Color.Primary" />
+        <MudSwitch Value="_compareEnabled"
+                   ValueChanged="@((bool v) => { _compareEnabled = v; })"
+                   Label="@L["Compare"]" Color="Color.Secondary" />
+        <MudSpacer />
+        <MudButton Variant="Variant.Filled" Color="Color.Primary"
+                   StartIcon="@Icons.Material.Filled.Refresh"
+                   OnClick="GenerateAsync" Disabled="_loading">
+            @L["Generate"]
+        </MudButton>
+        @if (_report is not null)
+        {
+            <MudButton Variant="Variant.Outlined" Color="Color.Primary"
+                       StartIcon="@Icons.Material.Filled.PictureAsPdf"
+                       OnClick="ExportPdfAsync" Disabled="_loading">
+                @L["ExportPdf"]
+            </MudButton>
+            <MudButton Variant="Variant.Outlined" Color="Color.Primary"
+                       StartIcon="@Icons.Material.Filled.TableChart"
+                       OnClick="ExportCsvAsync" Disabled="_loading">
+                @L["ExportCsv"]
+            </MudButton>
+        }
+        <AuthorizeView Roles="Admin">
+            <MudButton Variant="Variant.Outlined" Color="Color.Warning"
+                       StartIcon="@Icons.Material.Filled.Lock"
+                       OnClick="OpenCloseYearDialogAsync" Disabled="_loading">
+                @L["CloseYear"]
+            </MudButton>
+        </AuthorizeView>
+    </MudStack>
+
+    @if (_compareEnabled)
+    {
+        <MudDivider Class="my-3" />
+        <MudStack Row="true" AlignItems="AlignItems.End" Spacing="3" Wrap="Wrap.Wrap">
+            <MudDatePicker Label="@L["CompareDate"]"
+                           Date="_compareAsOf" DateChanged="OnCompareAsOfChanged"
+                           DateFormat="dd/MM/yyyy" MaxDate="DateTime.Today"
+                           Style="max-width:180px" />
+        </MudStack>
+    }
+</MudPaper>
+
+@if (_closedYears.Count > 0)
+{
+    <MudAlert Severity="Severity.Info" Class="mb-3" Icon="@Icons.Material.Filled.Lock" Dense="true">
+        @string.Format(L["ClosedYears"].Value, string.Join(", ", _closedYears))
+    </MudAlert>
+}
+
+@if (_loading)
+{
+    <MudProgressLinear Indeterminate="true" Color="Color.Primary" Class="mb-4" />
+}
+
+@if (_report is not null)
+{
+    @if (!_report.IsBalanced || (_report.HasComparison && !_report.Comparison!.IsBalanced))
+    {
+        <MudAlert Severity="Severity.Error" Class="mb-4">@L["UnbalancedWarning"]</MudAlert>
+    }
+
+    <MudPaper Class="pa-4" Elevation="0">
+
+        @if (_report.HasComparison)
+        {
+            @* ── Comparison mode ────────────────────────────────────────── *@
+            var cmp = _report.Comparison!;
+
+            @* Column headers *@
+            <div style="display:flex;align-items:center;padding:4px 0;border-bottom:2px solid #CCC;margin-bottom:8px">
+                <span style="min-width:80px"></span>
+                <span style="flex:1"></span>
+                <span style="min-width:110px;text-align:right;font-size:0.75rem;font-weight:600;color:#555">
+                    @_report.AsOf.ToString("dd/MM/yy")
+                </span>
+                <span style="min-width:110px;text-align:right;font-size:0.75rem;font-weight:600;color:#999">
+                    @cmp.AsOf.ToString("dd/MM/yy")
+                </span>
+                <span style="min-width:110px;text-align:right;font-size:0.75rem;font-weight:600;color:#555">
+                    @L["Col_Movement"]
+                </span>
+            </div>
+
+            @* ══ ASSETS ══ *@
+            <MudText Typo="Typo.h6" Class="mb-2" Style="text-transform:uppercase;letter-spacing:.06em">
+                @L["Section_Assets"]
+            </MudText>
+            <MudDivider Class="mb-3" />
+
+            var cmpCurA  = MergeLines(_report.AssetLines.Where(l => l.IsCurrent).ToList(),  cmp.AssetLines.Where(l => l.IsCurrent).ToList());
+            var cmpNonA  = MergeLines(_report.AssetLines.Where(l => !l.IsCurrent).ToList(), cmp.AssetLines.Where(l => !l.IsCurrent).ToList());
+
+            @if (cmpCurA.Count > 0)
+            {
+                <div class="mb-3">
+                    <MudText Typo="Typo.subtitle2" Class="mt-2 mb-1" Style="color:#555;font-weight:600">@L["Sub_CurrentAssets"]</MudText>
+                    @foreach (var ml in cmpCurA)
+                    {
+                        var mov = ml.Primary - ml.Comp;
+                        <div style="display:flex;align-items:center;padding:3px 0;border-bottom:1px solid #F0F0F0">
+                            <span style="min-width:80px;font-size:0.8125rem;color:#999">@ml.Code</span>
+                            <span style="flex:1;font-size:0.8125rem">@ml.Name</span>
+                            <span style="min-width:110px;text-align:right;font-size:0.8125rem;font-variant-numeric:tabular-nums">@ml.Primary.ToString("N2")</span>
+                            <span style="min-width:110px;text-align:right;font-size:0.8125rem;font-variant-numeric:tabular-nums;color:#999">@ml.Comp.ToString("N2")</span>
+                            <span style="min-width:110px;text-align:right;font-size:0.8125rem;font-variant-numeric:tabular-nums;color:@AssetMovColour(mov)">@mov.ToString("N2")</span>
+                        </div>
+                    }
+                    @{ var subP = _report.TotalCurrentAssets; var subC = cmp.TotalCurrentAssets; var subMov = subP - subC; }
+                    <div style="display:flex;align-items:center;padding:4px 0;border-top:1px solid #CCC;margin-top:2px">
+                        <span style="flex:1;font-size:0.8125rem;font-weight:600">@L["Total_CurrentAssets"]</span>
+                        <span style="min-width:110px;text-align:right;font-size:0.8125rem;font-variant-numeric:tabular-nums;font-weight:600">@subP.ToString("N2")</span>
+                        <span style="min-width:110px;text-align:right;font-size:0.8125rem;font-variant-numeric:tabular-nums;font-weight:600;color:#999">@subC.ToString("N2")</span>
+                        <span style="min-width:110px;text-align:right;font-size:0.8125rem;font-variant-numeric:tabular-nums;font-weight:600;color:@AssetMovColour(subMov)">@subMov.ToString("N2")</span>
+                    </div>
+                </div>
+            }
+
+            @if (cmpNonA.Count > 0)
+            {
+                <div class="mb-3">
+                    <MudText Typo="Typo.subtitle2" Class="mt-2 mb-1" Style="color:#555;font-weight:600">@L["Sub_NonCurrentAssets"]</MudText>
+                    @foreach (var ml in cmpNonA)
+                    {
+                        var mov = ml.Primary - ml.Comp;
+                        <div style="display:flex;align-items:center;padding:3px 0;border-bottom:1px solid #F0F0F0">
+                            <span style="min-width:80px;font-size:0.8125rem;color:#999">@ml.Code</span>
+                            <span style="flex:1;font-size:0.8125rem">@ml.Name</span>
+                            <span style="min-width:110px;text-align:right;font-size:0.8125rem;font-variant-numeric:tabular-nums">@ml.Primary.ToString("N2")</span>
+                            <span style="min-width:110px;text-align:right;font-size:0.8125rem;font-variant-numeric:tabular-nums;color:#999">@ml.Comp.ToString("N2")</span>
+                            <span style="min-width:110px;text-align:right;font-size:0.8125rem;font-variant-numeric:tabular-nums;color:@AssetMovColour(mov)">@mov.ToString("N2")</span>
+                        </div>
+                    }
+                    @{ var subP2 = _report.TotalNonCurrentAssets; var subC2 = cmp.TotalNonCurrentAssets; var subMov2 = subP2 - subC2; }
+                    <div style="display:flex;align-items:center;padding:4px 0;border-top:1px solid #CCC;margin-top:2px">
+                        <span style="flex:1;font-size:0.8125rem;font-weight:600">@L["Total_NonCurrentAssets"]</span>
+                        <span style="min-width:110px;text-align:right;font-size:0.8125rem;font-variant-numeric:tabular-nums;font-weight:600">@subP2.ToString("N2")</span>
+                        <span style="min-width:110px;text-align:right;font-size:0.8125rem;font-variant-numeric:tabular-nums;font-weight:600;color:#999">@subC2.ToString("N2")</span>
+                        <span style="min-width:110px;text-align:right;font-size:0.8125rem;font-variant-numeric:tabular-nums;font-weight:600;color:@AssetMovColour(subMov2)">@subMov2.ToString("N2")</span>
+                    </div>
+                </div>
+            }
+
+            var aTotMov = _report.TotalAssets - cmp.TotalAssets;
+            <div class="my-3 pa-3" style="@($"background:#F8F8F8;border-left:4px solid {SignedColour(_report.TotalAssets)};padding:12px")">
+                <div style="display:flex;align-items:center">
+                    <span style="flex:1;font-size:1rem;font-weight:700;color:@SignedColour(_report.TotalAssets)">@L["Total_Assets"]</span>
+                    <span style="min-width:110px;text-align:right;font-variant-numeric:tabular-nums;font-weight:700;color:@SignedColour(_report.TotalAssets)">@_report.TotalAssets.ToString("N2")</span>
+                    <span style="min-width:110px;text-align:right;font-variant-numeric:tabular-nums;font-weight:700;color:#999">@cmp.TotalAssets.ToString("N2")</span>
+                    <span style="min-width:110px;text-align:right;font-variant-numeric:tabular-nums;font-weight:700;color:@AssetMovColour(aTotMov)">@aTotMov.ToString("N2")</span>
+                </div>
+            </div>
+
+            @* ══ LIABILITIES ══ *@
+            <MudText Typo="Typo.h6" Class="mt-6 mb-2" Style="text-transform:uppercase;letter-spacing:.06em">
+                @L["Section_Liabilities"]
+            </MudText>
+            <MudDivider Class="mb-3" />
+
+            var cmpCurL  = MergeLines(_report.LiabilityLines.Where(l => l.IsCurrent).ToList(),  cmp.LiabilityLines.Where(l => l.IsCurrent).ToList());
+            var cmpNonL  = MergeLines(_report.LiabilityLines.Where(l => !l.IsCurrent).ToList(), cmp.LiabilityLines.Where(l => !l.IsCurrent).ToList());
+
+            @if (cmpCurL.Count > 0)
+            {
+                <div class="mb-3">
+                    <MudText Typo="Typo.subtitle2" Class="mt-2 mb-1" Style="color:#555;font-weight:600">@L["Sub_CurrentLiabilities"]</MudText>
+                    @foreach (var ml in cmpCurL)
+                    {
+                        var mov = ml.Primary - ml.Comp;
+                        <div style="display:flex;align-items:center;padding:3px 0;border-bottom:1px solid #F0F0F0">
+                            <span style="min-width:80px;font-size:0.8125rem;color:#999">@ml.Code</span>
+                            <span style="flex:1;font-size:0.8125rem">@ml.Name</span>
+                            <span style="min-width:110px;text-align:right;font-size:0.8125rem;font-variant-numeric:tabular-nums">@ml.Primary.ToString("N2")</span>
+                            <span style="min-width:110px;text-align:right;font-size:0.8125rem;font-variant-numeric:tabular-nums;color:#999">@ml.Comp.ToString("N2")</span>
+                            <span style="min-width:110px;text-align:right;font-size:0.8125rem;font-variant-numeric:tabular-nums">@mov.ToString("N2")</span>
+                        </div>
+                    }
+                    @{ var subP3 = _report.TotalCurrentLiabilities; var subC3 = cmp.TotalCurrentLiabilities; var subMov3 = subP3 - subC3; }
+                    <div style="display:flex;align-items:center;padding:4px 0;border-top:1px solid #CCC;margin-top:2px">
+                        <span style="flex:1;font-size:0.8125rem;font-weight:600">@L["Total_CurrentLiabilities"]</span>
+                        <span style="min-width:110px;text-align:right;font-size:0.8125rem;font-variant-numeric:tabular-nums;font-weight:600">@subP3.ToString("N2")</span>
+                        <span style="min-width:110px;text-align:right;font-size:0.8125rem;font-variant-numeric:tabular-nums;font-weight:600;color:#999">@subC3.ToString("N2")</span>
+                        <span style="min-width:110px;text-align:right;font-size:0.8125rem;font-variant-numeric:tabular-nums;font-weight:600">@subMov3.ToString("N2")</span>
+                    </div>
+                </div>
+            }
+
+            @if (cmpNonL.Count > 0)
+            {
+                <div class="mb-3">
+                    <MudText Typo="Typo.subtitle2" Class="mt-2 mb-1" Style="color:#555;font-weight:600">@L["Sub_NonCurrentLiabilities"]</MudText>
+                    @foreach (var ml in cmpNonL)
+                    {
+                        var mov = ml.Primary - ml.Comp;
+                        <div style="display:flex;align-items:center;padding:3px 0;border-bottom:1px solid #F0F0F0">
+                            <span style="min-width:80px;font-size:0.8125rem;color:#999">@ml.Code</span>
+                            <span style="flex:1;font-size:0.8125rem">@ml.Name</span>
+                            <span style="min-width:110px;text-align:right;font-size:0.8125rem;font-variant-numeric:tabular-nums">@ml.Primary.ToString("N2")</span>
+                            <span style="min-width:110px;text-align:right;font-size:0.8125rem;font-variant-numeric:tabular-nums;color:#999">@ml.Comp.ToString("N2")</span>
+                            <span style="min-width:110px;text-align:right;font-size:0.8125rem;font-variant-numeric:tabular-nums">@mov.ToString("N2")</span>
+                        </div>
+                    }
+                    @{ var subP4 = _report.TotalNonCurrentLiabilities; var subC4 = cmp.TotalNonCurrentLiabilities; var subMov4 = subP4 - subC4; }
+                    <div style="display:flex;align-items:center;padding:4px 0;border-top:1px solid #CCC;margin-top:2px">
+                        <span style="flex:1;font-size:0.8125rem;font-weight:600">@L["Total_NonCurrentLiabilities"]</span>
+                        <span style="min-width:110px;text-align:right;font-size:0.8125rem;font-variant-numeric:tabular-nums;font-weight:600">@subP4.ToString("N2")</span>
+                        <span style="min-width:110px;text-align:right;font-size:0.8125rem;font-variant-numeric:tabular-nums;font-weight:600;color:#999">@subC4.ToString("N2")</span>
+                        <span style="min-width:110px;text-align:right;font-size:0.8125rem;font-variant-numeric:tabular-nums;font-weight:600">@subMov4.ToString("N2")</span>
+                    </div>
+                </div>
+            }
+
+            var lTotMov = _report.TotalLiabilities - cmp.TotalLiabilities;
+            <div class="my-3" style="background:#F8F8F8;border-left:4px solid #8C8980;padding:12px">
+                <div style="display:flex;align-items:center">
+                    <span style="flex:1;font-size:1rem;font-weight:700">@L["Total_Liabilities"]</span>
+                    <span style="min-width:110px;text-align:right;font-variant-numeric:tabular-nums;font-weight:700">@_report.TotalLiabilities.ToString("N2")</span>
+                    <span style="min-width:110px;text-align:right;font-variant-numeric:tabular-nums;font-weight:700;color:#999">@cmp.TotalLiabilities.ToString("N2")</span>
+                    <span style="min-width:110px;text-align:right;font-variant-numeric:tabular-nums;font-weight:700">@lTotMov.ToString("N2")</span>
+                </div>
+            </div>
+
+            @* ══ EQUITY ══ *@
+            <MudText Typo="Typo.h6" Class="mt-6 mb-2" Style="text-transform:uppercase;letter-spacing:.06em">
+                @L["Section_Equity"]
+            </MudText>
+            <MudDivider Class="mb-3" />
+
+            var cmpEq = MergeLines(_report.EquityLines, cmp.EquityLines);
+            @if (cmpEq.Count > 0)
+            {
+                <div class="mb-3">
+                    <MudText Typo="Typo.subtitle2" Class="mt-2 mb-1" Style="color:#555;font-weight:600">@L["Sub_ShareCapital"]</MudText>
+                    @foreach (var ml in cmpEq)
+                    {
+                        var mov = ml.Primary - ml.Comp;
+                        <div style="display:flex;align-items:center;padding:3px 0;border-bottom:1px solid #F0F0F0">
+                            <span style="min-width:80px;font-size:0.8125rem;color:#999">@ml.Code</span>
+                            <span style="flex:1;font-size:0.8125rem">@ml.Name</span>
+                            <span style="min-width:110px;text-align:right;font-size:0.8125rem;font-variant-numeric:tabular-nums">@ml.Primary.ToString("N2")</span>
+                            <span style="min-width:110px;text-align:right;font-size:0.8125rem;font-variant-numeric:tabular-nums;color:#999">@ml.Comp.ToString("N2")</span>
+                            <span style="min-width:110px;text-align:right;font-size:0.8125rem;font-variant-numeric:tabular-nums">@mov.ToString("N2")</span>
+                        </div>
+                    }
+                    @{ var scP = _report.TotalShareCapital; var scC = cmp.TotalShareCapital; var scMov = scP - scC; }
+                    <div style="display:flex;align-items:center;padding:4px 0;border-top:1px solid #CCC;margin-top:2px">
+                        <span style="flex:1;font-size:0.8125rem;font-weight:600">@L["Total_ShareCapital"]</span>
+                        <span style="min-width:110px;text-align:right;font-size:0.8125rem;font-variant-numeric:tabular-nums;font-weight:600">@scP.ToString("N2")</span>
+                        <span style="min-width:110px;text-align:right;font-size:0.8125rem;font-variant-numeric:tabular-nums;font-weight:600;color:#999">@scC.ToString("N2")</span>
+                        <span style="min-width:110px;text-align:right;font-size:0.8125rem;font-variant-numeric:tabular-nums;font-weight:600">@scMov.ToString("N2")</span>
+                    </div>
+                </div>
+            }
+
+            var reMov = _report.RetainedEarnings - cmp.RetainedEarnings;
+            <div style="display:flex;align-items:center;padding:3px 0;border-bottom:1px solid #F0F0F0">
+                <span style="min-width:80px;font-size:0.8125rem;color:#999"></span>
+                <span style="flex:1;font-size:0.8125rem">@L["RetainedEarnings"]</span>
+                <span style="min-width:110px;text-align:right;font-size:0.8125rem;font-variant-numeric:tabular-nums;color:@SignedColour(_report.RetainedEarnings)">@_report.RetainedEarnings.ToString("N2")</span>
+                <span style="min-width:110px;text-align:right;font-size:0.8125rem;font-variant-numeric:tabular-nums;color:#999">@cmp.RetainedEarnings.ToString("N2")</span>
+                <span style="min-width:110px;text-align:right;font-size:0.8125rem;font-variant-numeric:tabular-nums">@reMov.ToString("N2")</span>
+            </div>
+
+            var cyeMov = _report.CurrentYearEarnings - cmp.CurrentYearEarnings;
+            <div style="display:flex;align-items:center;padding:3px 0;border-bottom:1px solid #F0F0F0">
+                <span style="min-width:80px;font-size:0.8125rem;color:#999"></span>
+                <span style="flex:1;font-size:0.8125rem">@L["CurrentYearEarnings"]</span>
+                <span style="min-width:110px;text-align:right;font-size:0.8125rem;font-variant-numeric:tabular-nums;color:@SignedColour(_report.CurrentYearEarnings)">@_report.CurrentYearEarnings.ToString("N2")</span>
+                <span style="min-width:110px;text-align:right;font-size:0.8125rem;font-variant-numeric:tabular-nums;color:#999">@cmp.CurrentYearEarnings.ToString("N2")</span>
+                <span style="min-width:110px;text-align:right;font-size:0.8125rem;font-variant-numeric:tabular-nums">@cyeMov.ToString("N2")</span>
+            </div>
+
+            var eqMov = _report.TotalEquity - cmp.TotalEquity;
+            <div class="my-3" style="@($"background:#F8F8F8;border-left:4px solid {SignedColour(_report.TotalEquity)};padding:12px")">
+                <div style="display:flex;align-items:center">
+                    <span style="flex:1;font-size:1rem;font-weight:700;color:@SignedColour(_report.TotalEquity)">@L["Total_Equity"]</span>
+                    <span style="min-width:110px;text-align:right;font-variant-numeric:tabular-nums;font-weight:700;color:@SignedColour(_report.TotalEquity)">@_report.TotalEquity.ToString("N2")</span>
+                    <span style="min-width:110px;text-align:right;font-variant-numeric:tabular-nums;font-weight:700;color:#999">@cmp.TotalEquity.ToString("N2")</span>
+                    <span style="min-width:110px;text-align:right;font-variant-numeric:tabular-nums;font-weight:700">@eqMov.ToString("N2")</span>
+                </div>
+            </div>
+
+            @* ── Balance checks for both dates ── *@
+            <MudDivider Class="mt-4 mb-2" />
+
+            var liabEqP = _report.TotalLiabilities + _report.TotalEquity;
+            <MudPaper Elevation="1" Class="mb-2 pa-3"
+                      Style="@($"background:#FAFAFA;border-left:6px solid {(_report.IsBalanced ? "#1F6040" : "#7E2A14")}")">
+                <MudText Typo="Typo.body2"
+                         Style="@($"font-weight:600;color:{(_report.IsBalanced ? "#1F6040" : "#7E2A14")}")">
+                    @if (_report.IsBalanced)
+                    {
+                        @string.Format(L["Balance_CompareOk"].Value, _report.AsOf.ToString("dd/MM/yyyy"), liabEqP.ToString("N2"))
+                    }
+                    else
+                    {
+                        @string.Format(L["Balance_CompareFail"].Value, _report.AsOf.ToString("dd/MM/yyyy"), _report.TotalAssets.ToString("N2"), liabEqP.ToString("N2"))
+                    }
+                </MudText>
+            </MudPaper>
+
+            var liabEqC = cmp.TotalLiabilities + cmp.TotalEquity;
+            <MudPaper Elevation="1" Class="mb-2 pa-3"
+                      Style="@($"background:#FAFAFA;border-left:6px solid {(cmp.IsBalanced ? "#1F6040" : "#7E2A14")}")">
+                <MudText Typo="Typo.body2"
+                         Style="@($"font-weight:600;color:{(cmp.IsBalanced ? "#1F6040" : "#7E2A14")}")">
+                    @if (cmp.IsBalanced)
+                    {
+                        @string.Format(L["Balance_CompareOk"].Value, cmp.AsOf.ToString("dd/MM/yyyy"), liabEqC.ToString("N2"))
+                    }
+                    else
+                    {
+                        @string.Format(L["Balance_CompareFail"].Value, cmp.AsOf.ToString("dd/MM/yyyy"), cmp.TotalAssets.ToString("N2"), liabEqC.ToString("N2"))
+                    }
+                </MudText>
+            </MudPaper>
+        }
+        else
+        {
+            @* ── Single-date mode (existing layout) ─────────────────────── *@
+
+            @* ══════════════════════════════════════════════════════════════
+               ASSETS
+               ══════════════════════════════════════════════════════════════ *@
+            <MudText Typo="Typo.h6" Class="mb-2" Style="text-transform:uppercase;letter-spacing:.06em">
+                @L["Section_Assets"]
+            </MudText>
+            <MudDivider Class="mb-3" />
+
+            var currentAssets    = _report.AssetLines.Where(l => l.IsCurrent).ToList();
+            var nonCurrentAssets = _report.AssetLines.Where(l => !l.IsCurrent).ToList();
+
+            @if (currentAssets.Count > 0)
+            {
+                <div class="mb-3">
+                    <MudText Typo="Typo.subtitle2" Class="mt-2 mb-1" Style="color:#555;font-weight:600">
+                        @L["Sub_CurrentAssets"]
+                    </MudText>
+                    @foreach (var line in currentAssets)
+                    {
+                        <MudStack Row="true" AlignItems="AlignItems.Center" Style="padding:3px 0;border-bottom:1px solid #F0F0F0">
+                            <MudText Typo="Typo.body2" Style="min-width:80px;color:#999">@line.Code</MudText>
+                            <MudText Typo="Typo.body2" Style="flex:1">@line.Name</MudText>
+                            <MudText Typo="Typo.body2" Style="min-width:130px;text-align:right;font-variant-numeric:tabular-nums">
+                                @line.Balance.ToString("N2")
+                            </MudText>
+                        </MudStack>
+                    }
+                    <MudStack Row="true" AlignItems="AlignItems.Center" Class="mt-1" Style="padding:4px 0;border-top:1px solid #CCC">
+                        <MudText Typo="Typo.body2" Style="flex:1;font-weight:600">@L["Total_CurrentAssets"]</MudText>
+                        <MudText Typo="Typo.body2" Style="min-width:130px;text-align:right;font-variant-numeric:tabular-nums;font-weight:600">
+                            @_report.TotalCurrentAssets.ToString("N2")
+                        </MudText>
+                    </MudStack>
+                </div>
+            }
+
+            @if (nonCurrentAssets.Count > 0)
+            {
+                <div class="mb-3">
+                    <MudText Typo="Typo.subtitle2" Class="mt-2 mb-1" Style="color:#555;font-weight:600">
+                        @L["Sub_NonCurrentAssets"]
+                    </MudText>
+                    @foreach (var line in nonCurrentAssets)
+                    {
+                        <MudStack Row="true" AlignItems="AlignItems.Center" Style="padding:3px 0;border-bottom:1px solid #F0F0F0">
+                            <MudText Typo="Typo.body2" Style="min-width:80px;color:#999">@line.Code</MudText>
+                            <MudText Typo="Typo.body2" Style="flex:1">@line.Name</MudText>
+                            <MudText Typo="Typo.body2" Style="min-width:130px;text-align:right;font-variant-numeric:tabular-nums">
+                                @line.Balance.ToString("N2")
+                            </MudText>
+                        </MudStack>
+                    }
+                    <MudStack Row="true" AlignItems="AlignItems.Center" Class="mt-1" Style="padding:4px 0;border-top:1px solid #CCC">
+                        <MudText Typo="Typo.body2" Style="flex:1;font-weight:600">@L["Total_NonCurrentAssets"]</MudText>
+                        <MudText Typo="Typo.body2" Style="min-width:130px;text-align:right;font-variant-numeric:tabular-nums;font-weight:600">
+                            @_report.TotalNonCurrentAssets.ToString("N2")
+                        </MudText>
+                    </MudStack>
+                </div>
+            }
+
+            <MudPaper Elevation="0" Class="my-3 pa-3"
+                      Style="@($"background:#F8F8F8;border-left:4px solid {SignedColour(_report.TotalAssets)}")">
+                <MudStack Row="true" AlignItems="AlignItems.Center">
+                    <MudText Typo="Typo.subtitle1" Style="@($"font-weight:700;color:{SignedColour(_report.TotalAssets)}")">
+                        @L["Total_Assets"]
+                    </MudText>
+                    <MudSpacer />
+                    <MudText Typo="Typo.subtitle1"
+                             Style="@($"font-weight:700;font-variant-numeric:tabular-nums;color:{SignedColour(_report.TotalAssets)}")">
+                        @_report.TotalAssets.ToString("N2")
+                    </MudText>
+                </MudStack>
+            </MudPaper>
+
+            @* ══════════════════════════════════════════════════════════════
+               LIABILITIES
+               ══════════════════════════════════════════════════════════════ *@
+            <MudText Typo="Typo.h6" Class="mt-6 mb-2" Style="text-transform:uppercase;letter-spacing:.06em">
+                @L["Section_Liabilities"]
+            </MudText>
+            <MudDivider Class="mb-3" />
+
+            var currentLiab    = _report.LiabilityLines.Where(l => l.IsCurrent).ToList();
+            var nonCurrentLiab = _report.LiabilityLines.Where(l => !l.IsCurrent).ToList();
+
+            @if (currentLiab.Count > 0)
+            {
+                <div class="mb-3">
+                    <MudText Typo="Typo.subtitle2" Class="mt-2 mb-1" Style="color:#555;font-weight:600">
+                        @L["Sub_CurrentLiabilities"]
+                    </MudText>
+                    @foreach (var line in currentLiab)
+                    {
+                        <MudStack Row="true" AlignItems="AlignItems.Center" Style="padding:3px 0;border-bottom:1px solid #F0F0F0">
+                            <MudText Typo="Typo.body2" Style="min-width:80px;color:#999">@line.Code</MudText>
+                            <MudText Typo="Typo.body2" Style="flex:1">@line.Name</MudText>
+                            <MudText Typo="Typo.body2" Style="min-width:130px;text-align:right;font-variant-numeric:tabular-nums">
+                                @line.Balance.ToString("N2")
+                            </MudText>
+                        </MudStack>
+                    }
+                    <MudStack Row="true" AlignItems="AlignItems.Center" Class="mt-1" Style="padding:4px 0;border-top:1px solid #CCC">
+                        <MudText Typo="Typo.body2" Style="flex:1;font-weight:600">@L["Total_CurrentLiabilities"]</MudText>
+                        <MudText Typo="Typo.body2" Style="min-width:130px;text-align:right;font-variant-numeric:tabular-nums;font-weight:600">
+                            @_report.TotalCurrentLiabilities.ToString("N2")
+                        </MudText>
+                    </MudStack>
+                </div>
+            }
+
+            @if (nonCurrentLiab.Count > 0)
+            {
+                <div class="mb-3">
+                    <MudText Typo="Typo.subtitle2" Class="mt-2 mb-1" Style="color:#555;font-weight:600">
+                        @L["Sub_NonCurrentLiabilities"]
+                    </MudText>
+                    @foreach (var line in nonCurrentLiab)
+                    {
+                        <MudStack Row="true" AlignItems="AlignItems.Center" Style="padding:3px 0;border-bottom:1px solid #F0F0F0">
+                            <MudText Typo="Typo.body2" Style="min-width:80px;color:#999">@line.Code</MudText>
+                            <MudText Typo="Typo.body2" Style="flex:1">@line.Name</MudText>
+                            <MudText Typo="Typo.body2" Style="min-width:130px;text-align:right;font-variant-numeric:tabular-nums">
+                                @line.Balance.ToString("N2")
+                            </MudText>
+                        </MudStack>
+                    }
+                    <MudStack Row="true" AlignItems="AlignItems.Center" Class="mt-1" Style="padding:4px 0;border-top:1px solid #CCC">
+                        <MudText Typo="Typo.body2" Style="flex:1;font-weight:600">@L["Total_NonCurrentLiabilities"]</MudText>
+                        <MudText Typo="Typo.body2" Style="min-width:130px;text-align:right;font-variant-numeric:tabular-nums;font-weight:600">
+                            @_report.TotalNonCurrentLiabilities.ToString("N2")
+                        </MudText>
+                    </MudStack>
+                </div>
+            }
+
+            <MudPaper Elevation="0" Class="my-3 pa-3" Style="background:#F8F8F8;border-left:4px solid #8C8980">
+                <MudStack Row="true" AlignItems="AlignItems.Center">
+                    <MudText Typo="Typo.subtitle1" Style="font-weight:700">@L["Total_Liabilities"]</MudText>
+                    <MudSpacer />
+                    <MudText Typo="Typo.subtitle1" Style="font-weight:700;font-variant-numeric:tabular-nums">
+                        @_report.TotalLiabilities.ToString("N2")
+                    </MudText>
+                </MudStack>
+            </MudPaper>
+
+            @* ══════════════════════════════════════════════════════════════
+               EQUITY
+               ══════════════════════════════════════════════════════════════ *@
+            <MudText Typo="Typo.h6" Class="mt-6 mb-2" Style="text-transform:uppercase;letter-spacing:.06em">
+                @L["Section_Equity"]
+            </MudText>
+            <MudDivider Class="mb-3" />
+
+            @if (_report.EquityLines.Count > 0)
+            {
+                <div class="mb-3">
+                    <MudText Typo="Typo.subtitle2" Class="mt-2 mb-1" Style="color:#555;font-weight:600">
+                        @L["Sub_ShareCapital"]
+                    </MudText>
+                    @foreach (var line in _report.EquityLines)
+                    {
+                        <MudStack Row="true" AlignItems="AlignItems.Center" Style="padding:3px 0;border-bottom:1px solid #F0F0F0">
+                            <MudText Typo="Typo.body2" Style="min-width:80px;color:#999">@line.Code</MudText>
+                            <MudText Typo="Typo.body2" Style="flex:1">@line.Name</MudText>
+                            <MudText Typo="Typo.body2" Style="min-width:130px;text-align:right;font-variant-numeric:tabular-nums">
+                                @line.Balance.ToString("N2")
+                            </MudText>
+                        </MudStack>
+                    }
+                    <MudStack Row="true" AlignItems="AlignItems.Center" Class="mt-1" Style="padding:4px 0;border-top:1px solid #CCC">
+                        <MudText Typo="Typo.body2" Style="flex:1;font-weight:600">@L["Total_ShareCapital"]</MudText>
+                        <MudText Typo="Typo.body2" Style="min-width:130px;text-align:right;font-variant-numeric:tabular-nums;font-weight:600">
+                            @_report.TotalShareCapital.ToString("N2")
+                        </MudText>
+                    </MudStack>
+                </div>
+            }
+
+            @* Retained Earnings *@
+            <MudStack Row="true" AlignItems="AlignItems.Center" Style="padding:3px 0;border-bottom:1px solid #F0F0F0">
+                <MudText Typo="Typo.body2" Style="min-width:80px;color:#999"></MudText>
+                <MudText Typo="Typo.body2" Style="flex:1">@L["RetainedEarnings"]</MudText>
+                <MudText Typo="Typo.body2"
+                         Style="@($"min-width:130px;text-align:right;font-variant-numeric:tabular-nums;color:{SignedColour(_report.RetainedEarnings)}")">
+                    @_report.RetainedEarnings.ToString("N2")
+                </MudText>
+            </MudStack>
+
+            @* Current Year Earnings *@
+            <MudStack Row="true" AlignItems="AlignItems.Center" Style="padding:3px 0;border-bottom:1px solid #F0F0F0">
+                <MudText Typo="Typo.body2" Style="min-width:80px;color:#999"></MudText>
+                <MudText Typo="Typo.body2" Style="flex:1">@L["CurrentYearEarnings"]</MudText>
+                <MudText Typo="Typo.body2"
+                         Style="@($"min-width:130px;text-align:right;font-variant-numeric:tabular-nums;color:{SignedColour(_report.CurrentYearEarnings)}")">
+                    @_report.CurrentYearEarnings.ToString("N2")
+                </MudText>
+            </MudStack>
+
+            <MudPaper Elevation="0" Class="my-3 pa-3"
+                      Style="@($"background:#F8F8F8;border-left:4px solid {SignedColour(_report.TotalEquity)}")">
+                <MudStack Row="true" AlignItems="AlignItems.Center">
+                    <MudText Typo="Typo.subtitle1" Style="@($"font-weight:700;color:{SignedColour(_report.TotalEquity)}")">
+                        @L["Total_Equity"]
+                    </MudText>
+                    <MudSpacer />
+                    <MudText Typo="Typo.subtitle1"
+                             Style="@($"font-weight:700;font-variant-numeric:tabular-nums;color:{SignedColour(_report.TotalEquity)}")">
+                        @_report.TotalEquity.ToString("N2")
+                    </MudText>
+                </MudStack>
+            </MudPaper>
+
+            @* ── Balance equation ── *@
+            var liabPlusEquity = _report.TotalLiabilities + _report.TotalEquity;
+            var balanceColour  = _report.IsBalanced ? "#1F6040" : "#7E2A14";
+            <MudPaper Elevation="1" Class="my-3 pa-4" Style="@($"background:#FAFAFA;border-left:6px solid {balanceColour}")">
+                <MudStack Row="true" AlignItems="AlignItems.Center">
+                    <MudText Typo="Typo.h6" Style="@($"font-weight:700;color:{balanceColour}")">
+                        @L["Total_LiabilitiesEquity"]
+                    </MudText>
+                    <MudSpacer />
+                    <MudText Typo="Typo.h6" Style="@($"font-weight:700;font-variant-numeric:tabular-nums;color:{balanceColour}")">
+                        @liabPlusEquity.ToString("N2")
+                    </MudText>
+                </MudStack>
+            </MudPaper>
+        }
+
+    </MudPaper>
+}
+
+@code {
+    private DateTime?  _asOf        = DateTime.Today;
+    private DateTime?  _compareAsOf = new DateTime(DateTime.Today.Year - 1, 12, 31);
+    private bool       _compareEnabled;
+    private bool       _hideZero;
+    private bool       _loading;
+    private BsReport?  _report;
+    private List<int>  _closedYears = [];
+
+    protected override async Task OnInitializedAsync()
+    {
+        var t1 = GenerateAsync();
+        var t2 = LoadClosedYearsAsync();
+        await Task.WhenAll(t1, t2);
+    }
+
+    private async Task LoadClosedYearsAsync()
+    {
+        _closedYears = (await FiscalYearCloseService.GetClosedYearsAsync(CurrentUser.TenantId)).ToList();
+    }
+
+    private async Task OpenCloseYearDialogAsync()
+    {
+        var dialog = await DialogService.ShowAsync<YearCloseDialog>(string.Empty,
+            new DialogParameters(),
+            new DialogOptions { MaxWidth = MaxWidth.Small, FullWidth = true, CloseOnEscapeKey = true });
+
+        var result = await dialog.Result;
+        if (!result.Canceled && result.Data is FiscalYearCloseDto dto)
+        {
+            Snackbar.Add(string.Format(L["CloseYear_Success"].Value, dto.FiscalYear), Severity.Success);
+            await LoadClosedYearsAsync();
+        }
+    }
+
+    private void OnAsOfChanged(DateTime? d) => _asOf = d;
+    private void OnCompareAsOfChanged(DateTime? d) => _compareAsOf = d;
+
+    private async Task GenerateAsync()
+    {
+        if (_asOf is null) return;
+        _loading = true;
+        _report  = null;
+        try
+        {
+            var compareAsOf = _compareEnabled && _compareAsOf.HasValue
+                ? DateOnly.FromDateTime(_compareAsOf.Value)
+                : (DateOnly?)null;
+
+            _report = await BsService.GenerateAsync(
+                new BsQuery(CurrentUser.TenantId, DateOnly.FromDateTime(_asOf.Value), _hideZero, compareAsOf));
+        }
+        finally { _loading = false; }
+    }
+
+    private async Task ExportPdfAsync()
+    {
+        if (_report is null) return;
+        _loading = true;
+        try
+        {
+            var meta     = BsExportMeta.Now(CurrentUser.UserName);
+            var bytes    = BsExporter.ToPdf(_report, meta);
+            var fileName = _report.HasComparison
+                ? $"BS_{_report.AsOf:yyyy-MM-dd}_vs_{_report.Comparison!.AsOf:yyyy-MM-dd}.pdf"
+                : $"BS_{_report.AsOf:yyyy-MM-dd}.pdf";
+            await JS.InvokeVoidAsync("kairn.downloadFile", fileName, "application/pdf", bytes);
+        }
+        finally { _loading = false; }
+    }
+
+    private async Task ExportCsvAsync()
+    {
+        if (_report is null) return;
+        _loading = true;
+        try
+        {
+            var meta     = BsExportMeta.Now(CurrentUser.UserName);
+            var csv      = BsExporter.ToCsv(_report, meta);
+            var fileName = _report.HasComparison
+                ? $"BS_{_report.AsOf:yyyy-MM-dd}_vs_{_report.Comparison!.AsOf:yyyy-MM-dd}.csv"
+                : $"BS_{_report.AsOf:yyyy-MM-dd}.csv";
+            await JS.InvokeVoidAsync("kairn.downloadFile", fileName, "text/csv",
+                System.Text.Encoding.UTF8.GetBytes(csv));
+        }
+        finally { _loading = false; }
+    }
+
+    private static string SignedColour(decimal value) =>
+        value > 0 ? "#1F6040" : value < 0 ? "#7E2A14" : "#8C8980";
+
+    private static string AssetMovColour(decimal movement) =>
+        movement > 0 ? "#1F6040" : movement < 0 ? "#7E2A14" : "#8C8980";
+
+    private static List<(string Code, string Name, bool IsCurrent, decimal Primary, decimal Comp)>
+        MergeLines(IReadOnlyList<BsAccountLine> primary, IReadOnlyList<BsAccountLine> comparison)
+    {
+        var compDict = comparison.ToDictionary(l => l.AccountId);
+        var primIds  = primary.Select(l => l.AccountId).ToHashSet();
+        var result   = primary
+            .Select(l => (l.Code, l.Name, l.IsCurrent, l.Balance, compDict.GetValueOrDefault(l.AccountId)?.Balance ?? 0m))
+            .ToList();
+        foreach (var cl in comparison.Where(l => !primIds.Contains(l.AccountId)))
+            result.Add((cl.Code, cl.Name, cl.IsCurrent, 0m, cl.Balance));
+        return result.OrderBy(r => r.Code).ToList();
+    }
+}

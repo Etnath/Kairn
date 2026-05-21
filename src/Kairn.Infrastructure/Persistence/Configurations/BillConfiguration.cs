@@ -56,3 +56,32 @@ public class BillAttachmentConfiguration : IEntityTypeConfiguration<BillAttachme
         builder.Property(a => a.ContentType).IsRequired().HasMaxLength(100);
     }
 }
+
+public class TenantApSettingsConfiguration : IEntityTypeConfiguration<TenantApSettings>
+{
+    public void Configure(EntityTypeBuilder<TenantApSettings> builder)
+    {
+        builder.HasKey(s => s.TenantId);
+        builder.Property(s => s.ApproverRoles).IsRequired().HasMaxLength(200);
+        builder.Property(s => s.ApprovalThreshold).HasPrecision(18, 4);
+        builder.ToTable("TenantApSettings");
+    }
+}
+
+public class BillPaymentConfiguration : IEntityTypeConfiguration<BillPayment>
+{
+    public void Configure(EntityTypeBuilder<BillPayment> builder)
+    {
+        builder.HasKey(p => p.Id);
+        builder.Property(p => p.Reference).HasMaxLength(100);
+        builder.Property(p => p.Method).HasConversion<string>();
+
+        builder.HasOne(p => p.Bill)
+            .WithMany(b => b.Payments)
+            .HasForeignKey(p => p.BillId)
+            .OnDelete(DeleteBehavior.Cascade);
+
+        builder.HasIndex(p => p.BillId);
+        builder.HasIndex(p => new { p.TenantId, p.Date });
+    }
+}

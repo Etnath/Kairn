@@ -2,7 +2,7 @@ using Kairn.Domain.Common;
 
 namespace Kairn.Domain.Entities;
 
-public enum BillStatus { Draft, Approved, PartiallyPaid, Paid, Overdue, Void }
+public enum BillStatus { Draft, PendingApproval, Approved, PartiallyPaid, Paid, Overdue, Void, Rejected }
 
 public class Bill : BaseEntity
 {
@@ -16,10 +16,24 @@ public class Bill : BaseEntity
     public decimal GrandTotal { get; set; }
     public decimal AmountPaid { get; set; }
     public Guid? JournalEntryId { get; set; }
+    public string? RejectionReason { get; set; }
 
     public Vendor Vendor { get; set; } = null!;
     public ICollection<BillLine> Lines { get; set; } = [];
     public ICollection<BillAttachment> Attachments { get; set; } = [];
+    public ICollection<BillPayment> Payments { get; set; } = [];
+}
+
+public class BillPayment : BaseEntity
+{
+    public Guid BillId { get; set; }
+    public DateOnly Date { get; set; }
+    public decimal Amount { get; set; }
+    public PaymentMethod Method { get; set; }
+    public string? Reference { get; set; }
+    public Guid? JournalEntryId { get; set; }
+
+    public Bill Bill { get; set; } = null!;
 }
 
 public class BillLine

@@ -1,0 +1,38 @@
+<?xml version="1.0" encoding="utf-8"?>
+<root>
+  <resheader name="resmimetype"><value>text/microsoft-resx</value></resheader>
+  <resheader name="version"><value>2.0</value></resheader>
+  <data name="Title" xml:space="preserve"><value>Analyse des écarts</value></data>
+  <data name="FiscalYear" xml:space="preserve"><value>Exercice</value></data>
+  <data name="From" xml:space="preserve"><value>Du</value></data>
+  <data name="To" xml:space="preserve"><value>Au</value></data>
+  <data name="HideZero" xml:space="preserve"><value>Masquer les soldes nuls</value></data>
+  <data name="Generate" xml:space="preserve"><value>Générer</value></data>
+  <data name="ExportPdf" xml:space="preserve"><value>Exporter PDF</value></data>
+  <data name="ExportCsv" xml:space="preserve"><value>Exporter CSV</value></data>
+  <data name="NoBudgets" xml:space="preserve"><value>Aucun budget trouvé. Créez-en un d'abord.</value></data>
+  <data name="NoBudgetForPeriod" xml:space="preserve"><value>Aucune donnée budgétaire trouvée pour la période sélectionnée.</value></data>
+  <data name="NoData" xml:space="preserve"><value>Aucun compte de produit ou de charge trouvé pour la période sélectionnée.</value></data>
+  <data name="Back" xml:space="preserve"><value>Retour aux budgets</value></data>
+  <data name="CreateBudgetLink" xml:space="preserve"><value>Créez-en un dans Budgets.</value></data>
+  <data name="ReportSubtitle" xml:space="preserve"><value>{0} : {1} – {2}</value></data>
+  <data name="Col_Actual" xml:space="preserve"><value>Réalisé</value></data>
+  <data name="Col_Budget" xml:space="preserve"><value>Budget</value></data>
+  <data name="Col_Variance" xml:space="preserve"><value>Écart</value></data>
+  <data name="Col_VarPct" xml:space="preserve"><value>Écart %</value></data>
+  <data name="Group_Revenue" xml:space="preserve"><value>Produits</value></data>
+  <data name="Group_Cogs" xml:space="preserve"><value>Coût des marchandises vendues</value></data>
+  <data name="Group_OpEx" xml:space="preserve"><value>Charges d'exploitation</value></data>
+  <data name="Group_Interest" xml:space="preserve"><value>Charges financières</value></data>
+  <data name="Group_Tax" xml:space="preserve"><value>Impôts et taxes</value></data>
+  <data name="Sub_Revenue" xml:space="preserve"><value>Total produits</value></data>
+  <data name="Sub_Cogs" xml:space="preserve"><value>Total CMV</value></data>
+  <data name="Sub_OpEx" xml:space="preserve"><value>Total charges d'exploitation</value></data>
+  <data name="Sub_Interest" xml:space="preserve"><value>Total charges financières</value></data>
+  <data name="Sub_Tax" xml:space="preserve"><value>Total impôts et taxes</value></data>
+  <data name="GrossProfit" xml:space="preserve"><value>Marge brute</value></data>
+  <data name="Ebitda" xml:space="preserve"><value>EBITDA</value></data>
+  <data name="EbitdaTooltip" xml:space="preserve"><value>Résultat avant intérêts, impôts, dotations aux amortissements et provisions.</value></data>
+  <data name="NetIncome" xml:space="preserve"><value>Résultat net</value></data>
+  <data name="NetSummaryLabel" xml:space="preserve"><value>Résultat net vs. Budget</value></data>
+</root>

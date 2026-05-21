@@ -1,0 +1,95 @@
+@page "/ap-payment-schedule"
+@attribute [Authorize(Roles = "Admin,Bookkeeper,Viewer")]
+@inject IStringLocalizer<ApPaymentSchedule> L
+@inject IBillService BillService
+@inject ICurrentUserContext CurrentUser
+@inject NavigationManager Navigation
+
+<PageTitle>@L["Title"] – Kairn</PageTitle>
+
+<MudText Typo="Typo.h5" Class="mb-4">@L["Title"]</MudText>
+
+@if (_loading)
+{
+    <MudProgressLinear Indeterminate="true" Class="mb-2" />
+}
+else if (_bills.Count == 0)
+{
+    <MudAlert Severity="Severity.Success" Dense="true">@L["NoBillsDue"]</MudAlert>
+}
+else
+{
+    <MudTable T="BillDto" Items="_bills" Dense="true" Hover="true" Elevation="0"
+              Style="border:1px solid var(--mud-palette-lines-default)"
+              RowClass="cursor-pointer" OnRowClick="OnRowClick"
+              RowStyleFunc="RowStyle"
+              Breakpoint="Breakpoint.Sm">
+        <HeaderContent>
+            <MudTh Style="width:110px">@L["Col_DueDate"]</MudTh>
+            <MudTh Style="width:80px;text-align:center">@L["Col_DaysUntilDue"]</MudTh>
+            <MudTh>@L["Col_Vendor"]</MudTh>
+            <MudTh>@L["Col_Reference"]</MudTh>
+            <MudTh>@L["Col_Status"]</MudTh>
+            <MudTh Style="width:130px;text-align:right">@L["Col_Outstanding"]</MudTh>
+        </HeaderContent>
+        <RowTemplate Context="bill">
+            <MudTd DataLabel="@L["Col_DueDate"]">
+                <MudText Color="@DueDateColor(bill)">
+                    @bill.DueDate.ToString("dd/MM/yyyy")
+                </MudText>
+            </MudTd>
+            <MudTd DataLabel="@L["Col_DaysUntilDue"]" Style="text-align:center">
+                @{ var days = bill.DueDate.DayNumber - _today.DayNumber; }
+                <MudText Color="@DueDateColor(bill)">
+                    @(days < 0 ? $"{-days} {L["DaysOverdue"]}" : days == 0 ? L["Today"].Value : $"{days} {L["Days"]}")
+                </MudText>
+            </MudTd>
+            <MudTd DataLabel="@L["Col_Vendor"]">@bill.VendorName</MudTd>
+            <MudTd DataLabel="@L["Col_Reference"]">@bill.Reference</MudTd>
+            <MudTd DataLabel="@L["Col_Status"]"><BillStatusChip Status="bill.Status" /></MudTd>
+            <MudTd DataLabel="@L["Col_Outstanding"]" Style="text-align:right">
+                <b>@bill.Currency @bill.Outstanding.ToString("N2")</b>
+            </MudTd>
+        </RowTemplate>
+    </MudTable>
+
+    <MudStack Row="true" Justify="Justify.FlexEnd" Class="mt-3">
+        <MudText Typo="Typo.subtitle2" Color="Color.Secondary">
+            @L["Total"]: <b>@_totalOutstanding.ToString("N2")</b>
+        </MudText>
+    </MudStack>
+}
+
+@code {
+    private bool _loading = true;
+    private IReadOnlyList<BillDto> _bills = [];
+    private DateOnly _today;
+    private decimal _totalOutstanding;
+
+    protected override async Task OnInitializedAsync()
+    {
+        _today = DateOnly.FromDateTime(DateTime.Today);
+        _bills = await BillService.GetUpcomingAsync(CurrentUser.TenantId);
+        _totalOutstanding = _bills.Sum(b => b.Outstanding);
+        _loading = false;
+    }
+
+    private void OnRowClick(TableRowClickEventArgs<BillDto> args) =>
+        Navigation.NavigateTo($"/bills/{args.Item!.Id}");
+
+    private Color DueDateColor(BillDto bill)
+    {
+        var days = bill.DueDate.DayNumber - _today.DayNumber;
+        if (days < 0) return Color.Error;
+        if (days <= 7) return Color.Warning;
+        return Color.Default;
+    }
+
+    private string RowStyle(BillDto bill, int _)
+    {
+        var days = bill.DueDate.DayNumber - _today.DayNumber;
+        if (days < 0) return "background-color:#FAECE8";
+        if (days <= 7) return "background-color:#FBF2E0";
+        return string.Empty;
+    }
+}

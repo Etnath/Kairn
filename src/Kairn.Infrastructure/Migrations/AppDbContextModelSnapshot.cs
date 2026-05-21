@@ -202,6 +202,9 @@ namespace Kairn.Infrastructure.Migrations
                         .HasMaxLength(100)
                         .HasColumnType("TEXT");
 
+                    b.Property<string>("RejectionReason")
+                        .HasColumnType("TEXT");
+
                     b.Property<uint>("RowVersion")
                         .HasColumnType("INTEGER");
 
@@ -302,6 +305,121 @@ namespace Kairn.Infrastructure.Migrations
                     b.ToTable("BillLines");
                 });
 
+            modelBuilder.Entity("Kairn.Domain.Entities.BillPayment", b =>
+                {
+                    b.Property<Guid>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("TEXT");
+
+                    b.Property<decimal>("Amount")
+                        .HasPrecision(18, 4)
+                        .HasColumnType("TEXT");
+
+                    b.Property<Guid>("BillId")
+                        .HasColumnType("TEXT");
+
+                    b.Property<DateTimeOffset>("CreatedAt")
+                        .HasColumnType("TEXT");
+
+                    b.Property<DateOnly>("Date")
+                        .HasColumnType("TEXT");
+
+                    b.Property<Guid?>("JournalEntryId")
+                        .HasColumnType("TEXT");
+
+                    b.Property<string>("Method")
+                        .IsRequired()
+                        .HasColumnType("TEXT");
+
+                    b.Property<string>("Reference")
+                        .HasMaxLength(100)
+                        .HasColumnType("TEXT");
+
+                    b.Property<uint>("RowVersion")
+                        .HasColumnType("INTEGER");
+
+                    b.Property<Guid>("TenantId")
+                        .HasColumnType("TEXT");
+
+                    b.Property<DateTimeOffset>("UpdatedAt")
+                        .HasColumnType("TEXT");
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("BillId");
+
+                    b.HasIndex("TenantId", "Date");
+
+                    b.ToTable("BillPayments");
+                });
+
+            modelBuilder.Entity("Kairn.Domain.Entities.Budget", b =>
+                {
+                    b.Property<Guid>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("TEXT");
+
+                    b.Property<DateTimeOffset>("CreatedAt")
+                        .HasColumnType("TEXT");
+
+                    b.Property<int>("FiscalYear")
+                        .HasColumnType("INTEGER");
+
+                    b.Property<bool>("IsActive")
+                        .HasColumnType("INTEGER");
+
+                    b.Property<string>("Name")
+                        .IsRequired()
+                        .HasMaxLength(200)
+                        .HasColumnType("TEXT");
+
+                    b.Property<uint>("RowVersion")
+                        .HasColumnType("INTEGER");
+
+                    b.Property<Guid>("TenantId")
+                        .HasColumnType("TEXT");
+
+                    b.Property<DateTimeOffset>("UpdatedAt")
+                        .HasColumnType("TEXT");
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("TenantId", "FiscalYear");
+
+                    b.ToTable("Budgets");
+                });
+
+            modelBuilder.Entity("Kairn.Domain.Entities.BudgetLine", b =>
+                {
+                    b.Property<Guid>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("TEXT");
+
+                    b.Property<Guid>("AccountId")
+                        .HasColumnType("TEXT");
+
+                    b.Property<decimal>("Amount")
+                        .HasPrecision(18, 4)
+                        .HasColumnType("TEXT");
+
+                    b.Property<Guid>("BudgetId")
+                        .HasColumnType("TEXT");
+
+                    b.Property<int>("Month")
+                        .HasColumnType("INTEGER");
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("AccountId");
+
+                    b.HasIndex("BudgetId");
+
+                    b.HasIndex("BudgetId", "AccountId", "Month")
+                        .IsUnique();
+
+                    b.ToTable("BudgetLines");
+                });
+
             modelBuilder.Entity("Kairn.Domain.Entities.CurrencyRate", b =>
                 {
                     b.Property<long>("Id")
@@ -390,6 +508,300 @@ namespace Kairn.Infrastructure.Migrations
                     b.HasIndex("TenantId", "Name");
 
                     b.ToTable("Customers");
+                });
+
+            modelBuilder.Entity("Kairn.Domain.Entities.DepreciationLog", b =>
+                {
+                    b.Property<long>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("INTEGER");
+
+                    b.Property<Guid>("AssetId")
+                        .HasColumnType("TEXT");
+
+                    b.Property<string>("AssetName")
+                        .IsRequired()
+                        .HasMaxLength(200)
+                        .HasColumnType("TEXT");
+
+                    b.Property<DateTimeOffset>("AttemptedAt")
+                        .HasColumnType("TEXT");
+
+                    b.Property<string>("ErrorMessage")
+                        .HasMaxLength(2000)
+                        .HasColumnType("TEXT");
+
+                    b.Property<bool>("IsSuccess")
+                        .HasColumnType("INTEGER");
+
+                    b.Property<DateOnly>("Period")
+                        .HasColumnType("TEXT");
+
+                    b.Property<string>("PostedReference")
+                        .HasMaxLength(30)
+                        .HasColumnType("TEXT");
+
+                    b.Property<Guid>("TenantId")
+                        .HasColumnType("TEXT");
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("TenantId", "Period", "IsSuccess");
+
+                    b.ToTable("DepreciationLogs");
+                });
+
+            modelBuilder.Entity("Kairn.Domain.Entities.ExpenseReport", b =>
+                {
+                    b.Property<Guid>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("TEXT");
+
+                    b.Property<DateTimeOffset>("CreatedAt")
+                        .HasColumnType("TEXT");
+
+                    b.Property<string>("Currency")
+                        .IsRequired()
+                        .HasMaxLength(3)
+                        .HasColumnType("TEXT");
+
+                    b.Property<Guid?>("JournalEntryId")
+                        .HasColumnType("TEXT");
+
+                    b.Property<Guid?>("PaymentJournalEntryId")
+                        .HasColumnType("TEXT");
+
+                    b.Property<string>("RejectionReason")
+                        .HasMaxLength(2000)
+                        .HasColumnType("TEXT");
+
+                    b.Property<uint>("RowVersion")
+                        .HasColumnType("INTEGER");
+
+                    b.Property<int>("Status")
+                        .HasColumnType("INTEGER");
+
+                    b.Property<DateOnly>("SubmissionDate")
+                        .HasColumnType("TEXT");
+
+                    b.Property<string>("SubmittedByName")
+                        .IsRequired()
+                        .HasMaxLength(256)
+                        .HasColumnType("TEXT");
+
+                    b.Property<string>("SubmittedByUserId")
+                        .IsRequired()
+                        .HasMaxLength(450)
+                        .HasColumnType("TEXT");
+
+                    b.Property<Guid>("TenantId")
+                        .HasColumnType("TEXT");
+
+                    b.Property<string>("Title")
+                        .IsRequired()
+                        .HasMaxLength(200)
+                        .HasColumnType("TEXT");
+
+                    b.Property<decimal>("TotalAmount")
+                        .HasPrecision(18, 4)
+                        .HasColumnType("TEXT");
+
+                    b.Property<DateTimeOffset>("UpdatedAt")
+                        .HasColumnType("TEXT");
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("TenantId", "Status");
+
+                    b.HasIndex("TenantId", "SubmissionDate");
+
+                    b.ToTable("ExpenseReports");
+                });
+
+            modelBuilder.Entity("Kairn.Domain.Entities.ExpenseReportLine", b =>
+                {
+                    b.Property<Guid>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("TEXT");
+
+                    b.Property<decimal>("Amount")
+                        .HasPrecision(18, 4)
+                        .HasColumnType("TEXT");
+
+                    b.Property<string>("Currency")
+                        .IsRequired()
+                        .HasMaxLength(3)
+                        .HasColumnType("TEXT");
+
+                    b.Property<DateOnly>("Date")
+                        .HasColumnType("TEXT");
+
+                    b.Property<string>("Description")
+                        .IsRequired()
+                        .HasMaxLength(500)
+                        .HasColumnType("TEXT");
+
+                    b.Property<Guid>("ExpenseAccountId")
+                        .HasColumnType("TEXT");
+
+                    b.Property<Guid>("ExpenseReportId")
+                        .HasColumnType("TEXT");
+
+                    b.Property<string>("ReceiptContentType")
+                        .HasMaxLength(100)
+                        .HasColumnType("TEXT");
+
+                    b.Property<byte[]>("ReceiptData")
+                        .HasColumnType("BLOB");
+
+                    b.Property<string>("ReceiptFileName")
+                        .HasMaxLength(255)
+                        .HasColumnType("TEXT");
+
+                    b.Property<int>("SortOrder")
+                        .HasColumnType("INTEGER");
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("ExpenseAccountId");
+
+                    b.HasIndex("ExpenseReportId");
+
+                    b.ToTable("ExpenseReportLines");
+                });
+
+            modelBuilder.Entity("Kairn.Domain.Entities.FiscalYearClose", b =>
+                {
+                    b.Property<Guid>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("TEXT");
+
+                    b.Property<string>("ClosedByName")
+                        .IsRequired()
+                        .HasMaxLength(200)
+                        .HasColumnType("TEXT");
+
+                    b.Property<string>("ClosedByUserId")
+                        .IsRequired()
+                        .HasMaxLength(450)
+                        .HasColumnType("TEXT");
+
+                    b.Property<DateTimeOffset>("CreatedAt")
+                        .HasColumnType("TEXT");
+
+                    b.Property<int>("FiscalYear")
+                        .HasColumnType("INTEGER");
+
+                    b.Property<Guid?>("JournalEntryId")
+                        .HasColumnType("TEXT");
+
+                    b.Property<uint>("RowVersion")
+                        .HasColumnType("INTEGER");
+
+                    b.Property<Guid>("TenantId")
+                        .HasColumnType("TEXT");
+
+                    b.Property<DateTimeOffset>("UpdatedAt")
+                        .HasColumnType("TEXT");
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("JournalEntryId");
+
+                    b.HasIndex("TenantId", "FiscalYear")
+                        .IsUnique();
+
+                    b.ToTable("FiscalYearCloses");
+                });
+
+            modelBuilder.Entity("Kairn.Domain.Entities.FixedAsset", b =>
+                {
+                    b.Property<Guid>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("TEXT");
+
+                    b.Property<decimal>("AccumulatedDepreciation")
+                        .HasPrecision(18, 4)
+                        .HasColumnType("TEXT");
+
+                    b.Property<Guid>("AccumulatedDepreciationAccountId")
+                        .HasColumnType("TEXT");
+
+                    b.Property<Guid>("AssetAccountId")
+                        .HasColumnType("TEXT");
+
+                    b.Property<string>("Category")
+                        .HasMaxLength(100)
+                        .HasColumnType("TEXT");
+
+                    b.Property<DateTimeOffset>("CreatedAt")
+                        .HasColumnType("TEXT");
+
+                    b.Property<Guid?>("DepreciationExpenseAccountId")
+                        .HasColumnType("TEXT");
+
+                    b.Property<DateOnly?>("DisposalDate")
+                        .HasColumnType("TEXT");
+
+                    b.Property<Guid?>("DisposalJournalEntryId")
+                        .HasColumnType("TEXT");
+
+                    b.Property<bool>("HasDepreciationPostings")
+                        .HasColumnType("INTEGER");
+
+                    b.Property<bool>("IsActive")
+                        .HasColumnType("INTEGER");
+
+                    b.Property<bool>("IsFullyDepreciated")
+                        .HasColumnType("INTEGER");
+
+                    b.Property<DateOnly?>("LastDepreciatedDate")
+                        .HasColumnType("TEXT");
+
+                    b.Property<int>("Method")
+                        .HasColumnType("INTEGER");
+
+                    b.Property<string>("Name")
+                        .IsRequired()
+                        .HasMaxLength(200)
+                        .HasColumnType("TEXT");
+
+                    b.Property<DateOnly>("PurchaseDate")
+                        .HasColumnType("TEXT");
+
+                    b.Property<decimal>("PurchaseValue")
+                        .HasPrecision(18, 4)
+                        .HasColumnType("TEXT");
+
+                    b.Property<decimal>("ResidualValue")
+                        .HasPrecision(18, 4)
+                        .HasColumnType("TEXT");
+
+                    b.Property<uint>("RowVersion")
+                        .HasColumnType("INTEGER");
+
+                    b.Property<Guid>("TenantId")
+                        .HasColumnType("TEXT");
+
+                    b.Property<DateTimeOffset>("UpdatedAt")
+                        .HasColumnType("TEXT");
+
+                    b.Property<int>("UsefulLifeYears")
+                        .HasColumnType("INTEGER");
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("AccumulatedDepreciationAccountId");
+
+                    b.HasIndex("AssetAccountId");
+
+                    b.HasIndex("DepreciationExpenseAccountId");
+
+                    b.HasIndex("DisposalJournalEntryId");
+
+                    b.HasIndex("TenantId");
+
+                    b.ToTable("FixedAssets");
                 });
 
             modelBuilder.Entity("Kairn.Domain.Entities.Invoice", b =>
@@ -938,6 +1350,73 @@ namespace Kairn.Infrastructure.Migrations
                     b.ToTable("RecurringJobLogs");
                 });
 
+            modelBuilder.Entity("Kairn.Domain.Entities.TenantApSettings", b =>
+                {
+                    b.Property<Guid>("TenantId")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("TEXT");
+
+                    b.Property<bool>("ApprovalEnabled")
+                        .HasColumnType("INTEGER");
+
+                    b.Property<decimal>("ApprovalThreshold")
+                        .HasPrecision(18, 4)
+                        .HasColumnType("TEXT");
+
+                    b.Property<string>("ApproverRoles")
+                        .IsRequired()
+                        .HasMaxLength(200)
+                        .HasColumnType("TEXT");
+
+                    b.HasKey("TenantId");
+
+                    b.ToTable("TenantApSettings", (string)null);
+                });
+
+            modelBuilder.Entity("Kairn.Domain.Entities.TenantDashboardSettings", b =>
+                {
+                    b.Property<Guid>("TenantId")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("TEXT");
+
+                    b.Property<decimal>("CashAlertThreshold")
+                        .HasPrecision(18, 4)
+                        .HasColumnType("TEXT");
+
+                    b.HasKey("TenantId");
+
+                    b.ToTable("TenantDashboardSettings", (string)null);
+                });
+
+            modelBuilder.Entity("Kairn.Domain.Entities.UserDashboardPreferences", b =>
+                {
+                    b.Property<string>("UserId")
+                        .HasMaxLength(450)
+                        .HasColumnType("TEXT");
+
+                    b.Property<bool>("ShowCashBalance")
+                        .HasColumnType("INTEGER");
+
+                    b.Property<bool>("ShowMonthlyExpenses")
+                        .HasColumnType("INTEGER");
+
+                    b.Property<bool>("ShowMonthlyRevenue")
+                        .HasColumnType("INTEGER");
+
+                    b.Property<bool>("ShowNetProfit")
+                        .HasColumnType("INTEGER");
+
+                    b.Property<bool>("ShowOutstandingAp")
+                        .HasColumnType("INTEGER");
+
+                    b.Property<bool>("ShowOutstandingAr")
+                        .HasColumnType("INTEGER");
+
+                    b.HasKey("UserId");
+
+                    b.ToTable("UserDashboardPreferences", (string)null);
+                });
+
             modelBuilder.Entity("Kairn.Domain.Entities.Vendor", b =>
                 {
                     b.Property<Guid>("Id")
@@ -1252,6 +1731,96 @@ namespace Kairn.Infrastructure.Migrations
                     b.Navigation("ExpenseAccount");
                 });
 
+            modelBuilder.Entity("Kairn.Domain.Entities.BillPayment", b =>
+                {
+                    b.HasOne("Kairn.Domain.Entities.Bill", "Bill")
+                        .WithMany("Payments")
+                        .HasForeignKey("BillId")
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired();
+
+                    b.Navigation("Bill");
+                });
+
+            modelBuilder.Entity("Kairn.Domain.Entities.BudgetLine", b =>
+                {
+                    b.HasOne("Kairn.Domain.Entities.Account", "Account")
+                        .WithMany()
+                        .HasForeignKey("AccountId")
+                        .OnDelete(DeleteBehavior.Restrict)
+                        .IsRequired();
+
+                    b.HasOne("Kairn.Domain.Entities.Budget", "Budget")
+                        .WithMany("Lines")
+                        .HasForeignKey("BudgetId")
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired();
+
+                    b.Navigation("Account");
+
+                    b.Navigation("Budget");
+                });
+
+            modelBuilder.Entity("Kairn.Domain.Entities.ExpenseReportLine", b =>
+                {
+                    b.HasOne("Kairn.Domain.Entities.Account", "ExpenseAccount")
+                        .WithMany()
+                        .HasForeignKey("ExpenseAccountId")
+                        .OnDelete(DeleteBehavior.Restrict)
+                        .IsRequired();
+
+                    b.HasOne("Kairn.Domain.Entities.ExpenseReport", "ExpenseReport")
+                        .WithMany("Lines")
+                        .HasForeignKey("ExpenseReportId")
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired();
+
+                    b.Navigation("ExpenseAccount");
+
+                    b.Navigation("ExpenseReport");
+                });
+
+            modelBuilder.Entity("Kairn.Domain.Entities.FiscalYearClose", b =>
+                {
+                    b.HasOne("Kairn.Domain.Entities.JournalEntry", "JournalEntry")
+                        .WithMany()
+                        .HasForeignKey("JournalEntryId")
+                        .OnDelete(DeleteBehavior.Restrict);
+
+                    b.Navigation("JournalEntry");
+                });
+
+            modelBuilder.Entity("Kairn.Domain.Entities.FixedAsset", b =>
+                {
+                    b.HasOne("Kairn.Domain.Entities.Account", "AccumulatedDepreciationAccount")
+                        .WithMany()
+                        .HasForeignKey("AccumulatedDepreciationAccountId")
+                        .OnDelete(DeleteBehavior.Restrict)
+                        .IsRequired();
+
+                    b.HasOne("Kairn.Domain.Entities.Account", "AssetAccount")
+                        .WithMany()
+                        .HasForeignKey("AssetAccountId")
+                        .OnDelete(DeleteBehavior.Restrict)
+                        .IsRequired();
+
+                    b.HasOne("Kairn.Domain.Entities.Account", "DepreciationExpenseAccount")
+                        .WithMany()
+                        .HasForeignKey("DepreciationExpenseAccountId")
+                        .OnDelete(DeleteBehavior.Restrict);
+
+                    b.HasOne("Kairn.Domain.Entities.JournalEntry", null)
+                        .WithMany()
+                        .HasForeignKey("DisposalJournalEntryId")
+                        .OnDelete(DeleteBehavior.SetNull);
+
+                    b.Navigation("AccumulatedDepreciationAccount");
+
+                    b.Navigation("AssetAccount");
+
+                    b.Navigation("DepreciationExpenseAccount");
+                });
+
             modelBuilder.Entity("Kairn.Domain.Entities.Invoice", b =>
                 {
                     b.HasOne("Kairn.Domain.Entities.Customer", "Customer")
@@ -1449,6 +2018,18 @@ namespace Kairn.Infrastructure.Migrations
                 {
                     b.Navigation("Attachments");
 
+                    b.Navigation("Lines");
+
+                    b.Navigation("Payments");
+                });
+
+            modelBuilder.Entity("Kairn.Domain.Entities.Budget", b =>
+                {
+                    b.Navigation("Lines");
+                });
+
+            modelBuilder.Entity("Kairn.Domain.Entities.ExpenseReport", b =>
+                {
                     b.Navigation("Lines");
                 });
 

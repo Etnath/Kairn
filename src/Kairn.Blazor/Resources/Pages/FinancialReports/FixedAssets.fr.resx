@@ -1,0 +1,56 @@
+<?xml version="1.0" encoding="utf-8"?>
+<root>
+  <resheader name="resmimetype"><value>text/microsoft-resx</value></resheader>
+  <resheader name="version"><value>2.0</value></resheader>
+  <data name="Title" xml:space="preserve"><value>Immobilisations</value></data>
+  <data name="NewAsset" xml:space="preserve"><value>Nouvelle immobilisation</value></data>
+  <data name="Tab_Active" xml:space="preserve"><value>Actives</value></data>
+  <data name="Tab_Inactive" xml:space="preserve"><value>Cédées / Inactives</value></data>
+  <data name="Col_Name" xml:space="preserve"><value>Désignation</value></data>
+  <data name="Col_Category" xml:space="preserve"><value>Catégorie</value></data>
+  <data name="Col_PurchaseDate" xml:space="preserve"><value>Date d'acquisition</value></data>
+  <data name="Col_PurchaseValue" xml:space="preserve"><value>Valeur d'acquisition</value></data>
+  <data name="Col_AccumDeprec" xml:space="preserve"><value>Amortissements cumulés</value></data>
+  <data name="Col_NetBookValue" xml:space="preserve"><value>Valeur nette comptable</value></data>
+  <data name="Col_NextDeprec" xml:space="preserve"><value>Prochaine dotation</value></data>
+  <data name="Col_DisposalDate" xml:space="preserve"><value>Date de cession</value></data>
+  <data name="Col_Actions" xml:space="preserve"><value>Actions</value></data>
+  <data name="Action_Edit" xml:space="preserve"><value>Modifier</value></data>
+  <data name="Action_Dispose" xml:space="preserve"><value>Céder</value></data>
+  <data name="NoActiveAssets" xml:space="preserve"><value>Aucune immobilisation active. Cliquez sur Nouvelle immobilisation pour en créer une.</value></data>
+  <data name="NoInactiveAssets" xml:space="preserve"><value>Aucune immobilisation cédée ou inactive.</value></data>
+  <data name="DisposeTooltip" xml:space="preserve"><value>Enregistrer la cession et générer l'écriture comptable</value></data>
+  <data name="EditLockedTooltip" xml:space="preserve"><value>Les paramètres d'amortissement ne peuvent pas être modifiés après la première dotation</value></data>
+  <data name="FullyDepreciated" xml:space="preserve"><value>Totalement amorti</value></data>
+  <data name="Dialog_NewTitle" xml:space="preserve"><value>Nouvelle immobilisation</value></data>
+  <data name="Dialog_EditTitle" xml:space="preserve"><value>Modifier l'immobilisation</value></data>
+  <data name="Field_Name" xml:space="preserve"><value>Désignation</value></data>
+  <data name="Field_Category" xml:space="preserve"><value>Catégorie</value></data>
+  <data name="Field_PurchaseDate" xml:space="preserve"><value>Date d'acquisition</value></data>
+  <data name="Field_PurchaseValue" xml:space="preserve"><value>Valeur d'acquisition</value></data>
+  <data name="Field_ResidualValue" xml:space="preserve"><value>Valeur résiduelle</value></data>
+  <data name="Field_Method" xml:space="preserve"><value>Mode d'amortissement</value></data>
+  <data name="Field_Method_SL" xml:space="preserve"><value>Linéaire</value></data>
+  <data name="Field_Method_DB" xml:space="preserve"><value>Dégressif</value></data>
+  <data name="Field_UsefulLifeYears" xml:space="preserve"><value>Durée de vie utile (années)</value></data>
+  <data name="Field_AssetAccount" xml:space="preserve"><value>Compte d'immobilisation</value></data>
+  <data name="Field_AccumDeprecAccount" xml:space="preserve"><value>Compte d'amortissements cumulés</value></data>
+  <data name="Field_DeprecExpenseAccount" xml:space="preserve"><value>Compte de dotation aux amortissements</value></data>
+  <data name="Field_DeprecExpenseAccountHint" xml:space="preserve"><value>Requis pour les écritures d'amortissement automatiques</value></data>
+  <data name="EditLocked_Alert" xml:space="preserve"><value>Les paramètres d'amortissement sont verrouillés car des dotations ont déjà été comptabilisées pour cette immobilisation.</value></data>
+  <data name="RunDepreciation" xml:space="preserve"><value>Lancer l'amortissement</value></data>
+  <data name="DeprecResult" xml:space="preserve"><value>Amortissement terminé : {0} comptabilisé(s), {1} ignoré(s), {2} échoué(s).</value></data>
+  <data name="NoExpenseAccount" xml:space="preserve"><value>Pas de compte de charge défini</value></data>
+  <data name="Save" xml:space="preserve"><value>Enregistrer</value></data>
+  <data name="Cancel" xml:space="preserve"><value>Annuler</value></data>
+  <data name="Dispose_Title" xml:space="preserve"><value>Céder l'immobilisation</value></data>
+  <data name="Dispose_PurchaseValue" xml:space="preserve"><value>Valeur d'acquisition</value></data>
+  <data name="Dispose_AccumDeprec" xml:space="preserve"><value>Amortissements cumulés</value></data>
+  <data name="Dispose_NetBookValue" xml:space="preserve"><value>Valeur nette comptable</value></data>
+  <data name="Dispose_Date" xml:space="preserve"><value>Date de cession</value></data>
+  <data name="Dispose_GainLossAccount" xml:space="preserve"><value>Compte de plus/moins-value</value></data>
+  <data name="Dispose_GainLossHint" xml:space="preserve"><value>Requis lorsque la valeur nette comptable est non nulle</value></data>
+  <data name="Dispose_Notes" xml:space="preserve"><value>Notes</value></data>
+  <data name="Dispose_Confirm" xml:space="preserve"><value>Confirmer la cession</value></data>
+  <data name="Dispose_Cancel" xml:space="preserve"><value>Annuler</value></data>
+</root>

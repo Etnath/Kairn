@@ -1,0 +1,76 @@
+@page "/expense-reports"
+@attribute [Authorize]
+@inject IStringLocalizer<ExpenseReports> L
+@inject IExpenseReportService ExpenseReportService
+@inject ICurrentUserContext CurrentUser
+@inject NavigationManager Navigation
+
+<PageTitle>@L["Title"] – Kairn</PageTitle>
+
+<MudStack Row="true" AlignItems="AlignItems.Center" Class="mb-4">
+    <MudText Typo="Typo.h5">@L["Title"]</MudText>
+    <MudSpacer />
+    <MudButton Variant="Variant.Filled" Color="Color.Primary"
+               StartIcon="@Icons.Material.Filled.Add"
+               OnClick="@(() => Navigation.NavigateTo("/expense-reports/new"))">
+        @L["NewReport"]
+    </MudButton>
+</MudStack>
+
+@* Filters *@
+<MudGrid Spacing="2" Class="mb-4">
+    <MudItem xs="12" sm="4">
+        <MudSelect T="ExpenseReportStatus?" Value="_statusFilter"
+                   ValueChanged="@(s => { _statusFilter = s; _table.ReloadServerData(); })"
+                   Label="@L["Filter_Status"]" Clearable="true" Dense="true">
+            @foreach (ExpenseReportStatus s in Enum.GetValues<ExpenseReportStatus>())
+            {
+                <MudSelectItem T="ExpenseReportStatus?" Value="@((ExpenseReportStatus?)s)">@s</MudSelectItem>
+            }
+        </MudSelect>
+    </MudItem>
+</MudGrid>
+
+<MudTable @ref="_table"
+          ServerData="LoadData"
+          Hover="true" Striped="true" Dense="true"
+          OnRowClick="@((TableRowClickEventArgs<ExpenseReportDto> row) => Navigation.NavigateTo($"/expense-reports/{row.Item!.Id}"))">
+    <HeaderContent>
+        <MudTh>@L["Col_Title"]</MudTh>
+        <MudTh>@L["Col_SubmittedBy"]</MudTh>
+        <MudTh>@L["Col_Date"]</MudTh>
+        <MudTh>@L["Col_Total"]</MudTh>
+        <MudTh>@L["Col_Status"]</MudTh>
+    </HeaderContent>
+    <RowTemplate>
+        <MudTd DataLabel="@L["Col_Title"]">@context.Title</MudTd>
+        <MudTd DataLabel="@L["Col_SubmittedBy"]">@context.SubmittedByName</MudTd>
+        <MudTd DataLabel="@L["Col_Date"]">@context.SubmissionDate.ToString("dd/MM/yyyy")</MudTd>
+        <MudTd DataLabel="@L["Col_Total"]">@context.Currency @context.TotalAmount.ToString("N2")</MudTd>
+        <MudTd DataLabel="@L["Col_Status"]"><ExpenseReportStatusChip Status="context.Status" /></MudTd>
+    </RowTemplate>
+    <NoRecordsContent>
+        <MudText Typo="Typo.body2" Class="pa-4">@L["NoData"]</MudText>
+    </NoRecordsContent>
+    <PagerContent>
+        <MudTablePager />
+    </PagerContent>
+</MudTable>
+
+@code {
+    private MudTable<ExpenseReportDto> _table = null!;
+    private ExpenseReportStatus? _statusFilter;
+
+    private async Task<TableData<ExpenseReportDto>> LoadData(TableState state, CancellationToken ct)
+    {
+        var query = new ExpenseReportQuery(
+            TenantId: CurrentUser.TenantId,
+            Page: state.Page + 1,
+            PageSize: state.PageSize,
+            Status: _statusFilter,
+            SortDescending: true);
+
+        var result = await ExpenseReportService.GetPagedAsync(query, ct);
+        return new TableData<ExpenseReportDto> { Items = result.Items, TotalItems = result.TotalCount };
+    }
+}

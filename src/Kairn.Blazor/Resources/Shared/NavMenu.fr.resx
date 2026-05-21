@@ -9,9 +9,13 @@
   <data name="Nav.ArAging" xml:space="preserve"><value>Balance âgée</value></data>
   <data name="Nav.Vendors" xml:space="preserve"><value>Fournisseurs</value></data>
   <data name="Nav.Bills" xml:space="preserve"><value>Factures fournisseurs</value></data>
+  <data name="Nav.ApPaymentSchedule" xml:space="preserve"><value>Échéancier fournisseurs</value></data>
+  <data name="Nav.ApAging" xml:space="preserve"><value>Balance âgée AP</value></data>
+  <data name="Nav.ExpenseReports" xml:space="preserve"><value>Notes de frais</value></data>
   <data name="Nav.Reports" xml:space="preserve"><value>Rapports</value></data>
   <data name="Nav.MarginAnalysis" xml:space="preserve"><value>Analyse des marges</value></data>
   <data name="Nav.Tax" xml:space="preserve"><value>TVA &amp; Fiscalité</value></data>
   <data name="Nav.Budgets" xml:space="preserve"><value>Budgets</value></data>
+  <data name="Nav.FixedAssets" xml:space="preserve"><value>Immobilisations</value></data>
   <data name="Nav.Settings" xml:space="preserve"><value>Paramètres</value></data>
 </root>

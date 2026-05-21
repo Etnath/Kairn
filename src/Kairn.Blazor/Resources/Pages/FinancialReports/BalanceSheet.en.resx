@@ -1,0 +1,47 @@
+<?xml version="1.0" encoding="utf-8"?>
+<root>
+  <resheader name="resmimetype"><value>text/microsoft-resx</value></resheader>
+  <resheader name="version"><value>2.0</value></resheader>
+  <data name="Title" xml:space="preserve"><value>Balance Sheet</value></data>
+  <data name="AsOf" xml:space="preserve"><value>As Of</value></data>
+  <data name="HideZero" xml:space="preserve"><value>Hide zero balances</value></data>
+  <data name="Generate" xml:space="preserve"><value>Generate</value></data>
+  <data name="ExportPdf" xml:space="preserve"><value>Export PDF</value></data>
+  <data name="ExportCsv" xml:space="preserve"><value>Export CSV</value></data>
+  <data name="Section_Assets" xml:space="preserve"><value>Assets</value></data>
+  <data name="Section_Liabilities" xml:space="preserve"><value>Liabilities</value></data>
+  <data name="Section_Equity" xml:space="preserve"><value>Equity</value></data>
+  <data name="Sub_CurrentAssets" xml:space="preserve"><value>Current Assets</value></data>
+  <data name="Sub_NonCurrentAssets" xml:space="preserve"><value>Non-Current Assets</value></data>
+  <data name="Sub_CurrentLiabilities" xml:space="preserve"><value>Current Liabilities</value></data>
+  <data name="Sub_NonCurrentLiabilities" xml:space="preserve"><value>Non-Current Liabilities</value></data>
+  <data name="Sub_ShareCapital" xml:space="preserve"><value>Share Capital</value></data>
+  <data name="Total_CurrentAssets" xml:space="preserve"><value>Total Current Assets</value></data>
+  <data name="Total_NonCurrentAssets" xml:space="preserve"><value>Total Non-Current Assets</value></data>
+  <data name="Total_Assets" xml:space="preserve"><value>Total Assets</value></data>
+  <data name="Total_CurrentLiabilities" xml:space="preserve"><value>Total Current Liabilities</value></data>
+  <data name="Total_NonCurrentLiabilities" xml:space="preserve"><value>Total Non-Current Liabilities</value></data>
+  <data name="Total_Liabilities" xml:space="preserve"><value>Total Liabilities</value></data>
+  <data name="Total_ShareCapital" xml:space="preserve"><value>Total Share Capital</value></data>
+  <data name="RetainedEarnings" xml:space="preserve"><value>Retained Earnings</value></data>
+  <data name="CurrentYearEarnings" xml:space="preserve"><value>Current Year Earnings</value></data>
+  <data name="Total_Equity" xml:space="preserve"><value>Total Equity</value></data>
+  <data name="Total_LiabilitiesEquity" xml:space="preserve"><value>Total Liabilities + Equity</value></data>
+  <data name="UnbalancedWarning" xml:space="preserve"><value>Warning: The balance sheet does not balance. Total Assets do not equal Total Liabilities + Equity.</value></data>
+  <data name="CloseYear" xml:space="preserve"><value>Close Year</value></data>
+  <data name="CloseYear_Title" xml:space="preserve"><value>Close Fiscal Year</value></data>
+  <data name="CloseYear_Warning" xml:space="preserve"><value>Closing a fiscal year is irreversible. A locking journal entry will be posted and no further entries will be permitted for that year.</value></data>
+  <data name="CloseYear_Year" xml:space="preserve"><value>Fiscal Year</value></data>
+  <data name="CloseYear_Confirm" xml:space="preserve"><value>Confirm Close</value></data>
+  <data name="CloseYear_Cancel" xml:space="preserve"><value>Cancel</value></data>
+  <data name="CloseYear_Success" xml:space="preserve"><value>Fiscal year {0} has been closed successfully.</value></data>
+  <data name="YearClosed" xml:space="preserve"><value>Closed</value></data>
+  <data name="ClosedYears" xml:space="preserve"><value>Closed fiscal years: {0}</value></data>
+  <data name="Compare" xml:space="preserve"><value>Compare</value></data>
+  <data name="CompareDate" xml:space="preserve"><value>Comparison Date</value></data>
+  <data name="Col_Primary" xml:space="preserve"><value>Primary</value></data>
+  <data name="Col_Comparison" xml:space="preserve"><value>Comparison</value></data>
+  <data name="Col_Movement" xml:space="preserve"><value>Movement</value></data>
+  <data name="Balance_CompareOk" xml:space="preserve"><value>{0}: ✓ Assets = Liabilities + Equity ({1})</value></data>
+  <data name="Balance_CompareFail" xml:space="preserve"><value>{0}: ⚠ Balance failed — Assets ({1}) ≠ Liabilities + Equity ({2})</value></data>
+</root>

@@ -9,4 +9,8 @@
   <data name="Open" xml:space="preserve"><value>Ouvrir</value></data>
   <data name="AuditLog.Title" xml:space="preserve"><value>Journal d'audit</value></data>
   <data name="AuditLog.Description" xml:space="preserve"><value>Enregistrement immuable de toutes les modifications</value></data>
+  <data name="AP.Title" xml:space="preserve"><value>Paramètres AP</value></data>
+  <data name="AP.Description" xml:space="preserve"><value>Configurer le workflow d'approbation des factures</value></data>
+  <data name="Dashboard.Title" xml:space="preserve"><value>Paramètres du tableau de bord</value></data>
+  <data name="Dashboard.Description" xml:space="preserve"><value>Configurer les seuils d'alerte</value></data>
 </root>

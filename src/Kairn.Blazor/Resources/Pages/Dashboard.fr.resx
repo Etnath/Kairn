@@ -6,4 +6,43 @@
   <data name="ComingSoon" xml:space="preserve"><value>Ce module sera bientôt disponible.</value></data>
   <data name="Alert_Overdue" xml:space="preserve"><value>Vous avez {0} facture(s) en retard pour un solde total de EUR {1}.</value></data>
   <data name="Alert_ViewAging" xml:space="preserve"><value>Voir la balance âgée</value></data>
+  <data name="Alert_BillsDueSoon" xml:space="preserve"><value>Vous avez {0} facture(s) fournisseur à régler dans les 7 prochains jours pour un total de EUR {1}.</value></data>
+  <data name="Alert_ViewSchedule" xml:space="preserve"><value>Voir l'échéancier</value></data>
+  <data name="Alert_PendingApproval" xml:space="preserve"><value>Vous avez {0} facture(s) fournisseur en attente d'approbation.</value></data>
+  <data name="Alert_ReviewBills" xml:space="preserve"><value>Consulter les factures</value></data>
+  <data name="Alert_PendingExpenses" xml:space="preserve"><value>Vous avez {0} note(s) de frais en attente d'approbation.</value></data>
+  <data name="Alert_ReviewExpenses" xml:space="preserve"><value>Consulter les notes de frais</value></data>
+  <data name="Alert_DeprecFailed" xml:space="preserve"><value>Des dotations aux amortissements ont échoué pour {0} immobilisation(s) au cours des 30 derniers jours.</value></data>
+  <data name="Alert_ReviewDepreciation" xml:space="preserve"><value>Voir les immobilisations</value></data>
+  <data name="Kpi_MonthlyRevenue" xml:space="preserve"><value>Chiffre d'affaires (ce mois)</value></data>
+  <data name="Kpi_MonthlyExpenses" xml:space="preserve"><value>Charges (ce mois)</value></data>
+  <data name="Kpi_NetProfit" xml:space="preserve"><value>Résultat net (ce mois)</value></data>
+  <data name="Kpi_OutstandingAr" xml:space="preserve"><value>Créances clients</value></data>
+  <data name="Kpi_OutstandingAp" xml:space="preserve"><value>Dettes fournisseurs</value></data>
+  <data name="Kpi_CashBalance" xml:space="preserve"><value>Solde de trésorerie</value></data>
+  <data name="Charts_Title" xml:space="preserve"><value>Aperçu de la performance</value></data>
+  <data name="Charts_Error" xml:space="preserve"><value>Impossible de charger les données graphiques.</value></data>
+  <data name="Chart_RevExp" xml:space="preserve"><value>Chiffre d'affaires vs. Charges</value></data>
+  <data name="Chart_Revenue" xml:space="preserve"><value>Chiffre d'affaires</value></data>
+  <data name="Chart_Expenses" xml:space="preserve"><value>Charges</value></data>
+  <data name="Chart_PnlTrend" xml:space="preserve"><value>Tendance P&amp;L</value></data>
+  <data name="Chart_NetProfit" xml:space="preserve"><value>Résultat net</value></data>
+  <data name="Chart_Cash" xml:space="preserve"><value>Position de trésorerie</value></data>
+  <data name="Chart_CashBalance" xml:space="preserve"><value>Trésorerie</value></data>
+  <data name="Alerts_Title" xml:space="preserve"><value>Alertes</value></data>
+  <data name="Alert_AllClear" xml:space="preserve"><value>Aucun problème — tout est en ordre.</value></data>
+  <data name="Alert_Overdue_Title" xml:space="preserve"><value>{0} facture(s) en retard</value></data>
+  <data name="Alert_Overdue_Body" xml:space="preserve"><value>Solde total : EUR {0}</value></data>
+  <data name="Alert_Overdue_Link" xml:space="preserve"><value>Voir la balance âgée</value></data>
+  <data name="Alert_Bills_Title" xml:space="preserve"><value>{0} facture(s) fournisseur à régler dans 7 jours</value></data>
+  <data name="Alert_Bills_Body" xml:space="preserve"><value>Total à régler : EUR {0}</value></data>
+  <data name="Alert_Bills_Link" xml:space="preserve"><value>Voir l'échéancier</value></data>
+  <data name="Alert_Cash_Title" xml:space="preserve"><value>Trésorerie basse</value></data>
+  <data name="Alert_Cash_Body" xml:space="preserve"><value>Solde actuel EUR {0} inférieur au seuil d'alerte de EUR {1}.</value></data>
+  <data name="Alert_Cash_Ok" xml:space="preserve"><value>Le solde de trésorerie est satisfaisant.</value></data>
+  <data name="Customize_Button" xml:space="preserve"><value>Personnaliser</value></data>
+  <data name="Customize_Title" xml:space="preserve"><value>Personnaliser les widgets</value></data>
+  <data name="Customize_Save" xml:space="preserve"><value>Enregistrer</value></data>
+  <data name="Customize_Cancel" xml:space="preserve"><value>Annuler</value></data>
+  <data name="Customize_AtLeastOne" xml:space="preserve"><value>Au moins un widget doit rester visible.</value></data>
 </root>

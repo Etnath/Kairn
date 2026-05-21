@@ -1,0 +1,22 @@
+@using Kairn.Domain.Entities
+
+@{
+    var (bg, fg, label) = Status switch
+    {
+        ExpenseReportStatus.Draft           => ("#F5F5F5", "#555555", "Draft"),
+        ExpenseReportStatus.PendingApproval => ("#FBF2E0", "#8F6008", "Pending Approval"),
+        ExpenseReportStatus.Approved        => ("#E8F5E9", "#2E7D32", "Approved"),
+        ExpenseReportStatus.Paid            => ("#E3F2FD", "#1565C0", "Paid"),
+        ExpenseReportStatus.Rejected        => ("#FAECE8", "#7E2A14", "Rejected"),
+        _                                   => ("#F5F5F5", "#555555", Status.ToString()),
+    };
+}
+
+<MudChip T="string" Style="@($"background:{bg};color:{fg};font-weight:600;font-size:0.75rem;")"
+         Size="Size.Small" DisableRipple="true">
+    @label
+</MudChip>
+
+@code {
+    [Parameter] public ExpenseReportStatus Status { get; set; }
+}

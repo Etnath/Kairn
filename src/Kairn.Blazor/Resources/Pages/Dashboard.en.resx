@@ -6,4 +6,43 @@
   <data name="ComingSoon" xml:space="preserve"><value>This module is coming soon.</value></data>
   <data name="Alert_Overdue" xml:space="preserve"><value>You have {0} overdue invoice(s) with a total outstanding balance of EUR {1}.</value></data>
   <data name="Alert_ViewAging" xml:space="preserve"><value>View AR Aging Report</value></data>
+  <data name="Alert_BillsDueSoon" xml:space="preserve"><value>You have {0} bill(s) due within the next 7 days totalling EUR {1}.</value></data>
+  <data name="Alert_ViewSchedule" xml:space="preserve"><value>View Payment Schedule</value></data>
+  <data name="Alert_PendingApproval" xml:space="preserve"><value>You have {0} bill(s) pending approval.</value></data>
+  <data name="Alert_ReviewBills" xml:space="preserve"><value>Review bills</value></data>
+  <data name="Alert_PendingExpenses" xml:space="preserve"><value>You have {0} expense report(s) pending approval.</value></data>
+  <data name="Alert_ReviewExpenses" xml:space="preserve"><value>Review expense reports</value></data>
+  <data name="Alert_DeprecFailed" xml:space="preserve"><value>Depreciation postings failed for {0} asset(s) in the last 30 days.</value></data>
+  <data name="Alert_ReviewDepreciation" xml:space="preserve"><value>View Fixed Assets</value></data>
+  <data name="Kpi_MonthlyRevenue" xml:space="preserve"><value>Revenue (this month)</value></data>
+  <data name="Kpi_MonthlyExpenses" xml:space="preserve"><value>Expenses (this month)</value></data>
+  <data name="Kpi_NetProfit" xml:space="preserve"><value>Net Profit (this month)</value></data>
+  <data name="Kpi_OutstandingAr" xml:space="preserve"><value>Outstanding AR</value></data>
+  <data name="Kpi_OutstandingAp" xml:space="preserve"><value>Outstanding AP</value></data>
+  <data name="Kpi_CashBalance" xml:space="preserve"><value>Cash Balance</value></data>
+  <data name="Charts_Title" xml:space="preserve"><value>Performance Overview</value></data>
+  <data name="Charts_Error" xml:space="preserve"><value>Unable to load chart data.</value></data>
+  <data name="Chart_RevExp" xml:space="preserve"><value>Revenue vs. Expenses</value></data>
+  <data name="Chart_Revenue" xml:space="preserve"><value>Revenue</value></data>
+  <data name="Chart_Expenses" xml:space="preserve"><value>Expenses</value></data>
+  <data name="Chart_PnlTrend" xml:space="preserve"><value>P&amp;L Trend</value></data>
+  <data name="Chart_NetProfit" xml:space="preserve"><value>Net Profit</value></data>
+  <data name="Chart_Cash" xml:space="preserve"><value>Cash Position</value></data>
+  <data name="Chart_CashBalance" xml:space="preserve"><value>Cash Balance</value></data>
+  <data name="Alerts_Title" xml:space="preserve"><value>Alerts</value></data>
+  <data name="Alert_AllClear" xml:space="preserve"><value>No issues — everything looks good.</value></data>
+  <data name="Alert_Overdue_Title" xml:space="preserve"><value>{0} overdue invoice(s)</value></data>
+  <data name="Alert_Overdue_Body" xml:space="preserve"><value>Total outstanding: EUR {0}</value></data>
+  <data name="Alert_Overdue_Link" xml:space="preserve"><value>View AR Aging</value></data>
+  <data name="Alert_Bills_Title" xml:space="preserve"><value>{0} bill(s) due within 7 days</value></data>
+  <data name="Alert_Bills_Body" xml:space="preserve"><value>Total due: EUR {0}</value></data>
+  <data name="Alert_Bills_Link" xml:space="preserve"><value>View Payment Schedule</value></data>
+  <data name="Alert_Cash_Title" xml:space="preserve"><value>Low cash balance</value></data>
+  <data name="Alert_Cash_Body" xml:space="preserve"><value>Current balance EUR {0} is below the alert threshold of EUR {1}.</value></data>
+  <data name="Alert_Cash_Ok" xml:space="preserve"><value>Cash balance is healthy.</value></data>
+  <data name="Customize_Button" xml:space="preserve"><value>Customize</value></data>
+  <data name="Customize_Title" xml:space="preserve"><value>Customize Widgets</value></data>
+  <data name="Customize_Save" xml:space="preserve"><value>Save</value></data>
+  <data name="Customize_Cancel" xml:space="preserve"><value>Cancel</value></data>
+  <data name="Customize_AtLeastOne" xml:space="preserve"><value>At least one widget must remain visible.</value></data>
 </root>

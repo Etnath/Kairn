@@ -1,0 +1,51 @@
+<MudPaper Class="pa-4" Elevation="1" Style="height:100%">
+    @if (Loading)
+    {
+        <MudSkeleton Width="60%" Height="20px" Class="mb-2" />
+        <MudSkeleton Width="80%" Height="36px" Class="mb-2" />
+        <MudSkeleton Width="40%" Height="16px" />
+    }
+    else
+    {
+        <MudText Typo="Typo.caption" Color="Color.Secondary">@Title</MudText>
+        <MudText Typo="Typo.h5" Class="my-1">@Value.ToString("N0") €</MudText>
+        @if (DeltaPct.HasValue)
+        {
+            <MudStack Row="true" AlignItems="AlignItems.Center" Spacing="0">
+                <MudIcon Icon="@DeltaIcon" Color="@DeltaColor" Size="Size.Small" />
+                <MudText Typo="Typo.caption" Color="@DeltaColor">
+                    @(Math.Abs(DeltaPct.Value).ToString("0.0"))%
+                </MudText>
+            </MudStack>
+        }
+        @if (SubLabel is not null)
+        {
+            <MudText Typo="Typo.caption" Color="Color.Secondary" Class="mt-1">@SubLabel</MudText>
+        }
+    }
+</MudPaper>
+
+@code {
+    [Parameter, EditorRequired] public string   Title          { get; set; } = null!;
+    [Parameter, EditorRequired] public decimal  Value          { get; set; }
+    [Parameter]                 public decimal? DeltaPct       { get; set; }
+    [Parameter]                 public bool     IsHigherBetter { get; set; } = true;
+    [Parameter]                 public bool     Loading        { get; set; }
+    [Parameter]                 public string?  SubLabel       { get; set; }
+
+    private Color DeltaColor
+    {
+        get
+        {
+            if (!DeltaPct.HasValue || DeltaPct.Value == 0m) return Color.Default;
+            var isUp = DeltaPct.Value > 0;
+            var good = IsHigherBetter ? isUp : !isUp;
+            return good ? Color.Success : Color.Error;
+        }
+    }
+
+    private string DeltaIcon =>
+        DeltaPct.HasValue && DeltaPct.Value < 0
+            ? Icons.Material.Filled.ArrowDownward
+            : Icons.Material.Filled.ArrowUpward;
+}

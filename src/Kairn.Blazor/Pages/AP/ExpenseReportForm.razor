@@ -1,0 +1,295 @@
+@page "/expense-reports/new"
+@page "/expense-reports/{Id:guid}/edit"
+@attribute [Authorize]
+@inject IStringLocalizer<ExpenseReports> L
+@inject IExpenseReportService ExpenseReportService
+@inject IAccountService AccountService
+@inject ICurrentUserContext CurrentUser
+@inject NavigationManager Navigation
+
+<PageTitle>@(_id.HasValue ? L["Edit_Title"] : L["New_Title"]) – Kairn</PageTitle>
+
+<MudStack Row="true" AlignItems="AlignItems.Center" Class="mb-4">
+    <MudIconButton Icon="@Icons.Material.Filled.ArrowBack" Size="Size.Small"
+                   title="@L["Back"]"
+                   OnClick="GoBack" />
+    <MudText Typo="Typo.h5">@(_id.HasValue ? L["Edit_Title"] : L["New_Title"])</MudText>
+</MudStack>
+
+@if (_loading)
+{
+    <MudProgressCircular Indeterminate="true" />
+}
+else
+{
+    @if (_isRejected)
+    {
+        <MudAlert Severity="Severity.Error" Class="mb-4">
+            @L["Reject_BannerPrefix"] @_rejectionReason
+        </MudAlert>
+    }
+
+    <MudPaper Class="pa-4 mb-4">
+        <MudGrid Spacing="3">
+            <MudItem xs="12" sm="8">
+                <MudTextField @bind-Value="_title" Label="@L["Field_Title"]"
+                              Required="true" RequiredError="@L["Field_TitleRequired"]"
+                              Immediate="true" />
+            </MudItem>
+            <MudItem xs="12" sm="2">
+                <MudDatePicker @bind-Date="_submissionDate" Label="@L["Field_SubmissionDate"]"
+                               Required="true" DateFormat="dd/MM/yyyy" />
+            </MudItem>
+            <MudItem xs="12" sm="2">
+                <MudSelect @bind-Value="_currency" Label="@L["Field_Currency"]">
+                    <MudSelectItem Value="@("EUR")">EUR</MudSelectItem>
+                    <MudSelectItem Value="@("USD")">USD</MudSelectItem>
+                    <MudSelectItem Value="@("GBP")">GBP</MudSelectItem>
+                    <MudSelectItem Value="@("CHF")">CHF</MudSelectItem>
+                </MudSelect>
+            </MudItem>
+        </MudGrid>
+    </MudPaper>
+
+    <MudText Typo="Typo.h6" Class="mb-2">@L["Lines_Title"]</MudText>
+
+    @foreach (var (line, idx) in _lines.Select((l, i) => (l, i)))
+    {
+        <MudPaper Class="pa-3 mb-2" Elevation="1">
+            <MudGrid Spacing="2" AlignItems="AlignItems.Center">
+                <MudItem xs="12" sm="4">
+                    <MudTextField @bind-Value="line.Description"
+                                  Label="@L["Line_Description"]"
+                                  Required="true" Immediate="true" />
+                </MudItem>
+                <MudItem xs="6" sm="2">
+                    <MudDatePicker Date="@line.DateAsDateTime"
+                                   DateChanged="@(d => line.DateAsDateTime = d)"
+                                   Label="@L["Line_Date"]"
+                                   DateFormat="dd/MM/yyyy" Required="true" />
+                </MudItem>
+                <MudItem xs="6" sm="2">
+                    <MudNumericField @bind-Value="line.Amount"
+                                     Label="@L["Line_Amount"]"
+                                     Format="N2" Min="0.01m" Required="true" />
+                </MudItem>
+                <MudItem xs="12" sm="3">
+                    <MudSelect @bind-Value="line.ExpenseAccountId"
+                               Label="@L["Line_Account"]" Required="true"
+                               ToStringFunc="@(id => _expenseAccounts.FirstOrDefault(a => a.Id == id)?.Name ?? string.Empty)">
+                        @foreach (var acct in _expenseAccounts)
+                        {
+                            <MudSelectItem Value="@acct.Id">@acct.Code – @acct.Name</MudSelectItem>
+                        }
+                    </MudSelect>
+                </MudItem>
+                <MudItem xs="12" sm="1" Class="d-flex align-center justify-center">
+                    <MudIconButton Icon="@Icons.Material.Filled.Delete"
+                                   Color="Color.Error" Size="Size.Small"
+                                   Disabled="@(_lines.Count <= 1)"
+                                   OnClick="@(() => RemoveLine(idx))" />
+                </MudItem>
+
+                @* Receipt *@
+                <MudItem xs="12">
+                    @if (line.HasExistingReceipt)
+                    {
+                        <MudStack Row="true" AlignItems="AlignItems.Center" Spacing="2">
+                            <MudIcon Icon="@Icons.Material.Filled.AttachFile" Size="Size.Small" />
+                            <MudText Typo="Typo.body2">@line.ExistingReceiptName</MudText>
+                            <MudCheckBox @bind-Value="line.RemoveReceipt" Label="@L["Line_RemoveReceipt"]"
+                                         Color="Color.Error" Size="Size.Small" />
+                        </MudStack>
+                    }
+                    @if (!line.HasExistingReceipt || line.RemoveReceipt)
+                    {
+                        <MudFileUpload T="IBrowserFile" FilesChanged="@(f => OnReceiptSelected(f, line))"
+                                       Accept=".pdf,.jpg,.jpeg,.png,.gif,.webp">
+                            <ActivatorContent>
+                                <MudButton StartIcon="@Icons.Material.Filled.Upload"
+                                           Variant="Variant.Outlined" Size="Size.Small">
+                                    @L["Line_AttachReceipt"]
+                                </MudButton>
+                            </ActivatorContent>
+                        </MudFileUpload>
+                        @if (line.NewReceiptName is not null)
+                        {
+                            <MudText Typo="Typo.caption" Class="ml-2">@line.NewReceiptName</MudText>
+                        }
+                    }
+                </MudItem>
+            </MudGrid>
+        </MudPaper>
+    }
+
+    <MudStack Row="true" Spacing="2" Class="mb-4">
+        <MudButton StartIcon="@Icons.Material.Filled.Add"
+                   Variant="Variant.Outlined"
+                   OnClick="AddLine">
+            @L["AddLine"]
+        </MudButton>
+        <MudSpacer />
+        <MudText Typo="Typo.subtitle1">
+            @L["Total"]: <b>@_currency @_lines.Sum(l => l.Amount).ToString("N2")</b>
+        </MudText>
+    </MudStack>
+
+    @if (_errorMessage is not null)
+    {
+        <MudAlert Severity="Severity.Error" Class="mb-3">@_errorMessage</MudAlert>
+    }
+
+    <MudStack Row="true" Spacing="2" Justify="Justify.FlexEnd">
+        <MudButton Variant="Variant.Outlined" OnClick="GoBack">@L["Cancel"]</MudButton>
+        <MudButton Color="Color.Primary" Variant="Variant.Filled"
+                   StartIcon="@Icons.Material.Filled.Save"
+                   OnClick="Save" Disabled="_saving">
+            @if (_saving)
+            {
+                <MudProgressCircular Size="Size.Small" Indeterminate="true" Class="mr-2" />
+            }
+            @(_isRejected ? L["Resubmit"] : L["SaveDraft"])
+        </MudButton>
+    </MudStack>
+}
+
+@code {
+    [Parameter] public Guid? Id { get; set; }
+
+    private Guid? _id;
+    private bool _loading = true;
+    private bool _saving;
+    private bool _isRejected;
+    private string? _rejectionReason;
+    private string? _errorMessage;
+
+    private string _title = string.Empty;
+    private DateTime? _submissionDate = DateTime.Today;
+    private string _currency = "EUR";
+    private List<LineModel> _lines = [];
+    private List<Kairn.Domain.Entities.Account> _expenseAccounts = [];
+
+    protected override async Task OnInitializedAsync()
+    {
+        _id = Id;
+        var allAccounts = await AccountService.GetAllAsync(CurrentUser.TenantId);
+        _expenseAccounts = allAccounts
+            .Where(a => a.Code.StartsWith("6"))
+            .OrderBy(a => a.Code)
+            .ToList();
+
+        if (_id.HasValue)
+        {
+            var report = await ExpenseReportService.GetByIdAsync(_id.Value, CurrentUser.TenantId);
+            if (report is null) { Navigation.NavigateTo("/expense-reports"); return; }
+
+            _title = report.Title;
+            _submissionDate = report.SubmissionDate.ToDateTime(TimeOnly.MinValue);
+            _currency = report.Currency;
+            _isRejected = report.Status == ExpenseReportStatus.Rejected;
+            _rejectionReason = report.RejectionReason;
+
+            _lines = report.Lines.Select(l => new LineModel
+            {
+                Description = l.Description,
+                DateAsDateTime = l.Date.ToDateTime(TimeOnly.MinValue),
+                Amount = l.Amount,
+                ExpenseAccountId = l.ExpenseAccountId,
+                HasExistingReceipt = l.HasReceipt,
+                ExistingReceiptName = l.HasReceipt ? l.Description : null,
+                ExistingLineId = l.Id,
+            }).ToList();
+        }
+        else
+        {
+            _lines = [new LineModel { DateAsDateTime = DateTime.Today }];
+        }
+
+        _loading = false;
+    }
+
+    private void AddLine() => _lines.Add(new LineModel { DateAsDateTime = DateTime.Today });
+
+    private void RemoveLine(int idx) => _lines.RemoveAt(idx);
+
+    private async Task OnReceiptSelected(IBrowserFile? file, LineModel line)
+    {
+        if (file is null) return;
+        const long maxSize = 10 * 1024 * 1024;
+        using var ms = new System.IO.MemoryStream();
+        await file.OpenReadStream(maxSize).CopyToAsync(ms);
+        line.NewReceiptData = ms.ToArray();
+        line.NewReceiptName = file.Name;
+        line.NewReceiptContentType = file.ContentType;
+    }
+
+    private async Task Save()
+    {
+        if (string.IsNullOrWhiteSpace(_title)) { _errorMessage = L["Field_TitleRequired"].Value; return; }
+        if (_submissionDate is null) { _errorMessage = L["Field_DateRequired"].Value; return; }
+        if (_lines.Any(l => l.ExpenseAccountId == Guid.Empty)) { _errorMessage = L["Line_AccountRequired"].Value; return; }
+
+        _saving = true;
+        _errorMessage = null;
+
+        var lineInputs = _lines.Select((l, i) => new ExpenseReportLineInput(
+            Description: l.Description,
+            Date: DateOnly.FromDateTime(l.DateAsDateTime ?? DateTime.Today),
+            Amount: l.Amount,
+            Currency: _currency,
+            ExpenseAccountId: l.ExpenseAccountId,
+            SortOrder: i,
+            ReceiptData: l.NewReceiptData,
+            ReceiptFileName: l.NewReceiptName,
+            ReceiptContentType: l.NewReceiptContentType,
+            RemoveReceipt: l.RemoveReceipt)).ToList();
+
+        Result<ExpenseReportDto> result;
+
+        if (_id.HasValue)
+        {
+            result = await ExpenseReportService.UpdateAsync(new UpdateExpenseReportCommand(
+                _id.Value, CurrentUser.TenantId,
+                _title, DateOnly.FromDateTime(_submissionDate.Value),
+                _currency, lineInputs));
+        }
+        else
+        {
+            result = await ExpenseReportService.CreateAsync(new CreateExpenseReportCommand(
+                CurrentUser.TenantId, _title,
+                DateOnly.FromDateTime(_submissionDate.Value),
+                _currency, CurrentUser.UserId, CurrentUser.UserName,
+                lineInputs));
+        }
+
+        _saving = false;
+
+        if (result.IsSuccess)
+        {
+            Navigation.NavigateTo($"/expense-reports/{result.Value!.Id}");
+        }
+        else
+        {
+            _errorMessage = result.Error;
+        }
+    }
+
+    private void GoBack() =>
+        Navigation.NavigateTo(_id.HasValue ? $"/expense-reports/{_id}" : "/expense-reports");
+
+    private sealed class LineModel
+    {
+        public string Description { get; set; } = string.Empty;
+        public DateTime? DateAsDateTime { get; set; }
+        public decimal Amount { get; set; }
+        public string Currency { get; set; } = "EUR";
+        public Guid ExpenseAccountId { get; set; }
+        public bool HasExistingReceipt { get; set; }
+        public string? ExistingReceiptName { get; set; }
+        public Guid? ExistingLineId { get; set; }
+        public bool RemoveReceipt { get; set; }
+        public byte[]? NewReceiptData { get; set; }
+        public string? NewReceiptName { get; set; }
+        public string? NewReceiptContentType { get; set; }
+    }
+}

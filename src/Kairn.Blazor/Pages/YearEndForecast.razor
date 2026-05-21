@@ -1,0 +1,395 @@
+@page "/budgets/forecast"
+@attribute [Authorize]
+@using System.Globalization
+@inject IStringLocalizer<YearEndForecast> L
+@inject IPnlService PnlService
+@inject IBudgetService BudgetService
+@inject ICurrentUserContext CurrentUser
+
+<PageTitle>@L["Title"] – Kairn</PageTitle>
+
+<MudStack Row="true" AlignItems="AlignItems.Center" Class="mb-6" Spacing="2">
+    <MudIconButton Icon="@Icons.Material.Filled.ArrowBack" Href="/budgets" />
+    <MudText Typo="Typo.h5">@L["Title"]</MudText>
+</MudStack>
+
+@if (_budgets.Count == 0 && !_loadingBudgets)
+{
+    <MudAlert Severity="Severity.Warning">
+        @L["NoBudgets"] <a href="/budgets">@L["CreateBudgetLink"]</a>
+    </MudAlert>
+}
+else
+{
+    <MudPaper Class="pa-4 mb-4" Elevation="1">
+        <MudStack Row="true" AlignItems="AlignItems.End" Spacing="3" Wrap="Wrap.Wrap">
+            <MudSelect T="int" Value="_selectedYear" ValueChanged="OnYearChanged"
+                       Label="@L["FiscalYear"]" Style="max-width:140px">
+                @foreach (var b in _budgets)
+                {
+                    <MudSelectItem T="int" Value="b.FiscalYear">@b.FiscalYear</MudSelectItem>
+                }
+            </MudSelect>
+            <MudSelect T="int" @bind-Value="_throughMonth"
+                       Label="@L["ActualThroughMonth"]" Style="max-width:180px">
+                @for (var m = 1; m <= 12; m++)
+                {
+                    var month = m;
+                    <MudSelectItem T="int" Value="month">
+                        @MonthName(month)
+                    </MudSelectItem>
+                }
+            </MudSelect>
+            <MudSpacer />
+            <MudButton Variant="Variant.Filled" Color="Color.Primary"
+                       StartIcon="@Icons.Material.Filled.Refresh"
+                       OnClick="GenerateAsync" Disabled="_loading">
+                @L["Generate"]
+            </MudButton>
+        </MudStack>
+    </MudPaper>
+
+    @if (_loading)
+    {
+        <MudProgressLinear Indeterminate="true" Color="Color.Primary" Class="mb-4" />
+    }
+
+    @if (_noBudget && !_loading)
+    {
+        <MudAlert Severity="Severity.Warning" Class="mb-4">
+            @L["NoBudgetForYear"] <a href="/budgets">@L["CreateBudgetLink"]</a>
+        </MudAlert>
+    }
+
+    @if (_forecast is not null && !_loading)
+    {
+        <MudText Typo="Typo.subtitle1" Color="Color.Secondary" Class="mb-4" Style="font-style:italic">
+            @string.Format(L["ReportSubtitle"], _forecast.FiscalYear, MonthName(_forecast.ActualThroughMonth))
+        </MudText>
+
+        @if (!_forecast.Lines.Any())
+        {
+            <MudAlert Severity="Severity.Info">@L["NoData"]</MudAlert>
+        }
+        else
+        {
+            @* Net Income forecast banner *@
+            var fcstNetVar = _forecast.FcstNet - _forecast.BudNet;
+            <MudPaper Elevation="0" Class="mb-4 pa-3" Style="@($"background:#F3F8F5;border-left:4px solid {SummaryVarColour(fcstNetVar)}")">
+                <MudStack Row="true" AlignItems="AlignItems.Center" Spacing="3">
+                    <MudText Typo="Typo.subtitle2" Style="color:#555;font-weight:600">@L["NetSummaryLabel"]</MudText>
+                    <MudSpacer />
+                    <MudText Style="@($"font-variant-numeric:tabular-nums;font-weight:600;color:{SignedColour(_forecast.FcstNet)}")">@_forecast.FcstNet.ToString("N2")</MudText>
+                    <MudText Style="color:#AAA">/</MudText>
+                    <MudText Style="font-variant-numeric:tabular-nums;color:#999">@_forecast.BudNet.ToString("N2")</MudText>
+                    <MudText Style="@($"font-variant-numeric:tabular-nums;font-weight:600;color:{SummaryVarColour(fcstNetVar)}")">@($"{fcstNetVar:+0.00;-0.00;0.00}")</MudText>
+                    <MudText Style="@($"font-size:0.875rem;color:{SummaryVarColour(fcstNetVar)}")">@FormatVarPct(VarPct(_forecast.FcstNet, _forecast.BudNet))</MudText>
+                </MudStack>
+            </MudPaper>
+
+            @* Column headers *@
+            <div style="display:flex;align-items:center;padding:4px 0;border-bottom:2px solid #CCC;margin-bottom:6px">
+                <span style="min-width:80px"></span>
+                <span style="flex:1"></span>
+                <span style="min-width:110px;text-align:right;font-size:0.75rem;color:#888;font-weight:600">@L["Col_YtdActual"]</span>
+                <span style="min-width:110px;text-align:right;font-size:0.75rem;color:#888;font-weight:600">@L["Col_RemBudget"]</span>
+                <span style="min-width:120px;text-align:right;font-size:0.75rem;color:#333;font-weight:700">@L["Col_Forecast"]</span>
+                <span style="min-width:110px;text-align:right;font-size:0.75rem;color:#888;font-weight:600">@L["Col_AnnualBudget"]</span>
+                <span style="min-width:110px;text-align:right;font-size:0.75rem;color:#555;font-weight:600">@L["Col_FcstVsBud"]</span>
+                <span style="min-width:72px;text-align:right;font-size:0.75rem;color:#555;font-weight:600">@L["Col_FcstVsBudPct"]</span>
+            </div>
+
+            @* ── Revenue ── *@
+            var revLines = _forecast.Lines.Where(l => l.Group == PnlGroup.Revenue).ToList();
+            @if (revLines.Count > 0)
+            {
+                <div class="mb-3">
+                    <MudText Typo="Typo.subtitle2" Class="mt-4 mb-1" Style="text-transform:uppercase;letter-spacing:.06em;color:#555;font-weight:700">@L["Group_Revenue"]</MudText>
+                    <MudDivider Class="mb-1" />
+                    @foreach (var line in revLines)
+                    {
+                        <div style="display:flex;align-items:center;padding:3px 0;border-bottom:1px solid #F0F0F0">
+                            <span style="min-width:80px;font-size:0.8125rem;color:#999">@line.AccountCode</span>
+                            <span style="flex:1;font-size:0.8125rem">@line.AccountName</span>
+                            <span style="min-width:110px;text-align:right;font-size:0.8125rem;font-variant-numeric:tabular-nums;color:#888">@line.YtdActual.ToString("N2")</span>
+                            <span style="min-width:110px;text-align:right;font-size:0.8125rem;font-variant-numeric:tabular-nums;color:#888">@line.RemainingBudget.ToString("N2")</span>
+                            <span style="min-width:120px;text-align:right;font-size:0.8125rem;font-variant-numeric:tabular-nums;font-weight:600">@line.FullYearForecast.ToString("N2")</span>
+                            <span style="min-width:110px;text-align:right;font-size:0.8125rem;font-variant-numeric:tabular-nums;color:#999">@line.AnnualBudget.ToString("N2")</span>
+                            <span style="min-width:110px;text-align:right;font-size:0.8125rem;font-variant-numeric:tabular-nums;color:@VarColour(line.ForecastVsBudget,line.Group)">@line.ForecastVsBudget.ToString("N2")</span>
+                            <span style="min-width:72px;text-align:right;font-size:0.8125rem;color:@VarColour(line.ForecastVsBudget,line.Group)">@FormatVarPct(line.ForecastVsBudgetPct)</span>
+                        </div>
+                    }
+                    @{ var rvVar = _forecast.FcstRevenue - _forecast.BudRevenue; }
+                    <div style="display:flex;align-items:center;padding:4px 0;border-top:1px solid #CCC;margin-top:2px">
+                        <span style="flex:1;font-size:0.8125rem;font-weight:600">@L["Sub_Revenue"]</span>
+                        <span style="min-width:110px;text-align:right;font-size:0.8125rem;font-variant-numeric:tabular-nums;font-weight:600;color:#888">@_forecast.YtdRevenue.ToString("N2")</span>
+                        <span style="min-width:110px"></span>
+                        <span style="min-width:120px;text-align:right;font-size:0.8125rem;font-variant-numeric:tabular-nums;font-weight:600">@_forecast.FcstRevenue.ToString("N2")</span>
+                        <span style="min-width:110px;text-align:right;font-size:0.8125rem;font-variant-numeric:tabular-nums;font-weight:600;color:#999">@_forecast.BudRevenue.ToString("N2")</span>
+                        <span style="min-width:110px;text-align:right;font-size:0.8125rem;font-variant-numeric:tabular-nums;font-weight:600;color:@SummaryVarColour(rvVar)">@rvVar.ToString("N2")</span>
+                        <span style="min-width:72px;text-align:right;font-size:0.8125rem;font-weight:600;color:@SummaryVarColour(rvVar)">@FormatVarPct(VarPct(_forecast.FcstRevenue, _forecast.BudRevenue))</span>
+                    </div>
+                </div>
+            }
+
+            @* ── COGS ── *@
+            var cogsLines = _forecast.Lines.Where(l => l.Group == PnlGroup.Cogs).ToList();
+            @if (cogsLines.Count > 0)
+            {
+                <div class="mb-3">
+                    <MudText Typo="Typo.subtitle2" Class="mt-2 mb-1" Style="text-transform:uppercase;letter-spacing:.06em;color:#555;font-weight:700">@L["Group_Cogs"]</MudText>
+                    <MudDivider Class="mb-1" />
+                    @foreach (var line in cogsLines)
+                    {
+                        <div style="display:flex;align-items:center;padding:3px 0;border-bottom:1px solid #F0F0F0">
+                            <span style="min-width:80px;font-size:0.8125rem;color:#999">@line.AccountCode</span>
+                            <span style="flex:1;font-size:0.8125rem">@line.AccountName</span>
+                            <span style="min-width:110px;text-align:right;font-size:0.8125rem;font-variant-numeric:tabular-nums;color:#888">@line.YtdActual.ToString("N2")</span>
+                            <span style="min-width:110px;text-align:right;font-size:0.8125rem;font-variant-numeric:tabular-nums;color:#888">@line.RemainingBudget.ToString("N2")</span>
+                            <span style="min-width:120px;text-align:right;font-size:0.8125rem;font-variant-numeric:tabular-nums;font-weight:600">@line.FullYearForecast.ToString("N2")</span>
+                            <span style="min-width:110px;text-align:right;font-size:0.8125rem;font-variant-numeric:tabular-nums;color:#999">@line.AnnualBudget.ToString("N2")</span>
+                            <span style="min-width:110px;text-align:right;font-size:0.8125rem;font-variant-numeric:tabular-nums;color:@VarColour(line.ForecastVsBudget,line.Group)">@line.ForecastVsBudget.ToString("N2")</span>
+                            <span style="min-width:72px;text-align:right;font-size:0.8125rem;color:@VarColour(line.ForecastVsBudget,line.Group)">@FormatVarPct(line.ForecastVsBudgetPct)</span>
+                        </div>
+                    }
+                    @{ var cgVar = _forecast.FcstCogs - _forecast.BudCogs; }
+                    <div style="display:flex;align-items:center;padding:4px 0;border-top:1px solid #CCC;margin-top:2px">
+                        <span style="flex:1;font-size:0.8125rem;font-weight:600">@L["Sub_Cogs"]</span>
+                        <span style="min-width:110px;text-align:right;font-size:0.8125rem;font-variant-numeric:tabular-nums;font-weight:600;color:#888">@_forecast.YtdCogs.ToString("N2")</span>
+                        <span style="min-width:110px"></span>
+                        <span style="min-width:120px;text-align:right;font-size:0.8125rem;font-variant-numeric:tabular-nums;font-weight:600">@_forecast.FcstCogs.ToString("N2")</span>
+                        <span style="min-width:110px;text-align:right;font-size:0.8125rem;font-variant-numeric:tabular-nums;font-weight:600;color:#999">@_forecast.BudCogs.ToString("N2")</span>
+                        <span style="min-width:110px;text-align:right;font-size:0.8125rem;font-variant-numeric:tabular-nums;font-weight:600;color:@SummaryVarColour(cgVar)">@cgVar.ToString("N2")</span>
+                        <span style="min-width:72px;text-align:right;font-size:0.8125rem;font-weight:600;color:@SummaryVarColour(cgVar)">@FormatVarPct(VarPct(_forecast.FcstCogs, _forecast.BudCogs))</span>
+                    </div>
+                </div>
+            }
+
+            @* ── Gross Profit ── *@
+            var gpVar = _forecast.FcstGross - _forecast.BudGross;
+            <MudPaper Elevation="0" Class="my-3 pa-3" Style="@($"background:#F8F8F8;border-left:4px solid {SummaryVarColour(gpVar)}")">
+                <div style="display:flex;align-items:center">
+                    <span style="flex:1;font-size:1rem;font-weight:700;color:@SignedColour(_forecast.FcstGross)">@L["GrossProfit"]</span>
+                    <span style="min-width:110px;text-align:right;font-variant-numeric:tabular-nums;font-weight:700;color:#888">@_forecast.YtdGross.ToString("N2")</span>
+                    <span style="min-width:110px"></span>
+                    <span style="min-width:120px;text-align:right;font-variant-numeric:tabular-nums;font-weight:700;color:@SignedColour(_forecast.FcstGross)">@_forecast.FcstGross.ToString("N2")</span>
+                    <span style="min-width:110px;text-align:right;font-variant-numeric:tabular-nums;font-weight:700;color:#999">@_forecast.BudGross.ToString("N2")</span>
+                    <span style="min-width:110px;text-align:right;font-variant-numeric:tabular-nums;font-weight:700;color:@SummaryVarColour(gpVar)">@gpVar.ToString("N2")</span>
+                    <span style="min-width:72px;text-align:right;font-weight:700;color:@SummaryVarColour(gpVar)">@FormatVarPct(VarPct(_forecast.FcstGross, _forecast.BudGross))</span>
+                </div>
+            </MudPaper>
+
+            @* ── Operating Expenses ── *@
+            var opexLines = _forecast.Lines.Where(l => l.Group is PnlGroup.OperatingExpenses or PnlGroup.Depreciation).ToList();
+            @if (opexLines.Count > 0)
+            {
+                <div class="mb-3">
+                    <MudText Typo="Typo.subtitle2" Class="mt-2 mb-1" Style="text-transform:uppercase;letter-spacing:.06em;color:#555;font-weight:700">@L["Group_OpEx"]</MudText>
+                    <MudDivider Class="mb-1" />
+                    @foreach (var line in opexLines)
+                    {
+                        <div style="display:flex;align-items:center;padding:3px 0;border-bottom:1px solid #F0F0F0">
+                            <span style="min-width:80px;font-size:0.8125rem;color:#999">@line.AccountCode</span>
+                            <span style="flex:1;font-size:0.8125rem">@line.AccountName</span>
+                            <span style="min-width:110px;text-align:right;font-size:0.8125rem;font-variant-numeric:tabular-nums;color:#888">@line.YtdActual.ToString("N2")</span>
+                            <span style="min-width:110px;text-align:right;font-size:0.8125rem;font-variant-numeric:tabular-nums;color:#888">@line.RemainingBudget.ToString("N2")</span>
+                            <span style="min-width:120px;text-align:right;font-size:0.8125rem;font-variant-numeric:tabular-nums;font-weight:600">@line.FullYearForecast.ToString("N2")</span>
+                            <span style="min-width:110px;text-align:right;font-size:0.8125rem;font-variant-numeric:tabular-nums;color:#999">@line.AnnualBudget.ToString("N2")</span>
+                            <span style="min-width:110px;text-align:right;font-size:0.8125rem;font-variant-numeric:tabular-nums;color:@VarColour(line.ForecastVsBudget,line.Group)">@line.ForecastVsBudget.ToString("N2")</span>
+                            <span style="min-width:72px;text-align:right;font-size:0.8125rem;color:@VarColour(line.ForecastVsBudget,line.Group)">@FormatVarPct(line.ForecastVsBudgetPct)</span>
+                        </div>
+                    }
+                    @{ var oxVar = _forecast.FcstOpEx - _forecast.BudOpEx; }
+                    <div style="display:flex;align-items:center;padding:4px 0;border-top:1px solid #CCC;margin-top:2px">
+                        <span style="flex:1;font-size:0.8125rem;font-weight:600">@L["Sub_OpEx"]</span>
+                        <span style="min-width:110px;text-align:right;font-size:0.8125rem;font-variant-numeric:tabular-nums;font-weight:600;color:#888">@_forecast.YtdOpEx.ToString("N2")</span>
+                        <span style="min-width:110px"></span>
+                        <span style="min-width:120px;text-align:right;font-size:0.8125rem;font-variant-numeric:tabular-nums;font-weight:600">@_forecast.FcstOpEx.ToString("N2")</span>
+                        <span style="min-width:110px;text-align:right;font-size:0.8125rem;font-variant-numeric:tabular-nums;font-weight:600;color:#999">@_forecast.BudOpEx.ToString("N2")</span>
+                        <span style="min-width:110px;text-align:right;font-size:0.8125rem;font-variant-numeric:tabular-nums;font-weight:600;color:@SummaryVarColour(oxVar)">@oxVar.ToString("N2")</span>
+                        <span style="min-width:72px;text-align:right;font-size:0.8125rem;font-weight:600;color:@SummaryVarColour(oxVar)">@FormatVarPct(VarPct(_forecast.FcstOpEx, _forecast.BudOpEx))</span>
+                    </div>
+                </div>
+            }
+
+            @* ── EBITDA ── *@
+            var ebitdaVar = _forecast.FcstEbitda - _forecast.BudEbitda;
+            <MudPaper Elevation="0" Class="my-3 pa-3" Style="@($"background:#F8F8F8;border-left:4px solid {SummaryVarColour(ebitdaVar)}")">
+                <div style="display:flex;align-items:center">
+                    <MudTooltip Text="@L["EbitdaTooltip"]" Placement="Placement.Right">
+                        <MudStack Row="true" AlignItems="AlignItems.Center" Spacing="1" Style="flex:1">
+                            <span style="font-size:1rem;font-weight:700;color:@SignedColour(_forecast.FcstEbitda)">@L["Ebitda"]</span>
+                            <MudIcon Icon="@Icons.Material.Outlined.Info" Size="Size.Small" Style="color:#AAA" />
+                        </MudStack>
+                    </MudTooltip>
+                    <span style="min-width:110px;text-align:right;font-variant-numeric:tabular-nums;font-weight:700;color:#888">@_forecast.YtdEbitda.ToString("N2")</span>
+                    <span style="min-width:110px"></span>
+                    <span style="min-width:120px;text-align:right;font-variant-numeric:tabular-nums;font-weight:700;color:@SignedColour(_forecast.FcstEbitda)">@_forecast.FcstEbitda.ToString("N2")</span>
+                    <span style="min-width:110px;text-align:right;font-variant-numeric:tabular-nums;font-weight:700;color:#999">@_forecast.BudEbitda.ToString("N2")</span>
+                    <span style="min-width:110px;text-align:right;font-variant-numeric:tabular-nums;font-weight:700;color:@SummaryVarColour(ebitdaVar)">@ebitdaVar.ToString("N2")</span>
+                    <span style="min-width:72px;text-align:right;font-weight:700;color:@SummaryVarColour(ebitdaVar)">@FormatVarPct(VarPct(_forecast.FcstEbitda, _forecast.BudEbitda))</span>
+                </div>
+            </MudPaper>
+
+            @* ── Interest ── *@
+            var intLines = _forecast.Lines.Where(l => l.Group == PnlGroup.Interest).ToList();
+            @if (intLines.Count > 0)
+            {
+                <div class="mb-3">
+                    <MudText Typo="Typo.subtitle2" Class="mt-2 mb-1" Style="text-transform:uppercase;letter-spacing:.06em;color:#555;font-weight:700">@L["Group_Interest"]</MudText>
+                    <MudDivider Class="mb-1" />
+                    @foreach (var line in intLines)
+                    {
+                        <div style="display:flex;align-items:center;padding:3px 0;border-bottom:1px solid #F0F0F0">
+                            <span style="min-width:80px;font-size:0.8125rem;color:#999">@line.AccountCode</span>
+                            <span style="flex:1;font-size:0.8125rem">@line.AccountName</span>
+                            <span style="min-width:110px;text-align:right;font-size:0.8125rem;font-variant-numeric:tabular-nums;color:#888">@line.YtdActual.ToString("N2")</span>
+                            <span style="min-width:110px;text-align:right;font-size:0.8125rem;font-variant-numeric:tabular-nums;color:#888">@line.RemainingBudget.ToString("N2")</span>
+                            <span style="min-width:120px;text-align:right;font-size:0.8125rem;font-variant-numeric:tabular-nums;font-weight:600">@line.FullYearForecast.ToString("N2")</span>
+                            <span style="min-width:110px;text-align:right;font-size:0.8125rem;font-variant-numeric:tabular-nums;color:#999">@line.AnnualBudget.ToString("N2")</span>
+                            <span style="min-width:110px;text-align:right;font-size:0.8125rem;font-variant-numeric:tabular-nums;color:@VarColour(line.ForecastVsBudget,line.Group)">@line.ForecastVsBudget.ToString("N2")</span>
+                            <span style="min-width:72px;text-align:right;font-size:0.8125rem;color:@VarColour(line.ForecastVsBudget,line.Group)">@FormatVarPct(line.ForecastVsBudgetPct)</span>
+                        </div>
+                    }
+                    @{ var inVar = _forecast.FcstInterest - _forecast.BudInterest; }
+                    <div style="display:flex;align-items:center;padding:4px 0;border-top:1px solid #CCC;margin-top:2px">
+                        <span style="flex:1;font-size:0.8125rem;font-weight:600">@L["Sub_Interest"]</span>
+                        <span style="min-width:110px;text-align:right;font-size:0.8125rem;font-variant-numeric:tabular-nums;font-weight:600;color:#888">@_forecast.YtdInterest.ToString("N2")</span>
+                        <span style="min-width:110px"></span>
+                        <span style="min-width:120px;text-align:right;font-size:0.8125rem;font-variant-numeric:tabular-nums;font-weight:600">@_forecast.FcstInterest.ToString("N2")</span>
+                        <span style="min-width:110px;text-align:right;font-size:0.8125rem;font-variant-numeric:tabular-nums;font-weight:600;color:#999">@_forecast.BudInterest.ToString("N2")</span>
+                        <span style="min-width:110px;text-align:right;font-size:0.8125rem;font-variant-numeric:tabular-nums;font-weight:600;color:@SummaryVarColour(inVar)">@inVar.ToString("N2")</span>
+                        <span style="min-width:72px;text-align:right;font-size:0.8125rem;font-weight:600;color:@SummaryVarColour(inVar)">@FormatVarPct(VarPct(_forecast.FcstInterest, _forecast.BudInterest))</span>
+                    </div>
+                </div>
+            }
+
+            @* ── Tax ── *@
+            var taxLines = _forecast.Lines.Where(l => l.Group == PnlGroup.Tax).ToList();
+            @if (taxLines.Count > 0)
+            {
+                <div class="mb-3">
+                    <MudText Typo="Typo.subtitle2" Class="mt-2 mb-1" Style="text-transform:uppercase;letter-spacing:.06em;color:#555;font-weight:700">@L["Group_Tax"]</MudText>
+                    <MudDivider Class="mb-1" />
+                    @foreach (var line in taxLines)
+                    {
+                        <div style="display:flex;align-items:center;padding:3px 0;border-bottom:1px solid #F0F0F0">
+                            <span style="min-width:80px;font-size:0.8125rem;color:#999">@line.AccountCode</span>
+                            <span style="flex:1;font-size:0.8125rem">@line.AccountName</span>
+                            <span style="min-width:110px;text-align:right;font-size:0.8125rem;font-variant-numeric:tabular-nums;color:#888">@line.YtdActual.ToString("N2")</span>
+                            <span style="min-width:110px;text-align:right;font-size:0.8125rem;font-variant-numeric:tabular-nums;color:#888">@line.RemainingBudget.ToString("N2")</span>
+                            <span style="min-width:120px;text-align:right;font-size:0.8125rem;font-variant-numeric:tabular-nums;font-weight:600">@line.FullYearForecast.ToString("N2")</span>
+                            <span style="min-width:110px;text-align:right;font-size:0.8125rem;font-variant-numeric:tabular-nums;color:#999">@line.AnnualBudget.ToString("N2")</span>
+                            <span style="min-width:110px;text-align:right;font-size:0.8125rem;font-variant-numeric:tabular-nums;color:@VarColour(line.ForecastVsBudget,line.Group)">@line.ForecastVsBudget.ToString("N2")</span>
+                            <span style="min-width:72px;text-align:right;font-size:0.8125rem;color:@VarColour(line.ForecastVsBudget,line.Group)">@FormatVarPct(line.ForecastVsBudgetPct)</span>
+                        </div>
+                    }
+                    @{ var txVar = _forecast.FcstTax - _forecast.BudTax; }
+                    <div style="display:flex;align-items:center;padding:4px 0;border-top:1px solid #CCC;margin-top:2px">
+                        <span style="flex:1;font-size:0.8125rem;font-weight:600">@L["Sub_Tax"]</span>
+                        <span style="min-width:110px;text-align:right;font-size:0.8125rem;font-variant-numeric:tabular-nums;font-weight:600;color:#888">@_forecast.YtdTax.ToString("N2")</span>
+                        <span style="min-width:110px"></span>
+                        <span style="min-width:120px;text-align:right;font-size:0.8125rem;font-variant-numeric:tabular-nums;font-weight:600">@_forecast.FcstTax.ToString("N2")</span>
+                        <span style="min-width:110px;text-align:right;font-size:0.8125rem;font-variant-numeric:tabular-nums;font-weight:600;color:#999">@_forecast.BudTax.ToString("N2")</span>
+                        <span style="min-width:110px;text-align:right;font-size:0.8125rem;font-variant-numeric:tabular-nums;font-weight:600;color:@SummaryVarColour(txVar)">@txVar.ToString("N2")</span>
+                        <span style="min-width:72px;text-align:right;font-size:0.8125rem;font-weight:600;color:@SummaryVarColour(txVar)">@FormatVarPct(VarPct(_forecast.FcstTax, _forecast.BudTax))</span>
+                    </div>
+                </div>
+            }
+
+            @* ── Net Income ── *@
+            var niVar = _forecast.FcstNet - _forecast.BudNet;
+            <MudPaper Elevation="1" Class="my-3 pa-4" Style="@($"background:#FAFAFA;border-left:6px solid {SummaryVarColour(niVar)}")">
+                <div style="display:flex;align-items:center">
+                    <span style="flex:1;font-size:1.125rem;font-weight:700;color:@SignedColour(_forecast.FcstNet)">@L["NetIncome"]</span>
+                    <span style="min-width:110px;text-align:right;font-variant-numeric:tabular-nums;font-size:1.125rem;font-weight:700;color:#888">@_forecast.YtdNet.ToString("N2")</span>
+                    <span style="min-width:110px"></span>
+                    <span style="min-width:120px;text-align:right;font-variant-numeric:tabular-nums;font-size:1.125rem;font-weight:700;color:@SignedColour(_forecast.FcstNet)">@_forecast.FcstNet.ToString("N2")</span>
+                    <span style="min-width:110px;text-align:right;font-variant-numeric:tabular-nums;font-size:1.125rem;font-weight:700;color:#999">@_forecast.BudNet.ToString("N2")</span>
+                    <span style="min-width:110px;text-align:right;font-variant-numeric:tabular-nums;font-size:1.125rem;font-weight:700;color:@SummaryVarColour(niVar)">@niVar.ToString("N2")</span>
+                    <span style="min-width:72px;text-align:right;font-size:1.125rem;font-weight:700;color:@SummaryVarColour(niVar)">@FormatVarPct(VarPct(_forecast.FcstNet, _forecast.BudNet))</span>
+                </div>
+            </MudPaper>
+        }
+    }
+}
+
+@code {
+    private bool _loadingBudgets = true;
+    private bool _loading;
+    private bool _noBudget;
+
+    private List<BudgetSummaryDto> _budgets = [];
+    private int _selectedYear;
+    private int _throughMonth;
+
+    private YearEndForecastReport? _forecast;
+
+    protected override async Task OnInitializedAsync()
+    {
+        var all = await BudgetService.GetAllAsync(CurrentUser.TenantId);
+        _budgets = all.ToList();
+        _loadingBudgets = false;
+
+        if (_budgets.Count > 0)
+        {
+            _selectedYear = _budgets.Any(b => b.FiscalYear == DateTime.Today.Year)
+                ? DateTime.Today.Year
+                : _budgets[0].FiscalYear;
+            ApplyYearDefaults(_selectedYear);
+            await GenerateAsync();
+        }
+    }
+
+    private void OnYearChanged(int year)
+    {
+        _selectedYear = year;
+        ApplyYearDefaults(year);
+    }
+
+    private void ApplyYearDefaults(int year)
+    {
+        if (year < DateTime.Today.Year)
+            _throughMonth = 12;
+        else if (year == DateTime.Today.Year)
+            _throughMonth = Math.Max(1, DateTime.Today.Month - 1);
+        else
+            _throughMonth = 1;
+    }
+
+    private async Task GenerateAsync()
+    {
+        _loading  = true;
+        _noBudget = false;
+        _forecast = null;
+        try
+        {
+            _forecast = await PnlService.GetYearEndForecastAsync(
+                CurrentUser.TenantId, _selectedYear, _throughMonth);
+            _noBudget = _forecast is null;
+        }
+        finally { _loading = false; }
+    }
+
+    private static string MonthName(int month) =>
+        new DateTime(2000, month, 1).ToString("MMMM", CultureInfo.CurrentCulture);
+
+    private static string SignedColour(decimal v) =>
+        v > 0 ? "#1F6040" : v < 0 ? "#7E2A14" : "#8C8980";
+
+    private static string SummaryVarColour(decimal v) =>
+        v > 0 ? "#1F6040" : v < 0 ? "#7E2A14" : "#8C8980";
+
+    private static string VarColour(decimal variance, PnlGroup group)
+    {
+        if (variance == 0m) return "#8C8980";
+        bool favorable = group == PnlGroup.Revenue ? variance > 0 : variance < 0;
+        return favorable ? "#1F6040" : "#7E2A14";
+    }
+
+    private static string FormatVarPct(decimal? pct) =>
+        pct.HasValue ? $"{pct.Value:+0.0;-0.0;0.0}%" : "N/A";
+
+    private static decimal? VarPct(decimal current, decimal budget) =>
+        budget == 0m ? null : Math.Round((current - budget) / Math.Abs(budget) * 100m, 1);
+}

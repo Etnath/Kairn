@@ -1,0 +1,73 @@
+@inject IBudgetService BudgetService
+@inject ICurrentUserContext CurrentUser
+@inject IStringLocalizer<Budgets> L
+
+<MudDialog>
+    <DialogContent>
+        <MudForm @ref="_form" @bind-IsValid="_isValid">
+            <MudStack Spacing="3">
+                <MudNumericField T="int" @bind-Value="_year" Label="@L["Create_Year"]"
+                                 Required="true" Min="2000" Max="2100"
+                                 Immediate="true" />
+                <MudTextField @bind-Value="_name" Label="@L["Create_Name"]"
+                              Required="true" RequiredError="@L["Create_Name"]"
+                              Immediate="true" />
+                @if (_errorMessage is not null)
+                {
+                    <MudAlert Severity="Severity.Error" Dense="true">@_errorMessage</MudAlert>
+                }
+            </MudStack>
+        </MudForm>
+    </DialogContent>
+    <DialogActions>
+        <MudButton OnClick="Cancel">@L["Create_Cancel"]</MudButton>
+        <MudButton OnClick="Submit" Color="Color.Primary" Variant="Variant.Filled"
+                   Disabled="@_saving">
+            @if (_saving)
+            {
+                <MudProgressCircular Size="Size.Small" Indeterminate="true" Class="mr-2" />
+            }
+            @L["Create_Submit"]
+        </MudButton>
+    </DialogActions>
+</MudDialog>
+
+@code {
+    [CascadingParameter] private IMudDialogInstance MudDialog { get; set; } = null!;
+
+    private MudForm _form = null!;
+    private bool _isValid;
+    private bool _saving;
+    private string? _errorMessage;
+    private int _year = DateTime.Today.Year;
+    private string _name = "";
+
+    private void Cancel() => MudDialog.Cancel();
+
+    private async Task Submit()
+    {
+        await _form.Validate();
+        if (!_isValid) return;
+
+        _saving = true;
+        _errorMessage = null;
+
+        var result = await BudgetService.CreateAsync(
+            new CreateBudgetCommand(CurrentUser.TenantId, _year, _name));
+
+        _saving = false;
+
+        if (result.IsSuccess)
+        {
+            MudDialog.Close(DialogResult.Ok(result.Value));
+        }
+        else if (result.Error?.StartsWith("DuplicateYear:") == true)
+        {
+            _errorMessage = string.Format(L["Create_ErrDuplicate"], _year);
+        }
+        else
+        {
+            _errorMessage = result.Error;
+        }
+    }
+}

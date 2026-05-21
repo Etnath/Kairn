@@ -2,6 +2,7 @@
 @attribute [Authorize(Roles = "Admin,Bookkeeper,Viewer")]
 @inject IStringLocalizer<Bills> L
 @inject IBillService BillService
+@inject IVendorService VendorService
 @inject ICurrentUserContext CurrentUser
 @inject NavigationManager Navigation
 
@@ -19,28 +20,68 @@
     </AuthorizeView>
 </MudStack>
 
-<MudStack Row="true" Spacing="2" Class="mb-3">
-    <MudTextField @bind-Value="_search" Placeholder="@L["Search"]"
-                  Adornment="Adornment.Start" AdornmentIcon="@Icons.Material.Filled.Search"
-                  Immediate="true" DebounceInterval="200"
-                  Style="max-width:340px" />
-</MudStack>
+@* Filters *@
+<MudGrid Spacing="2" Class="mb-4">
+    <MudItem xs="12" sm="4">
+        <MudSelect T="Guid?" Value="_vendorId"
+                   ValueChanged="@(v => { _vendorId = v; _table.ReloadServerData(); })"
+                   Label="@L["Filter_Vendor"]" Clearable="true" Dense="true">
+            @foreach (var v in _vendors)
+            {
+                <MudSelectItem T="Guid?" Value="@((Guid?)v.Id)">@v.Name</MudSelectItem>
+            }
+        </MudSelect>
+    </MudItem>
+    <MudItem xs="12" sm="3">
+        <MudSelect T="BillStatus?" Value="_statusFilter"
+                   ValueChanged="@(s => { _statusFilter = s; _table.ReloadServerData(); })"
+                   Label="@L["Filter_Status"]" Clearable="true" Dense="true">
+            @foreach (BillStatus s in Enum.GetValues<BillStatus>())
+            {
+                <MudSelectItem T="BillStatus?" Value="@((BillStatus?)s)">@s</MudSelectItem>
+            }
+        </MudSelect>
+    </MudItem>
+    <MudItem xs="12" sm="2">
+        <MudDatePicker Date="_dueDateFrom"
+                       DateChanged="@(d => { _dueDateFrom = d; _table.ReloadServerData(); })"
+                       Label="@L["Filter_DueFrom"]"
+                       DateFormat="dd/MM/yyyy" Editable="true" Dense="true" />
+    </MudItem>
+    <MudItem xs="12" sm="2">
+        <MudDatePicker Date="_dueDateTo"
+                       DateChanged="@(d => { _dueDateTo = d; _table.ReloadServerData(); })"
+                       Label="@L["Filter_DueTo"]"
+                       DateFormat="dd/MM/yyyy" Editable="true" Dense="true" />
+    </MudItem>
+    <MudItem xs="12" sm="1" Class="d-flex align-center gap-2">
+        <MudSwitch Value="_showAll"
+                   ValueChanged="@((bool v) => { _showAll = v; _table.ReloadServerData(); })"
+                   Label="@L["Filter_ShowAll"]"
+                   Color="Color.Primary" Size="Size.Small" />
+        <MudButton Variant="Variant.Outlined" OnClick="ResetFilters" Size="Size.Small">
+            @L["Filter_Reset"]
+        </MudButton>
+    </MudItem>
+</MudGrid>
 
-@if (_loading)
-{
-    <MudProgressLinear Indeterminate="true" Class="mb-2" />
-}
-
-<MudTable T="BillDto" Items="FilteredItems" Dense="true" Hover="true" Elevation="0"
-          Style="border:1px solid var(--mud-palette-lines-default)" RowClass="cursor-pointer"
-          OnRowClick="OnRowClick">
+<MudTable T="BillDto" ServerData="LoadData" @ref="_table" Dense="true" Hover="true" Elevation="0"
+          Style="border:1px solid var(--mud-palette-lines-default)"
+          OnRowClick="OnRowClick" RowClass="cursor-pointer"
+          Breakpoint="Breakpoint.Sm">
     <HeaderContent>
         <MudTh>@L["Col_Vendor"]</MudTh>
         <MudTh>@L["Col_Reference"]</MudTh>
-        <MudTh>@L["Col_Date"]</MudTh>
-        <MudTh>@L["Col_DueDate"]</MudTh>
-        <MudTh>@L["Col_Status"]</MudTh>
-        <MudTh Style="text-align:right">@L["Col_Amount"]</MudTh>
+        <MudTh Style="width:110px">
+            <MudTableSortLabel SortLabel="date" T="BillDto">@L["Col_Date"]</MudTableSortLabel>
+        </MudTh>
+        <MudTh Style="width:110px">
+            <MudTableSortLabel SortLabel="duedate" T="BillDto">@L["Col_DueDate"]</MudTableSortLabel>
+        </MudTh>
+        <MudTh Style="width:100px">@L["Col_Status"]</MudTh>
+        <MudTh Style="width:130px;text-align:right">
+            <MudTableSortLabel SortLabel="amount" T="BillDto">@L["Col_Amount"]</MudTableSortLabel>
+        </MudTh>
         <MudTh Style="width:60px"></MudTh>
     </HeaderContent>
     <RowTemplate Context="bill">
@@ -55,7 +96,11 @@
             </MudStack>
         </MudTd>
         <MudTd DataLabel="@L["Col_Date"]">@bill.Date.ToString("dd/MM/yyyy")</MudTd>
-        <MudTd DataLabel="@L["Col_DueDate"]">@bill.DueDate.ToString("dd/MM/yyyy")</MudTd>
+        <MudTd DataLabel="@L["Col_DueDate"]">
+            <MudText Color="@(bill.Status == BillStatus.Overdue ? Color.Error : Color.Default)">
+                @bill.DueDate.ToString("dd/MM/yyyy")
+            </MudText>
+        </MudTd>
         <MudTd DataLabel="@L["Col_Status"]"><BillStatusChip Status="bill.Status" /></MudTd>
         <MudTd DataLabel="@L["Col_Amount"]" Style="text-align:right">
             <MudText Color="@(bill.Outstanding > 0 && bill.Status == BillStatus.Overdue ? Color.Error : Color.Default)">
@@ -75,27 +120,53 @@
     <NoRecordsContent>
         <MudText Color="Color.Secondary" Class="pa-4">@L["NoBills"]</MudText>
     </NoRecordsContent>
+    <PagerContent>
+        <MudTablePager />
+    </PagerContent>
 </MudTable>
 
 @code {
-    private bool _loading = true;
-    private string _search = "";
-    private IReadOnlyList<BillDto> _bills = [];
-
-    private IEnumerable<BillDto> FilteredItems => string.IsNullOrWhiteSpace(_search)
-        ? _bills
-        : _bills.Where(b =>
-            b.VendorName.Contains(_search, StringComparison.OrdinalIgnoreCase) ||
-            b.Reference.Contains(_search, StringComparison.OrdinalIgnoreCase));
+    private MudTable<BillDto> _table = null!;
+    private IReadOnlyList<VendorDto> _vendors = [];
+    private Guid? _vendorId;
+    private BillStatus? _statusFilter;
+    private DateTime? _dueDateFrom;
+    private DateTime? _dueDateTo;
+    private bool _showAll;
 
     protected override async Task OnInitializedAsync()
     {
-        var result = await BillService.GetPagedAsync(
-            new BillQuery(CurrentUser.TenantId, Page: 1, PageSize: 200));
-        _bills = result.Items;
-        _loading = false;
+        _vendors = await VendorService.GetAllAsync(CurrentUser.TenantId);
+    }
+
+    private async Task<TableData<BillDto>> LoadData(TableState state, CancellationToken ct)
+    {
+        var query = new BillQuery(
+            TenantId: CurrentUser.TenantId,
+            VendorId: _vendorId,
+            Status: _statusFilter,
+            DueDateFrom: _dueDateFrom.HasValue ? DateOnly.FromDateTime(_dueDateFrom.Value) : null,
+            DueDateTo: _dueDateTo.HasValue ? DateOnly.FromDateTime(_dueDateTo.Value) : null,
+            Page: state.Page + 1,
+            PageSize: state.PageSize,
+            ExcludeClosedStatuses: !_showAll && _statusFilter is null,
+            SortBy: state.SortLabel,
+            SortDescending: state.SortDirection != SortDirection.Ascending);
+
+        var result = await BillService.GetPagedAsync(query, ct);
+        return new TableData<BillDto> { Items = result.Items, TotalItems = result.TotalCount };
     }
 
     private void OnRowClick(TableRowClickEventArgs<BillDto> args) =>
         Navigation.NavigateTo($"/bills/{args.Item!.Id}");
+
+    private void ResetFilters()
+    {
+        _vendorId = null;
+        _statusFilter = null;
+        _dueDateFrom = null;
+        _dueDateTo = null;
+        _showAll = false;
+        _table.ReloadServerData();
+    }
 }

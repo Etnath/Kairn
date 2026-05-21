@@ -1,0 +1,123 @@
+@inject IFixedAssetService FixedAssetService
+@inject IAccountService AccountService
+@inject ICurrentUserContext CurrentUser
+@inject IStringLocalizer<FixedAssets> L
+
+<MudDialog Style="min-width:520px">
+    <DialogContent>
+        <MudStack Spacing="3">
+            <MudSimpleTable Dense="true" Style="margin-bottom:4px">
+                <tbody>
+                    <tr>
+                        <td><MudText Typo="Typo.body2" Color="Color.Secondary">@L["Dispose_PurchaseValue"]</MudText></td>
+                        <td style="text-align:right"><MudText Typo="Typo.body2">@Asset.PurchaseValue.ToString("N2")</MudText></td>
+                    </tr>
+                    <tr>
+                        <td><MudText Typo="Typo.body2" Color="Color.Secondary">@L["Dispose_AccumDeprec"]</MudText></td>
+                        <td style="text-align:right"><MudText Typo="Typo.body2" Style="color:#8C8980">(@Asset.AccumulatedDepreciation.ToString("N2"))</MudText></td>
+                    </tr>
+                    <tr>
+                        <td><MudText Typo="Typo.body2" Style="font-weight:600">@L["Dispose_NetBookValue"]</MudText></td>
+                        <td style="text-align:right">
+                            <MudText Typo="Typo.body2" Style="@($"{NbvStyle(Asset.NetBookValue)};font-weight:600")">
+                                @Asset.NetBookValue.ToString("N2")
+                            </MudText>
+                        </td>
+                    </tr>
+                </tbody>
+            </MudSimpleTable>
+
+            <MudForm @ref="_form" @bind-IsValid="_isValid">
+                <MudStack Spacing="3">
+                    <MudDatePicker @bind-Date="_disposalDateRaw" Label="@L["Dispose_Date"]"
+                                   Required="true" DateFormat="yyyy-MM-dd" />
+                    @if (Asset.NetBookValue != 0m)
+                    {
+                        <MudSelect T="Guid?" @bind-Value="_gainLossAccountId"
+                                   Label="@L["Dispose_GainLossAccount"]"
+                                   HelperText="@L["Dispose_GainLossHint"]"
+                                   Required="true">
+                            @foreach (var acc in _gainLossAccounts)
+                            {
+                                <MudSelectItem T="Guid?" Value="@((Guid?)acc.Id)">@acc.Code – @acc.Name</MudSelectItem>
+                            }
+                        </MudSelect>
+                    }
+                    <MudTextField @bind-Value="_notes" Label="@L["Dispose_Notes"]"
+                                  Lines="2" Immediate="true" />
+                    @if (_errorMessage is not null)
+                    {
+                        <MudAlert Severity="Severity.Error" Dense="true">@_errorMessage</MudAlert>
+                    }
+                </MudStack>
+            </MudForm>
+        </MudStack>
+    </DialogContent>
+    <DialogActions>
+        <MudButton OnClick="Cancel">@L["Dispose_Cancel"]</MudButton>
+        <MudButton OnClick="Submit" Color="Color.Warning" Variant="Variant.Filled" Disabled="@_saving">
+            @if (_saving)
+            {
+                <MudProgressCircular Size="Size.Small" Indeterminate="true" Class="mr-2" />
+            }
+            @L["Dispose_Confirm"]
+        </MudButton>
+    </DialogActions>
+</MudDialog>
+
+@code {
+    [CascadingParameter] private IMudDialogInstance MudDialog { get; set; } = null!;
+    [Parameter] public FixedAssetDto Asset { get; set; } = null!;
+
+    private MudForm _form = null!;
+    private bool _isValid;
+    private bool _saving;
+    private string? _errorMessage;
+
+    private DateTime? _disposalDateRaw = DateTime.Today;
+    private Guid? _gainLossAccountId;
+    private string? _notes;
+
+    private List<Account> _gainLossAccounts = [];
+
+    protected override async Task OnInitializedAsync()
+    {
+        var accounts = await AccountService.GetAllAsync(CurrentUser.TenantId);
+        _gainLossAccounts = accounts
+            .Where(a => (a.Type == AccountType.Revenue || a.Type == AccountType.Expense) && a.IsActive)
+            .OrderBy(a => a.Code)
+            .ToList();
+    }
+
+    private void Cancel() => MudDialog.Cancel();
+
+    private async Task Submit()
+    {
+        await _form.Validate();
+        if (!_isValid) return;
+
+        _saving = true;
+        _errorMessage = null;
+
+        var disposalDate = DateOnly.FromDateTime(_disposalDateRaw!.Value);
+
+        var result = await FixedAssetService.DisposeAsync(new DisposeFixedAssetCommand(
+            Asset.Id,
+            CurrentUser.TenantId,
+            disposalDate,
+            _gainLossAccountId,
+            _notes,
+            CurrentUser.UserId,
+            CurrentUser.UserName));
+
+        _saving = false;
+
+        if (result.IsSuccess)
+            MudDialog.Close(DialogResult.Ok(result.Value));
+        else
+            _errorMessage = result.Error;
+    }
+
+    private static string NbvStyle(decimal nbv) =>
+        nbv > 0 ? "color:#1F6040" : nbv < 0 ? "color:#7E2A14" : "color:#8C8980";
+}

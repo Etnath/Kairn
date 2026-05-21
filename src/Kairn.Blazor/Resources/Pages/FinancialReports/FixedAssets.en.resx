@@ -1,0 +1,56 @@
+<?xml version="1.0" encoding="utf-8"?>
+<root>
+  <resheader name="resmimetype"><value>text/microsoft-resx</value></resheader>
+  <resheader name="version"><value>2.0</value></resheader>
+  <data name="Title" xml:space="preserve"><value>Fixed Assets</value></data>
+  <data name="NewAsset" xml:space="preserve"><value>New Asset</value></data>
+  <data name="Tab_Active" xml:space="preserve"><value>Active</value></data>
+  <data name="Tab_Inactive" xml:space="preserve"><value>Disposed / Inactive</value></data>
+  <data name="Col_Name" xml:space="preserve"><value>Name</value></data>
+  <data name="Col_Category" xml:space="preserve"><value>Category</value></data>
+  <data name="Col_PurchaseDate" xml:space="preserve"><value>Purchase Date</value></data>
+  <data name="Col_PurchaseValue" xml:space="preserve"><value>Purchase Value</value></data>
+  <data name="Col_AccumDeprec" xml:space="preserve"><value>Accum. Depreciation</value></data>
+  <data name="Col_NetBookValue" xml:space="preserve"><value>Net Book Value</value></data>
+  <data name="Col_NextDeprec" xml:space="preserve"><value>Next Depreciation</value></data>
+  <data name="Col_DisposalDate" xml:space="preserve"><value>Disposal Date</value></data>
+  <data name="Col_Actions" xml:space="preserve"><value>Actions</value></data>
+  <data name="Action_Edit" xml:space="preserve"><value>Edit</value></data>
+  <data name="Action_Dispose" xml:space="preserve"><value>Dispose</value></data>
+  <data name="NoActiveAssets" xml:space="preserve"><value>No active assets. Click New Asset to add one.</value></data>
+  <data name="NoInactiveAssets" xml:space="preserve"><value>No disposed or inactive assets.</value></data>
+  <data name="DisposeTooltip" xml:space="preserve"><value>Record disposal and generate journal entry</value></data>
+  <data name="EditLockedTooltip" xml:space="preserve"><value>Depreciation settings cannot be changed after depreciation has been posted</value></data>
+  <data name="FullyDepreciated" xml:space="preserve"><value>Fully depreciated</value></data>
+  <data name="Dialog_NewTitle" xml:space="preserve"><value>New Fixed Asset</value></data>
+  <data name="Dialog_EditTitle" xml:space="preserve"><value>Edit Fixed Asset</value></data>
+  <data name="Field_Name" xml:space="preserve"><value>Name</value></data>
+  <data name="Field_Category" xml:space="preserve"><value>Category</value></data>
+  <data name="Field_PurchaseDate" xml:space="preserve"><value>Purchase Date</value></data>
+  <data name="Field_PurchaseValue" xml:space="preserve"><value>Purchase Value</value></data>
+  <data name="Field_ResidualValue" xml:space="preserve"><value>Residual Value</value></data>
+  <data name="Field_Method" xml:space="preserve"><value>Depreciation Method</value></data>
+  <data name="Field_Method_SL" xml:space="preserve"><value>Straight-Line</value></data>
+  <data name="Field_Method_DB" xml:space="preserve"><value>Declining Balance</value></data>
+  <data name="Field_UsefulLifeYears" xml:space="preserve"><value>Useful Life (years)</value></data>
+  <data name="Field_AssetAccount" xml:space="preserve"><value>Asset Account</value></data>
+  <data name="Field_AccumDeprecAccount" xml:space="preserve"><value>Accumulated Depreciation Account</value></data>
+  <data name="Field_DeprecExpenseAccount" xml:space="preserve"><value>Depreciation Expense Account</value></data>
+  <data name="Field_DeprecExpenseAccountHint" xml:space="preserve"><value>Required for automated depreciation postings</value></data>
+  <data name="EditLocked_Alert" xml:space="preserve"><value>Depreciation settings are locked because depreciation has already been posted for this asset.</value></data>
+  <data name="RunDepreciation" xml:space="preserve"><value>Run Depreciation</value></data>
+  <data name="DeprecResult" xml:space="preserve"><value>Depreciation run complete: {0} posted, {1} skipped, {2} failed.</value></data>
+  <data name="NoExpenseAccount" xml:space="preserve"><value>No expense account set</value></data>
+  <data name="Save" xml:space="preserve"><value>Save</value></data>
+  <data name="Cancel" xml:space="preserve"><value>Cancel</value></data>
+  <data name="Dispose_Title" xml:space="preserve"><value>Dispose Asset</value></data>
+  <data name="Dispose_PurchaseValue" xml:space="preserve"><value>Purchase Value</value></data>
+  <data name="Dispose_AccumDeprec" xml:space="preserve"><value>Accumulated Depreciation</value></data>
+  <data name="Dispose_NetBookValue" xml:space="preserve"><value>Net Book Value</value></data>
+  <data name="Dispose_Date" xml:space="preserve"><value>Disposal Date</value></data>
+  <data name="Dispose_GainLossAccount" xml:space="preserve"><value>Gain / Loss Account</value></data>
+  <data name="Dispose_GainLossHint" xml:space="preserve"><value>Required when net book value is non-zero</value></data>
+  <data name="Dispose_Notes" xml:space="preserve"><value>Notes</value></data>
+  <data name="Dispose_Confirm" xml:space="preserve"><value>Confirm Disposal</value></data>
+  <data name="Dispose_Cancel" xml:space="preserve"><value>Cancel</value></data>
+</root>

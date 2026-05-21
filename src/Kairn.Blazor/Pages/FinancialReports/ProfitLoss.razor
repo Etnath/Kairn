@@ -1,0 +1,1070 @@
+@page "/reports/profit-loss"
+@attribute [Authorize]
+@using System.Globalization
+@using Microsoft.AspNetCore.WebUtilities
+@inject IStringLocalizer<ProfitLoss> L
+@inject IPnlService PnlService
+@inject IPnlExporter PnlExporter
+@inject IJSRuntime JS
+@inject ICurrentUserContext CurrentUser
+@inject IDialogService DialogService
+@inject NavigationManager Nav
+
+<style>
+    .pnl-line-clickable { cursor: pointer; }
+    .pnl-line-clickable:hover { background-color: rgba(0,0,0,0.04); }
+    .pnl-line-clickable:hover .pnl-acct-name { text-decoration: underline; }
+</style>
+
+<PageTitle>@L["Title"] – Kairn</PageTitle>
+
+<MudStack Row="true" AlignItems="AlignItems.Center" Class="mb-6" Spacing="2">
+    <MudIconButton Icon="@Icons.Material.Filled.ArrowBack" Href="/reports" />
+    <MudText Typo="Typo.h5">@L["Title"]</MudText>
+</MudStack>
+
+@* Controls *@
+<MudPaper Class="pa-4 mb-4" Elevation="1">
+
+    @* Primary period presets *@
+    <MudStack Row="true" Spacing="1" Wrap="Wrap.Wrap" Class="mb-3">
+        <MudButton Variant="@PresetVariant("Preset_ThisMonth")"   Color="Color.Primary" Size="Size.Small" OnClick="@(() => ApplyPreset("Preset_ThisMonth"))">@L["Preset_ThisMonth"]</MudButton>
+        <MudButton Variant="@PresetVariant("Preset_LastMonth")"   Color="Color.Primary" Size="Size.Small" OnClick="@(() => ApplyPreset("Preset_LastMonth"))">@L["Preset_LastMonth"]</MudButton>
+        <MudButton Variant="@PresetVariant("Preset_ThisQuarter")" Color="Color.Primary" Size="Size.Small" OnClick="@(() => ApplyPreset("Preset_ThisQuarter"))">@L["Preset_ThisQuarter"]</MudButton>
+        <MudButton Variant="@PresetVariant("Preset_Ytd")"         Color="Color.Primary" Size="Size.Small" OnClick="@(() => ApplyPreset("Preset_Ytd"))">@L["Preset_Ytd"]</MudButton>
+        <MudButton Variant="@PresetVariant("Preset_LastYear")"    Color="Color.Primary" Size="Size.Small" OnClick="@(() => ApplyPreset("Preset_LastYear"))">@L["Preset_LastYear"]</MudButton>
+    </MudStack>
+
+    @* Primary period pickers + toggles *@
+    <MudStack Row="true" AlignItems="AlignItems.End" Spacing="3" Wrap="Wrap.Wrap">
+        <MudDatePicker Label="@L["From"]"
+                       Date="_from" DateChanged="OnFromChanged"
+                       DateFormat="dd/MM/yyyy" MaxDate="DateTime.Today"
+                       Style="max-width:180px" />
+        <MudDatePicker Label="@L["To"]"
+                       Date="_to" DateChanged="OnToChanged"
+                       DateFormat="dd/MM/yyyy" MaxDate="DateTime.Today"
+                       Style="max-width:180px" />
+        <MudSwitch @bind-Value="_hideZero" Label="@L["HideZero"]" Color="Color.Primary" />
+        <MudSwitch Value="_compEnabled"
+                   ValueChanged="@((bool v) => OnCompEnabledChanged(v))"
+                   Label="@L["Compare"]" Color="Color.Secondary" />
+        <MudSwitch Value="_budgetEnabled"
+                   ValueChanged="@((bool v) => OnBudgetEnabledChanged(v))"
+                   Label="@L["Budget_Toggle"]" Color="Color.Tertiary" />
+        <MudSpacer />
+        <MudButton Variant="Variant.Filled" Color="Color.Primary"
+                   StartIcon="@Icons.Material.Filled.Refresh"
+                   OnClick="GenerateAsync" Disabled="_loading">
+            @L["Generate"]
+        </MudButton>
+        @if (_report is not null)
+        {
+            <MudButton Variant="Variant.Outlined" Color="Color.Primary"
+                       StartIcon="@Icons.Material.Filled.PictureAsPdf"
+                       OnClick="ExportPdfAsync" Disabled="_loading">
+                @L["ExportPdf"]
+            </MudButton>
+            <MudButton Variant="Variant.Outlined" Color="Color.Primary"
+                       StartIcon="@Icons.Material.Filled.TableChart"
+                       OnClick="ExportCsvAsync" Disabled="_loading">
+                @L["ExportCsv"]
+            </MudButton>
+        }
+    </MudStack>
+
+    @* Comparison period controls *@
+    @if (_compEnabled)
+    {
+        <MudDivider Class="my-3" />
+        <MudText Typo="Typo.subtitle2" Class="mb-2" Style="color:#555">@L["ComparisonPeriod"]</MudText>
+        <MudStack Row="true" Spacing="1" Wrap="Wrap.Wrap" Class="mb-2">
+            <MudButton Variant="@CompPresetVariant("CompPreset_PriorMonth")"   Color="Color.Secondary" Size="Size.Small" OnClick="@(() => ApplyCompPreset("CompPreset_PriorMonth"))">@L["CompPreset_PriorMonth"]</MudButton>
+            <MudButton Variant="@CompPresetVariant("CompPreset_PriorQuarter")" Color="Color.Secondary" Size="Size.Small" OnClick="@(() => ApplyCompPreset("CompPreset_PriorQuarter"))">@L["CompPreset_PriorQuarter"]</MudButton>
+            <MudButton Variant="@CompPresetVariant("CompPreset_PriorYear")"    Color="Color.Secondary" Size="Size.Small" OnClick="@(() => ApplyCompPreset("CompPreset_PriorYear"))">@L["CompPreset_PriorYear"]</MudButton>
+            <MudButton Variant="@CompPresetVariant(null)"                      Color="Color.Secondary" Size="Size.Small" OnClick="@(() => _compActivePreset = null)">@L["CompPreset_Custom"]</MudButton>
+        </MudStack>
+        <MudStack Row="true" AlignItems="AlignItems.End" Spacing="3" Wrap="Wrap.Wrap">
+            <MudDatePicker Label="@L["From"]"
+                           Date="_compFrom" DateChanged="@(d => { _compFrom = d; _compActivePreset = null; })"
+                           DateFormat="dd/MM/yyyy" MaxDate="DateTime.Today"
+                           Style="max-width:180px" />
+            <MudDatePicker Label="@L["To"]"
+                           Date="_compTo" DateChanged="@(d => { _compTo = d; _compActivePreset = null; })"
+                           DateFormat="dd/MM/yyyy" MaxDate="DateTime.Today"
+                           Style="max-width:180px" />
+        </MudStack>
+    }
+</MudPaper>
+
+@if (_loading)
+{
+    <MudProgressLinear Indeterminate="true" Color="Color.Primary" Class="mb-4" />
+}
+
+@* Skeleton shown before first generate *@
+@if (_report is null && !_loading)
+{
+    <MudPaper Class="pa-4" Elevation="1">
+        @for (var i = 0; i < 10; i++)
+        {
+            <MudSkeleton SkeletonType="SkeletonType.Text" Width="@(i % 3 == 0 ? "55%" : i % 3 == 1 ? "40%" : "70%")"
+                         Height="20px" Class="my-2" />
+        }
+    </MudPaper>
+}
+
+@* Report *@
+@if (_report is not null)
+{
+    @* Subtitle *@
+    <MudText Typo="Typo.subtitle1" Color="Color.Secondary" Class="mb-4" Style="font-style:italic">
+        @if (_compReport is not null)
+        {
+            @string.Format(L["ReportTitleVs"].Value,
+                $"{_compReport.Current.From.ToString("d MMM yyyy", CultureInfo.CurrentCulture)} – {_compReport.Current.To.ToString("d MMM yyyy", CultureInfo.CurrentCulture)}",
+                $"{_compReport.Comparison.From.ToString("d MMM yyyy", CultureInfo.CurrentCulture)} – {_compReport.Comparison.To.ToString("d MMM yyyy", CultureInfo.CurrentCulture)}")
+        }
+        else
+        {
+            @string.Format(L["ReportTitle"].Value,
+                _report.From.ToString("d MMMM yyyy", CultureInfo.CurrentCulture),
+                _report.To.ToString("d MMMM yyyy", CultureInfo.CurrentCulture))
+        }
+    </MudText>
+
+    @* No-budget alert *@
+    @if (_budgetEnabled && _noBudget)
+    {
+        <MudAlert Severity="Severity.Warning" Class="mb-4">
+            @L["Budget_NoBudget"] <a href="/budgets">@L["Budget_CreateLink"]</a>
+        </MudAlert>
+    }
+
+    @* ══════════════════════════════════════════════════════════════════════
+       COMPARISON MODE
+       ══════════════════════════════════════════════════════════════════════ *@
+    @if (_compReport is not null)
+    {
+        @if (!_compReport.Lines.Any())
+        {
+            <MudAlert Severity="Severity.Info">@L["NoData"]</MudAlert>
+        }
+        else
+        {
+            @* Column headers *@
+            <div style="display:flex;align-items:center;padding:4px 0;border-bottom:2px solid #CCC;margin-bottom:6px">
+                <span style="min-width:80px"></span>
+                <span style="flex:1"></span>
+                <span style="min-width:110px;text-align:right;font-size:0.75rem;color:#555;font-weight:600">
+                    @_compReport.Current.From.ToString("dd/MM/yy") – @_compReport.Current.To.ToString("dd/MM/yy")
+                </span>
+                <span style="min-width:110px;text-align:right;font-size:0.75rem;color:#888;font-weight:600">
+                    @_compReport.Comparison.From.ToString("dd/MM/yy") – @_compReport.Comparison.To.ToString("dd/MM/yy")
+                </span>
+                <span style="min-width:110px;text-align:right;font-size:0.75rem;color:#555;font-weight:600">
+                    @L["Col_Variance"]
+                </span>
+                <span style="min-width:72px;text-align:right;font-size:0.75rem;color:#555;font-weight:600">
+                    @L["Col_VarPct"]
+                </span>
+            </div>
+
+            @* ── Revenue ── *@
+            var compRevLines = _compReport.Lines.Where(l => l.Group == PnlGroup.Revenue).ToList();
+            @if (compRevLines.Count > 0)
+            {
+                <div class="mb-3">
+                    <MudText Typo="Typo.subtitle2" Class="mt-4 mb-1" Style="text-transform:uppercase;letter-spacing:.06em;color:#555;font-weight:700">@L["Group_Revenue"]</MudText>
+                    <MudDivider Class="mb-1" />
+                    @foreach (var line in compRevLines)
+                    {
+                        <div class="pnl-line-clickable" style="display:flex;align-items:center;padding:3px 0;border-bottom:1px solid #F0F0F0" @onclick="@(() => OpenCompLineAsync(line))">
+                            <span style="min-width:80px;font-size:0.8125rem;color:#999">@line.AccountCode</span>
+                            <span class="pnl-acct-name" style="flex:1;font-size:0.8125rem">@line.AccountName</span>
+                            <span style="min-width:110px;text-align:right;font-size:0.8125rem;font-variant-numeric:tabular-nums">@line.Current.ToString("N2")</span>
+                            <span style="min-width:110px;text-align:right;font-size:0.8125rem;font-variant-numeric:tabular-nums;color:#999">@line.Comparison.ToString("N2")</span>
+                            <span style="min-width:110px;text-align:right;font-size:0.8125rem;font-variant-numeric:tabular-nums;color:@VarColour(line.Variance,line.Group)">@line.Variance.ToString("N2")</span>
+                            <span style="min-width:72px;text-align:right;font-size:0.8125rem;color:@VarColour(line.Variance,line.Group)">@FormatVarPct(line.VariancePct)</span>
+                        </div>
+                    }
+                    @{ var rv = _compReport.CurRevenue - _compReport.CompRevenue; }
+                    <div style="display:flex;align-items:center;padding:4px 0;border-top:1px solid #CCC;margin-top:2px">
+                        <span style="flex:1;font-size:0.8125rem;font-weight:600">@L["Sub_Revenue"]</span>
+                        <span style="min-width:110px;text-align:right;font-size:0.8125rem;font-variant-numeric:tabular-nums;font-weight:600">@_compReport.CurRevenue.ToString("N2")</span>
+                        <span style="min-width:110px;text-align:right;font-size:0.8125rem;font-variant-numeric:tabular-nums;font-weight:600;color:#999">@_compReport.CompRevenue.ToString("N2")</span>
+                        <span style="min-width:110px;text-align:right;font-size:0.8125rem;font-variant-numeric:tabular-nums;font-weight:600;color:@SummaryVarColour(rv)">@rv.ToString("N2")</span>
+                        <span style="min-width:72px;text-align:right;font-size:0.8125rem;font-weight:600;color:@SummaryVarColour(rv)">@FormatVarPct(VarPct(_compReport.CurRevenue,_compReport.CompRevenue))</span>
+                    </div>
+                </div>
+            }
+
+            @* ── COGS ── *@
+            var compCogsLines = _compReport.Lines.Where(l => l.Group == PnlGroup.Cogs).ToList();
+            @if (compCogsLines.Count > 0)
+            {
+                <div class="mb-3">
+                    <MudText Typo="Typo.subtitle2" Class="mt-2 mb-1" Style="text-transform:uppercase;letter-spacing:.06em;color:#555;font-weight:700">@L["Group_Cogs"]</MudText>
+                    <MudDivider Class="mb-1" />
+                    @foreach (var line in compCogsLines)
+                    {
+                        <div class="pnl-line-clickable" style="display:flex;align-items:center;padding:3px 0;border-bottom:1px solid #F0F0F0" @onclick="@(() => OpenCompLineAsync(line))">
+                            <span style="min-width:80px;font-size:0.8125rem;color:#999">@line.AccountCode</span>
+                            <span class="pnl-acct-name" style="flex:1;font-size:0.8125rem">@line.AccountName</span>
+                            <span style="min-width:110px;text-align:right;font-size:0.8125rem;font-variant-numeric:tabular-nums">@line.Current.ToString("N2")</span>
+                            <span style="min-width:110px;text-align:right;font-size:0.8125rem;font-variant-numeric:tabular-nums;color:#999">@line.Comparison.ToString("N2")</span>
+                            <span style="min-width:110px;text-align:right;font-size:0.8125rem;font-variant-numeric:tabular-nums;color:@VarColour(line.Variance,line.Group)">@line.Variance.ToString("N2")</span>
+                            <span style="min-width:72px;text-align:right;font-size:0.8125rem;color:@VarColour(line.Variance,line.Group)">@FormatVarPct(line.VariancePct)</span>
+                        </div>
+                    }
+                    @{ var cv = _compReport.CurCogs - _compReport.CompCogs; }
+                    <div style="display:flex;align-items:center;padding:4px 0;border-top:1px solid #CCC;margin-top:2px">
+                        <span style="flex:1;font-size:0.8125rem;font-weight:600">@L["Sub_Cogs"]</span>
+                        <span style="min-width:110px;text-align:right;font-size:0.8125rem;font-variant-numeric:tabular-nums;font-weight:600">@_compReport.CurCogs.ToString("N2")</span>
+                        <span style="min-width:110px;text-align:right;font-size:0.8125rem;font-variant-numeric:tabular-nums;font-weight:600;color:#999">@_compReport.CompCogs.ToString("N2")</span>
+                        <span style="min-width:110px;text-align:right;font-size:0.8125rem;font-variant-numeric:tabular-nums;font-weight:600;color:@SummaryVarColour(cv)">@cv.ToString("N2")</span>
+                        <span style="min-width:72px;text-align:right;font-size:0.8125rem;font-weight:600;color:@SummaryVarColour(cv)">@FormatVarPct(VarPct(_compReport.CurCogs,_compReport.CompCogs))</span>
+                    </div>
+                </div>
+            }
+
+            @* ── Gross Profit ── *@
+            var gpVar = _compReport.CurGross - _compReport.CompGross;
+            <MudPaper Elevation="0" Class="my-3 pa-3" Style="@($"background:#F8F8F8;border-left:4px solid {SummaryVarColour(gpVar)}")">
+                <div style="display:flex;align-items:center">
+                    <span style="flex:1;font-size:1rem;font-weight:700;color:@SignedColour(_compReport.CurGross)">@L["GrossProfit"]</span>
+                    <span style="min-width:110px;text-align:right;font-variant-numeric:tabular-nums;font-weight:700;color:@SignedColour(_compReport.CurGross)">@_compReport.CurGross.ToString("N2")</span>
+                    <span style="min-width:110px;text-align:right;font-variant-numeric:tabular-nums;font-weight:700;color:#999">@_compReport.CompGross.ToString("N2")</span>
+                    <span style="min-width:110px;text-align:right;font-variant-numeric:tabular-nums;font-weight:700;color:@SummaryVarColour(gpVar)">@gpVar.ToString("N2")</span>
+                    <span style="min-width:72px;text-align:right;font-weight:700;color:@SummaryVarColour(gpVar)">@FormatVarPct(VarPct(_compReport.CurGross,_compReport.CompGross))</span>
+                </div>
+            </MudPaper>
+
+            @* ── Operating Expenses ── *@
+            var compOpexLines = _compReport.Lines.Where(l => l.Group is PnlGroup.OperatingExpenses or PnlGroup.Depreciation).ToList();
+            @if (compOpexLines.Count > 0)
+            {
+                <div class="mb-3">
+                    <MudText Typo="Typo.subtitle2" Class="mt-2 mb-1" Style="text-transform:uppercase;letter-spacing:.06em;color:#555;font-weight:700">@L["Group_OpEx"]</MudText>
+                    <MudDivider Class="mb-1" />
+                    @foreach (var line in compOpexLines)
+                    {
+                        <div class="pnl-line-clickable" style="display:flex;align-items:center;padding:3px 0;border-bottom:1px solid #F0F0F0" @onclick="@(() => OpenCompLineAsync(line))">
+                            <span style="min-width:80px;font-size:0.8125rem;color:#999">@line.AccountCode</span>
+                            <span class="pnl-acct-name" style="flex:1;font-size:0.8125rem">@line.AccountName</span>
+                            <span style="min-width:110px;text-align:right;font-size:0.8125rem;font-variant-numeric:tabular-nums">@line.Current.ToString("N2")</span>
+                            <span style="min-width:110px;text-align:right;font-size:0.8125rem;font-variant-numeric:tabular-nums;color:#999">@line.Comparison.ToString("N2")</span>
+                            <span style="min-width:110px;text-align:right;font-size:0.8125rem;font-variant-numeric:tabular-nums;color:@VarColour(line.Variance,line.Group)">@line.Variance.ToString("N2")</span>
+                            <span style="min-width:72px;text-align:right;font-size:0.8125rem;color:@VarColour(line.Variance,line.Group)">@FormatVarPct(line.VariancePct)</span>
+                        </div>
+                    }
+                    @{ var ov = _compReport.CurOpEx - _compReport.CompOpEx; }
+                    <div style="display:flex;align-items:center;padding:4px 0;border-top:1px solid #CCC;margin-top:2px">
+                        <span style="flex:1;font-size:0.8125rem;font-weight:600">@L["Sub_OpEx"]</span>
+                        <span style="min-width:110px;text-align:right;font-size:0.8125rem;font-variant-numeric:tabular-nums;font-weight:600">@_compReport.CurOpEx.ToString("N2")</span>
+                        <span style="min-width:110px;text-align:right;font-size:0.8125rem;font-variant-numeric:tabular-nums;font-weight:600;color:#999">@_compReport.CompOpEx.ToString("N2")</span>
+                        <span style="min-width:110px;text-align:right;font-size:0.8125rem;font-variant-numeric:tabular-nums;font-weight:600;color:@SummaryVarColour(ov)">@ov.ToString("N2")</span>
+                        <span style="min-width:72px;text-align:right;font-size:0.8125rem;font-weight:600;color:@SummaryVarColour(ov)">@FormatVarPct(VarPct(_compReport.CurOpEx,_compReport.CompOpEx))</span>
+                    </div>
+                </div>
+            }
+
+            @* ── EBITDA ── *@
+            var ebitdaVar = _compReport.CurEbitda - _compReport.CompEbitda;
+            <MudPaper Elevation="0" Class="my-3 pa-3" Style="@($"background:#F8F8F8;border-left:4px solid {SummaryVarColour(ebitdaVar)}")">
+                <div style="display:flex;align-items:center">
+                    <MudTooltip Text="@L["EbitdaTooltip"]" Placement="Placement.Right">
+                        <MudStack Row="true" AlignItems="AlignItems.Center" Spacing="1" Style="flex:1">
+                            <span style="font-size:1rem;font-weight:700;color:@SignedColour(_compReport.CurEbitda)">@L["Ebitda"]</span>
+                            <MudIcon Icon="@Icons.Material.Outlined.Info" Size="Size.Small" Style="color:#AAA" />
+                        </MudStack>
+                    </MudTooltip>
+                    <span style="min-width:110px;text-align:right;font-variant-numeric:tabular-nums;font-weight:700;color:@SignedColour(_compReport.CurEbitda)">@_compReport.CurEbitda.ToString("N2")</span>
+                    <span style="min-width:110px;text-align:right;font-variant-numeric:tabular-nums;font-weight:700;color:#999">@_compReport.CompEbitda.ToString("N2")</span>
+                    <span style="min-width:110px;text-align:right;font-variant-numeric:tabular-nums;font-weight:700;color:@SummaryVarColour(ebitdaVar)">@ebitdaVar.ToString("N2")</span>
+                    <span style="min-width:72px;text-align:right;font-weight:700;color:@SummaryVarColour(ebitdaVar)">@FormatVarPct(VarPct(_compReport.CurEbitda,_compReport.CompEbitda))</span>
+                </div>
+            </MudPaper>
+
+            @* ── Interest ── *@
+            var compIntLines = _compReport.Lines.Where(l => l.Group == PnlGroup.Interest).ToList();
+            @if (compIntLines.Count > 0)
+            {
+                <div class="mb-3">
+                    <MudText Typo="Typo.subtitle2" Class="mt-2 mb-1" Style="text-transform:uppercase;letter-spacing:.06em;color:#555;font-weight:700">@L["Group_Interest"]</MudText>
+                    <MudDivider Class="mb-1" />
+                    @foreach (var line in compIntLines)
+                    {
+                        <div class="pnl-line-clickable" style="display:flex;align-items:center;padding:3px 0;border-bottom:1px solid #F0F0F0" @onclick="@(() => OpenCompLineAsync(line))">
+                            <span style="min-width:80px;font-size:0.8125rem;color:#999">@line.AccountCode</span>
+                            <span class="pnl-acct-name" style="flex:1;font-size:0.8125rem">@line.AccountName</span>
+                            <span style="min-width:110px;text-align:right;font-size:0.8125rem;font-variant-numeric:tabular-nums">@line.Current.ToString("N2")</span>
+                            <span style="min-width:110px;text-align:right;font-size:0.8125rem;font-variant-numeric:tabular-nums;color:#999">@line.Comparison.ToString("N2")</span>
+                            <span style="min-width:110px;text-align:right;font-size:0.8125rem;font-variant-numeric:tabular-nums;color:@VarColour(line.Variance,line.Group)">@line.Variance.ToString("N2")</span>
+                            <span style="min-width:72px;text-align:right;font-size:0.8125rem;color:@VarColour(line.Variance,line.Group)">@FormatVarPct(line.VariancePct)</span>
+                        </div>
+                    }
+                    @{ var iv = _compReport.CurInterest - _compReport.CompInterest; }
+                    <div style="display:flex;align-items:center;padding:4px 0;border-top:1px solid #CCC;margin-top:2px">
+                        <span style="flex:1;font-size:0.8125rem;font-weight:600">@L["Sub_Interest"]</span>
+                        <span style="min-width:110px;text-align:right;font-size:0.8125rem;font-variant-numeric:tabular-nums;font-weight:600">@_compReport.CurInterest.ToString("N2")</span>
+                        <span style="min-width:110px;text-align:right;font-size:0.8125rem;font-variant-numeric:tabular-nums;font-weight:600;color:#999">@_compReport.CompInterest.ToString("N2")</span>
+                        <span style="min-width:110px;text-align:right;font-size:0.8125rem;font-variant-numeric:tabular-nums;font-weight:600;color:@SummaryVarColour(iv)">@iv.ToString("N2")</span>
+                        <span style="min-width:72px;text-align:right;font-size:0.8125rem;font-weight:600;color:@SummaryVarColour(iv)">@FormatVarPct(VarPct(_compReport.CurInterest,_compReport.CompInterest))</span>
+                    </div>
+                </div>
+            }
+
+            @* ── Tax ── *@
+            var compTaxLines = _compReport.Lines.Where(l => l.Group == PnlGroup.Tax).ToList();
+            @if (compTaxLines.Count > 0)
+            {
+                <div class="mb-3">
+                    <MudText Typo="Typo.subtitle2" Class="mt-2 mb-1" Style="text-transform:uppercase;letter-spacing:.06em;color:#555;font-weight:700">@L["Group_Tax"]</MudText>
+                    <MudDivider Class="mb-1" />
+                    @foreach (var line in compTaxLines)
+                    {
+                        <div class="pnl-line-clickable" style="display:flex;align-items:center;padding:3px 0;border-bottom:1px solid #F0F0F0" @onclick="@(() => OpenCompLineAsync(line))">
+                            <span style="min-width:80px;font-size:0.8125rem;color:#999">@line.AccountCode</span>
+                            <span class="pnl-acct-name" style="flex:1;font-size:0.8125rem">@line.AccountName</span>
+                            <span style="min-width:110px;text-align:right;font-size:0.8125rem;font-variant-numeric:tabular-nums">@line.Current.ToString("N2")</span>
+                            <span style="min-width:110px;text-align:right;font-size:0.8125rem;font-variant-numeric:tabular-nums;color:#999">@line.Comparison.ToString("N2")</span>
+                            <span style="min-width:110px;text-align:right;font-size:0.8125rem;font-variant-numeric:tabular-nums;color:@VarColour(line.Variance,line.Group)">@line.Variance.ToString("N2")</span>
+                            <span style="min-width:72px;text-align:right;font-size:0.8125rem;color:@VarColour(line.Variance,line.Group)">@FormatVarPct(line.VariancePct)</span>
+                        </div>
+                    }
+                    @{ var tv = _compReport.CurTax - _compReport.CompTax; }
+                    <div style="display:flex;align-items:center;padding:4px 0;border-top:1px solid #CCC;margin-top:2px">
+                        <span style="flex:1;font-size:0.8125rem;font-weight:600">@L["Sub_Tax"]</span>
+                        <span style="min-width:110px;text-align:right;font-size:0.8125rem;font-variant-numeric:tabular-nums;font-weight:600">@_compReport.CurTax.ToString("N2")</span>
+                        <span style="min-width:110px;text-align:right;font-size:0.8125rem;font-variant-numeric:tabular-nums;font-weight:600;color:#999">@_compReport.CompTax.ToString("N2")</span>
+                        <span style="min-width:110px;text-align:right;font-size:0.8125rem;font-variant-numeric:tabular-nums;font-weight:600;color:@SummaryVarColour(tv)">@tv.ToString("N2")</span>
+                        <span style="min-width:72px;text-align:right;font-size:0.8125rem;font-weight:600;color:@SummaryVarColour(tv)">@FormatVarPct(VarPct(_compReport.CurTax,_compReport.CompTax))</span>
+                    </div>
+                </div>
+            }
+
+            @* ── Net Income ── *@
+            var niVar = _compReport.CurNet - _compReport.CompNet;
+            <MudPaper Elevation="1" Class="my-3 pa-4" Style="@($"background:#FAFAFA;border-left:6px solid {SummaryVarColour(niVar)}")">
+                <div style="display:flex;align-items:center">
+                    <span style="flex:1;font-size:1.125rem;font-weight:700;color:@SignedColour(_compReport.CurNet)">@L["NetIncome"]</span>
+                    <span style="min-width:110px;text-align:right;font-variant-numeric:tabular-nums;font-size:1.125rem;font-weight:700;color:@SignedColour(_compReport.CurNet)">@_compReport.CurNet.ToString("N2")</span>
+                    <span style="min-width:110px;text-align:right;font-variant-numeric:tabular-nums;font-size:1.125rem;font-weight:700;color:#999">@_compReport.CompNet.ToString("N2")</span>
+                    <span style="min-width:110px;text-align:right;font-variant-numeric:tabular-nums;font-size:1.125rem;font-weight:700;color:@SummaryVarColour(niVar)">@niVar.ToString("N2")</span>
+                    <span style="min-width:72px;text-align:right;font-size:1.125rem;font-weight:700;color:@SummaryVarColour(niVar)">@FormatVarPct(VarPct(_compReport.CurNet,_compReport.CompNet))</span>
+                </div>
+            </MudPaper>
+        }
+    }
+
+    @* ══════════════════════════════════════════════════════════════════════
+       BUDGET MODE
+       ══════════════════════════════════════════════════════════════════════ *@
+    else if (_budgetReport is not null)
+    {
+        @if (!_budgetReport.Lines.Any())
+        {
+            <MudAlert Severity="Severity.Info">@L["NoData"]</MudAlert>
+        }
+        else
+        {
+            @* Net summary banner *@
+            var budNetVar = _budgetReport.ActNet - _budgetReport.BudNet;
+            <MudPaper Elevation="0" Class="mb-4 pa-3" Style="@($"background:#F3F8F5;border-left:4px solid {SummaryVarColour(budNetVar)}")">
+                <MudStack Row="true" AlignItems="AlignItems.Center" Spacing="3">
+                    <MudText Typo="Typo.subtitle2" Style="color:#555;font-weight:600">@L["Budget_NetSummaryLabel"]</MudText>
+                    <MudSpacer />
+                    <MudText Style="@($"font-variant-numeric:tabular-nums;font-weight:600;color:{SignedColour(_budgetReport.ActNet)}")">@_budgetReport.ActNet.ToString("N2")</MudText>
+                    <MudText Style="color:#AAA">/</MudText>
+                    <MudText Style="font-variant-numeric:tabular-nums;color:#999">@_budgetReport.BudNet.ToString("N2")</MudText>
+                    <MudText Style="@($"font-variant-numeric:tabular-nums;font-weight:600;color:{SummaryVarColour(budNetVar)}")">@($"{budNetVar:+0.00;-0.00;0.00}")</MudText>
+                    <MudText Style="@($"font-size:0.875rem;color:{SummaryVarColour(budNetVar)}")">@FormatVarPct(VarPct(_budgetReport.ActNet, _budgetReport.BudNet))</MudText>
+                </MudStack>
+            </MudPaper>
+
+            @* Column headers *@
+            <div style="display:flex;align-items:center;padding:4px 0;border-bottom:2px solid #CCC;margin-bottom:6px">
+                <span style="min-width:80px"></span>
+                <span style="flex:1"></span>
+                <span style="min-width:110px;text-align:right;font-size:0.75rem;color:#555;font-weight:600">@L["Col_Actual"]</span>
+                <span style="min-width:110px;text-align:right;font-size:0.75rem;color:#888;font-weight:600">@L["Col_Budget"]</span>
+                <span style="min-width:110px;text-align:right;font-size:0.75rem;color:#555;font-weight:600">@L["Col_Variance"]</span>
+                <span style="min-width:72px;text-align:right;font-size:0.75rem;color:#555;font-weight:600">@L["Col_VarPct"]</span>
+            </div>
+
+            @* ── Revenue ── *@
+            var budRevLines = _budgetReport.Lines.Where(l => l.Group == PnlGroup.Revenue).ToList();
+            @if (budRevLines.Count > 0)
+            {
+                <div class="mb-3">
+                    <MudText Typo="Typo.subtitle2" Class="mt-4 mb-1" Style="text-transform:uppercase;letter-spacing:.06em;color:#555;font-weight:700">@L["Group_Revenue"]</MudText>
+                    <MudDivider Class="mb-1" />
+                    @foreach (var line in budRevLines)
+                    {
+                        <div class="pnl-line-clickable" style="display:flex;align-items:center;padding:3px 0;border-bottom:1px solid #F0F0F0" @onclick="@(() => OpenBudgetLineAsync(line))">
+                            <span style="min-width:80px;font-size:0.8125rem;color:#999">@line.AccountCode</span>
+                            <span class="pnl-acct-name" style="flex:1;font-size:0.8125rem">@line.AccountName</span>
+                            <span style="min-width:110px;text-align:right;font-size:0.8125rem;font-variant-numeric:tabular-nums">@line.Actual.ToString("N2")</span>
+                            <span style="min-width:110px;text-align:right;font-size:0.8125rem;font-variant-numeric:tabular-nums;color:#999">@line.Budget.ToString("N2")</span>
+                            <span style="min-width:110px;text-align:right;font-size:0.8125rem;font-variant-numeric:tabular-nums;color:@VarColour(line.Variance,line.Group)">@line.Variance.ToString("N2")</span>
+                            <span style="min-width:72px;text-align:right;font-size:0.8125rem;color:@VarColour(line.Variance,line.Group)">@FormatVarPct(line.VariancePct)</span>
+                        </div>
+                    }
+                    @{ var bRv = _budgetReport.ActRevenue - _budgetReport.BudRevenue; }
+                    <div style="display:flex;align-items:center;padding:4px 0;border-top:1px solid #CCC;margin-top:2px">
+                        <span style="flex:1;font-size:0.8125rem;font-weight:600">@L["Sub_Revenue"]</span>
+                        <span style="min-width:110px;text-align:right;font-size:0.8125rem;font-variant-numeric:tabular-nums;font-weight:600">@_budgetReport.ActRevenue.ToString("N2")</span>
+                        <span style="min-width:110px;text-align:right;font-size:0.8125rem;font-variant-numeric:tabular-nums;font-weight:600;color:#999">@_budgetReport.BudRevenue.ToString("N2")</span>
+                        <span style="min-width:110px;text-align:right;font-size:0.8125rem;font-variant-numeric:tabular-nums;font-weight:600;color:@SummaryVarColour(bRv)">@bRv.ToString("N2")</span>
+                        <span style="min-width:72px;text-align:right;font-size:0.8125rem;font-weight:600;color:@SummaryVarColour(bRv)">@FormatVarPct(VarPct(_budgetReport.ActRevenue,_budgetReport.BudRevenue))</span>
+                    </div>
+                </div>
+            }
+
+            @* ── COGS ── *@
+            var budCogsLines = _budgetReport.Lines.Where(l => l.Group == PnlGroup.Cogs).ToList();
+            @if (budCogsLines.Count > 0)
+            {
+                <div class="mb-3">
+                    <MudText Typo="Typo.subtitle2" Class="mt-2 mb-1" Style="text-transform:uppercase;letter-spacing:.06em;color:#555;font-weight:700">@L["Group_Cogs"]</MudText>
+                    <MudDivider Class="mb-1" />
+                    @foreach (var line in budCogsLines)
+                    {
+                        <div class="pnl-line-clickable" style="display:flex;align-items:center;padding:3px 0;border-bottom:1px solid #F0F0F0" @onclick="@(() => OpenBudgetLineAsync(line))">
+                            <span style="min-width:80px;font-size:0.8125rem;color:#999">@line.AccountCode</span>
+                            <span class="pnl-acct-name" style="flex:1;font-size:0.8125rem">@line.AccountName</span>
+                            <span style="min-width:110px;text-align:right;font-size:0.8125rem;font-variant-numeric:tabular-nums">@line.Actual.ToString("N2")</span>
+                            <span style="min-width:110px;text-align:right;font-size:0.8125rem;font-variant-numeric:tabular-nums;color:#999">@line.Budget.ToString("N2")</span>
+                            <span style="min-width:110px;text-align:right;font-size:0.8125rem;font-variant-numeric:tabular-nums;color:@VarColour(line.Variance,line.Group)">@line.Variance.ToString("N2")</span>
+                            <span style="min-width:72px;text-align:right;font-size:0.8125rem;color:@VarColour(line.Variance,line.Group)">@FormatVarPct(line.VariancePct)</span>
+                        </div>
+                    }
+                    @{ var bCv = _budgetReport.ActCogs - _budgetReport.BudCogs; }
+                    <div style="display:flex;align-items:center;padding:4px 0;border-top:1px solid #CCC;margin-top:2px">
+                        <span style="flex:1;font-size:0.8125rem;font-weight:600">@L["Sub_Cogs"]</span>
+                        <span style="min-width:110px;text-align:right;font-size:0.8125rem;font-variant-numeric:tabular-nums;font-weight:600">@_budgetReport.ActCogs.ToString("N2")</span>
+                        <span style="min-width:110px;text-align:right;font-size:0.8125rem;font-variant-numeric:tabular-nums;font-weight:600;color:#999">@_budgetReport.BudCogs.ToString("N2")</span>
+                        <span style="min-width:110px;text-align:right;font-size:0.8125rem;font-variant-numeric:tabular-nums;font-weight:600;color:@SummaryVarColour(bCv)">@bCv.ToString("N2")</span>
+                        <span style="min-width:72px;text-align:right;font-size:0.8125rem;font-weight:600;color:@SummaryVarColour(bCv)">@FormatVarPct(VarPct(_budgetReport.ActCogs,_budgetReport.BudCogs))</span>
+                    </div>
+                </div>
+            }
+
+            @* ── Gross Profit ── *@
+            var bGpVar = _budgetReport.ActGross - _budgetReport.BudGross;
+            <MudPaper Elevation="0" Class="my-3 pa-3" Style="@($"background:#F8F8F8;border-left:4px solid {SummaryVarColour(bGpVar)}")">
+                <div style="display:flex;align-items:center">
+                    <span style="flex:1;font-size:1rem;font-weight:700;color:@SignedColour(_budgetReport.ActGross)">@L["GrossProfit"]</span>
+                    <span style="min-width:110px;text-align:right;font-variant-numeric:tabular-nums;font-weight:700;color:@SignedColour(_budgetReport.ActGross)">@_budgetReport.ActGross.ToString("N2")</span>
+                    <span style="min-width:110px;text-align:right;font-variant-numeric:tabular-nums;font-weight:700;color:#999">@_budgetReport.BudGross.ToString("N2")</span>
+                    <span style="min-width:110px;text-align:right;font-variant-numeric:tabular-nums;font-weight:700;color:@SummaryVarColour(bGpVar)">@bGpVar.ToString("N2")</span>
+                    <span style="min-width:72px;text-align:right;font-weight:700;color:@SummaryVarColour(bGpVar)">@FormatVarPct(VarPct(_budgetReport.ActGross,_budgetReport.BudGross))</span>
+                </div>
+            </MudPaper>
+
+            @* ── Operating Expenses ── *@
+            var budOpexLines = _budgetReport.Lines.Where(l => l.Group is PnlGroup.OperatingExpenses or PnlGroup.Depreciation).ToList();
+            @if (budOpexLines.Count > 0)
+            {
+                <div class="mb-3">
+                    <MudText Typo="Typo.subtitle2" Class="mt-2 mb-1" Style="text-transform:uppercase;letter-spacing:.06em;color:#555;font-weight:700">@L["Group_OpEx"]</MudText>
+                    <MudDivider Class="mb-1" />
+                    @foreach (var line in budOpexLines)
+                    {
+                        <div class="pnl-line-clickable" style="display:flex;align-items:center;padding:3px 0;border-bottom:1px solid #F0F0F0" @onclick="@(() => OpenBudgetLineAsync(line))">
+                            <span style="min-width:80px;font-size:0.8125rem;color:#999">@line.AccountCode</span>
+                            <span class="pnl-acct-name" style="flex:1;font-size:0.8125rem">@line.AccountName</span>
+                            <span style="min-width:110px;text-align:right;font-size:0.8125rem;font-variant-numeric:tabular-nums">@line.Actual.ToString("N2")</span>
+                            <span style="min-width:110px;text-align:right;font-size:0.8125rem;font-variant-numeric:tabular-nums;color:#999">@line.Budget.ToString("N2")</span>
+                            <span style="min-width:110px;text-align:right;font-size:0.8125rem;font-variant-numeric:tabular-nums;color:@VarColour(line.Variance,line.Group)">@line.Variance.ToString("N2")</span>
+                            <span style="min-width:72px;text-align:right;font-size:0.8125rem;color:@VarColour(line.Variance,line.Group)">@FormatVarPct(line.VariancePct)</span>
+                        </div>
+                    }
+                    @{ var bOv = _budgetReport.ActOpEx - _budgetReport.BudOpEx; }
+                    <div style="display:flex;align-items:center;padding:4px 0;border-top:1px solid #CCC;margin-top:2px">
+                        <span style="flex:1;font-size:0.8125rem;font-weight:600">@L["Sub_OpEx"]</span>
+                        <span style="min-width:110px;text-align:right;font-size:0.8125rem;font-variant-numeric:tabular-nums;font-weight:600">@_budgetReport.ActOpEx.ToString("N2")</span>
+                        <span style="min-width:110px;text-align:right;font-size:0.8125rem;font-variant-numeric:tabular-nums;font-weight:600;color:#999">@_budgetReport.BudOpEx.ToString("N2")</span>
+                        <span style="min-width:110px;text-align:right;font-size:0.8125rem;font-variant-numeric:tabular-nums;font-weight:600;color:@SummaryVarColour(bOv)">@bOv.ToString("N2")</span>
+                        <span style="min-width:72px;text-align:right;font-size:0.8125rem;font-weight:600;color:@SummaryVarColour(bOv)">@FormatVarPct(VarPct(_budgetReport.ActOpEx,_budgetReport.BudOpEx))</span>
+                    </div>
+                </div>
+            }
+
+            @* ── EBITDA ── *@
+            var bEbitdaVar = _budgetReport.ActEbitda - _budgetReport.BudEbitda;
+            <MudPaper Elevation="0" Class="my-3 pa-3" Style="@($"background:#F8F8F8;border-left:4px solid {SummaryVarColour(bEbitdaVar)}")">
+                <div style="display:flex;align-items:center">
+                    <MudTooltip Text="@L["EbitdaTooltip"]" Placement="Placement.Right">
+                        <MudStack Row="true" AlignItems="AlignItems.Center" Spacing="1" Style="flex:1">
+                            <span style="font-size:1rem;font-weight:700;color:@SignedColour(_budgetReport.ActEbitda)">@L["Ebitda"]</span>
+                            <MudIcon Icon="@Icons.Material.Outlined.Info" Size="Size.Small" Style="color:#AAA" />
+                        </MudStack>
+                    </MudTooltip>
+                    <span style="min-width:110px;text-align:right;font-variant-numeric:tabular-nums;font-weight:700;color:@SignedColour(_budgetReport.ActEbitda)">@_budgetReport.ActEbitda.ToString("N2")</span>
+                    <span style="min-width:110px;text-align:right;font-variant-numeric:tabular-nums;font-weight:700;color:#999">@_budgetReport.BudEbitda.ToString("N2")</span>
+                    <span style="min-width:110px;text-align:right;font-variant-numeric:tabular-nums;font-weight:700;color:@SummaryVarColour(bEbitdaVar)">@bEbitdaVar.ToString("N2")</span>
+                    <span style="min-width:72px;text-align:right;font-weight:700;color:@SummaryVarColour(bEbitdaVar)">@FormatVarPct(VarPct(_budgetReport.ActEbitda,_budgetReport.BudEbitda))</span>
+                </div>
+            </MudPaper>
+
+            @* ── Interest ── *@
+            var budIntLines = _budgetReport.Lines.Where(l => l.Group == PnlGroup.Interest).ToList();
+            @if (budIntLines.Count > 0)
+            {
+                <div class="mb-3">
+                    <MudText Typo="Typo.subtitle2" Class="mt-2 mb-1" Style="text-transform:uppercase;letter-spacing:.06em;color:#555;font-weight:700">@L["Group_Interest"]</MudText>
+                    <MudDivider Class="mb-1" />
+                    @foreach (var line in budIntLines)
+                    {
+                        <div class="pnl-line-clickable" style="display:flex;align-items:center;padding:3px 0;border-bottom:1px solid #F0F0F0" @onclick="@(() => OpenBudgetLineAsync(line))">
+                            <span style="min-width:80px;font-size:0.8125rem;color:#999">@line.AccountCode</span>
+                            <span class="pnl-acct-name" style="flex:1;font-size:0.8125rem">@line.AccountName</span>
+                            <span style="min-width:110px;text-align:right;font-size:0.8125rem;font-variant-numeric:tabular-nums">@line.Actual.ToString("N2")</span>
+                            <span style="min-width:110px;text-align:right;font-size:0.8125rem;font-variant-numeric:tabular-nums;color:#999">@line.Budget.ToString("N2")</span>
+                            <span style="min-width:110px;text-align:right;font-size:0.8125rem;font-variant-numeric:tabular-nums;color:@VarColour(line.Variance,line.Group)">@line.Variance.ToString("N2")</span>
+                            <span style="min-width:72px;text-align:right;font-size:0.8125rem;color:@VarColour(line.Variance,line.Group)">@FormatVarPct(line.VariancePct)</span>
+                        </div>
+                    }
+                    @{ var bIv = _budgetReport.ActInterest - _budgetReport.BudInterest; }
+                    <div style="display:flex;align-items:center;padding:4px 0;border-top:1px solid #CCC;margin-top:2px">
+                        <span style="flex:1;font-size:0.8125rem;font-weight:600">@L["Sub_Interest"]</span>
+                        <span style="min-width:110px;text-align:right;font-size:0.8125rem;font-variant-numeric:tabular-nums;font-weight:600">@_budgetReport.ActInterest.ToString("N2")</span>
+                        <span style="min-width:110px;text-align:right;font-size:0.8125rem;font-variant-numeric:tabular-nums;font-weight:600;color:#999">@_budgetReport.BudInterest.ToString("N2")</span>
+                        <span style="min-width:110px;text-align:right;font-size:0.8125rem;font-variant-numeric:tabular-nums;font-weight:600;color:@SummaryVarColour(bIv)">@bIv.ToString("N2")</span>
+                        <span style="min-width:72px;text-align:right;font-size:0.8125rem;font-weight:600;color:@SummaryVarColour(bIv)">@FormatVarPct(VarPct(_budgetReport.ActInterest,_budgetReport.BudInterest))</span>
+                    </div>
+                </div>
+            }
+
+            @* ── Tax ── *@
+            var budTaxLines = _budgetReport.Lines.Where(l => l.Group == PnlGroup.Tax).ToList();
+            @if (budTaxLines.Count > 0)
+            {
+                <div class="mb-3">
+                    <MudText Typo="Typo.subtitle2" Class="mt-2 mb-1" Style="text-transform:uppercase;letter-spacing:.06em;color:#555;font-weight:700">@L["Group_Tax"]</MudText>
+                    <MudDivider Class="mb-1" />
+                    @foreach (var line in budTaxLines)
+                    {
+                        <div class="pnl-line-clickable" style="display:flex;align-items:center;padding:3px 0;border-bottom:1px solid #F0F0F0" @onclick="@(() => OpenBudgetLineAsync(line))">
+                            <span style="min-width:80px;font-size:0.8125rem;color:#999">@line.AccountCode</span>
+                            <span class="pnl-acct-name" style="flex:1;font-size:0.8125rem">@line.AccountName</span>
+                            <span style="min-width:110px;text-align:right;font-size:0.8125rem;font-variant-numeric:tabular-nums">@line.Actual.ToString("N2")</span>
+                            <span style="min-width:110px;text-align:right;font-size:0.8125rem;font-variant-numeric:tabular-nums;color:#999">@line.Budget.ToString("N2")</span>
+                            <span style="min-width:110px;text-align:right;font-size:0.8125rem;font-variant-numeric:tabular-nums;color:@VarColour(line.Variance,line.Group)">@line.Variance.ToString("N2")</span>
+                            <span style="min-width:72px;text-align:right;font-size:0.8125rem;color:@VarColour(line.Variance,line.Group)">@FormatVarPct(line.VariancePct)</span>
+                        </div>
+                    }
+                    @{ var bTv = _budgetReport.ActTax - _budgetReport.BudTax; }
+                    <div style="display:flex;align-items:center;padding:4px 0;border-top:1px solid #CCC;margin-top:2px">
+                        <span style="flex:1;font-size:0.8125rem;font-weight:600">@L["Sub_Tax"]</span>
+                        <span style="min-width:110px;text-align:right;font-size:0.8125rem;font-variant-numeric:tabular-nums;font-weight:600">@_budgetReport.ActTax.ToString("N2")</span>
+                        <span style="min-width:110px;text-align:right;font-size:0.8125rem;font-variant-numeric:tabular-nums;font-weight:600;color:#999">@_budgetReport.BudTax.ToString("N2")</span>
+                        <span style="min-width:110px;text-align:right;font-size:0.8125rem;font-variant-numeric:tabular-nums;font-weight:600;color:@SummaryVarColour(bTv)">@bTv.ToString("N2")</span>
+                        <span style="min-width:72px;text-align:right;font-size:0.8125rem;font-weight:600;color:@SummaryVarColour(bTv)">@FormatVarPct(VarPct(_budgetReport.ActTax,_budgetReport.BudTax))</span>
+                    </div>
+                </div>
+            }
+
+            @* ── Net Income ── *@
+            var bNiVar = _budgetReport.ActNet - _budgetReport.BudNet;
+            <MudPaper Elevation="1" Class="my-3 pa-4" Style="@($"background:#FAFAFA;border-left:6px solid {SummaryVarColour(bNiVar)}")">
+                <div style="display:flex;align-items:center">
+                    <span style="flex:1;font-size:1.125rem;font-weight:700;color:@SignedColour(_budgetReport.ActNet)">@L["NetIncome"]</span>
+                    <span style="min-width:110px;text-align:right;font-variant-numeric:tabular-nums;font-size:1.125rem;font-weight:700;color:@SignedColour(_budgetReport.ActNet)">@_budgetReport.ActNet.ToString("N2")</span>
+                    <span style="min-width:110px;text-align:right;font-variant-numeric:tabular-nums;font-size:1.125rem;font-weight:700;color:#999">@_budgetReport.BudNet.ToString("N2")</span>
+                    <span style="min-width:110px;text-align:right;font-variant-numeric:tabular-nums;font-size:1.125rem;font-weight:700;color:@SummaryVarColour(bNiVar)">@bNiVar.ToString("N2")</span>
+                    <span style="min-width:72px;text-align:right;font-size:1.125rem;font-weight:700;color:@SummaryVarColour(bNiVar)">@FormatVarPct(VarPct(_budgetReport.ActNet,_budgetReport.BudNet))</span>
+                </div>
+            </MudPaper>
+        }
+    }
+
+    @* ══════════════════════════════════════════════════════════════════════
+       SINGLE-PERIOD MODE
+       ══════════════════════════════════════════════════════════════════════ *@
+    else
+    {
+        @if (!_report.Lines.Any())
+        {
+            <MudAlert Severity="Severity.Info">@L["NoData"]</MudAlert>
+        }
+        else
+        {
+            @* ── Revenue ── *@
+            var revenueLines = _report.Lines.Where(l => l.Group == PnlGroup.Revenue).ToList();
+            @if (revenueLines.Count > 0)
+            {
+                <div class="mb-3">
+                    <MudText Typo="Typo.subtitle2" Class="mt-4 mb-1" Style="text-transform:uppercase;letter-spacing:.06em;color:#555;font-weight:700">
+                        @L["Group_Revenue"]
+                    </MudText>
+                    <MudDivider Class="mb-1" />
+                    @foreach (var line in revenueLines)
+                    {
+                        <MudStack Row="true" AlignItems="AlignItems.Center" Style="padding:3px 0;border-bottom:1px solid #F0F0F0" Class="pnl-line-clickable" @onclick="@(() => OpenLineAsync(line))">
+                            <MudText Typo="Typo.body2" Style="min-width:80px;color:#999">@line.AccountCode</MudText>
+                            <MudText Typo="Typo.body2" Style="flex:1" Class="pnl-acct-name">@line.AccountName</MudText>
+                            <MudText Typo="Typo.body2" Style="@($"min-width:130px;text-align:right;font-variant-numeric:tabular-nums;color:{SignedColour(line.Amount)}")">
+                                @line.Amount.ToString("N2")
+                            </MudText>
+                        </MudStack>
+                    }
+                    <MudStack Row="true" AlignItems="AlignItems.Center" Class="mt-1" Style="padding:4px 0;border-top:1px solid #CCC">
+                        <MudText Typo="Typo.body2" Style="flex:1;font-weight:600">@L["Sub_Revenue"]</MudText>
+                        <MudText Typo="Typo.body2" Style="min-width:130px;text-align:right;font-variant-numeric:tabular-nums;font-weight:600">
+                            @_report.TotalRevenue.ToString("N2")
+                        </MudText>
+                    </MudStack>
+                </div>
+            }
+
+            @* ── COGS ── *@
+            var cogsLines = _report.Lines.Where(l => l.Group == PnlGroup.Cogs).ToList();
+            @if (cogsLines.Count > 0)
+            {
+                <div class="mb-3">
+                    <MudText Typo="Typo.subtitle2" Class="mt-2 mb-1" Style="text-transform:uppercase;letter-spacing:.06em;color:#555;font-weight:700">
+                        @L["Group_Cogs"]
+                    </MudText>
+                    <MudDivider Class="mb-1" />
+                    @foreach (var line in cogsLines)
+                    {
+                        <MudStack Row="true" AlignItems="AlignItems.Center" Style="padding:3px 0;border-bottom:1px solid #F0F0F0" Class="pnl-line-clickable" @onclick="@(() => OpenLineAsync(line))">
+                            <MudText Typo="Typo.body2" Style="min-width:80px;color:#999">@line.AccountCode</MudText>
+                            <MudText Typo="Typo.body2" Style="flex:1" Class="pnl-acct-name">@line.AccountName</MudText>
+                            <MudText Typo="Typo.body2" Style="min-width:130px;text-align:right;font-variant-numeric:tabular-nums">
+                                @line.Amount.ToString("N2")
+                            </MudText>
+                        </MudStack>
+                    }
+                    <MudStack Row="true" AlignItems="AlignItems.Center" Class="mt-1" Style="padding:4px 0;border-top:1px solid #CCC">
+                        <MudText Typo="Typo.body2" Style="flex:1;font-weight:600">@L["Sub_Cogs"]</MudText>
+                        <MudText Typo="Typo.body2" Style="min-width:130px;text-align:right;font-variant-numeric:tabular-nums;font-weight:600">
+                            @_report.TotalCogs.ToString("N2")
+                        </MudText>
+                    </MudStack>
+                </div>
+            }
+
+            @* ── Gross Profit ── *@
+            <MudPaper Elevation="0" Class="my-3 pa-3"
+                      Style="@($"background:#F8F8F8;border-left:4px solid {SignedColour(_report.GrossProfit)}")">
+                <MudStack Row="true" AlignItems="AlignItems.Center">
+                    <MudText Typo="Typo.subtitle1" Style="@($"font-weight:700;color:{SignedColour(_report.GrossProfit)}")">
+                        @L["GrossProfit"]
+                    </MudText>
+                    <MudSpacer />
+                    <MudText Typo="Typo.subtitle1" Style="@($"font-weight:700;font-variant-numeric:tabular-nums;color:{SignedColour(_report.GrossProfit)}")">
+                        @_report.GrossProfit.ToString("N2")
+                    </MudText>
+                </MudStack>
+            </MudPaper>
+
+            @* ── Operating Expenses ── *@
+            var opexLines = _report.Lines.Where(l => l.Group is PnlGroup.OperatingExpenses or PnlGroup.Depreciation).ToList();
+            @if (opexLines.Count > 0)
+            {
+                <div class="mb-3">
+                    <MudText Typo="Typo.subtitle2" Class="mt-2 mb-1" Style="text-transform:uppercase;letter-spacing:.06em;color:#555;font-weight:700">
+                        @L["Group_OpEx"]
+                    </MudText>
+                    <MudDivider Class="mb-1" />
+                    @foreach (var line in opexLines)
+                    {
+                        <MudStack Row="true" AlignItems="AlignItems.Center" Style="padding:3px 0;border-bottom:1px solid #F0F0F0" Class="pnl-line-clickable" @onclick="@(() => OpenLineAsync(line))">
+                            <MudText Typo="Typo.body2" Style="min-width:80px;color:#999">@line.AccountCode</MudText>
+                            <MudText Typo="Typo.body2" Style="flex:1" Class="pnl-acct-name">@line.AccountName</MudText>
+                            <MudText Typo="Typo.body2" Style="min-width:130px;text-align:right;font-variant-numeric:tabular-nums">
+                                @line.Amount.ToString("N2")
+                            </MudText>
+                        </MudStack>
+                    }
+                    <MudStack Row="true" AlignItems="AlignItems.Center" Class="mt-1" Style="padding:4px 0;border-top:1px solid #CCC">
+                        <MudText Typo="Typo.body2" Style="flex:1;font-weight:600">@L["Sub_OpEx"]</MudText>
+                        <MudText Typo="Typo.body2" Style="min-width:130px;text-align:right;font-variant-numeric:tabular-nums;font-weight:600">
+                            @_report.TotalOperatingExpenses.ToString("N2")
+                        </MudText>
+                    </MudStack>
+                </div>
+            }
+
+            @* ── EBITDA ── *@
+            <MudPaper Elevation="0" Class="my-3 pa-3"
+                      Style="@($"background:#F8F8F8;border-left:4px solid {SignedColour(_report.Ebitda)}")">
+                <MudStack Row="true" AlignItems="AlignItems.Center">
+                    <MudTooltip Text="@L["EbitdaTooltip"]" Placement="Placement.Right">
+                        <MudStack Row="true" AlignItems="AlignItems.Center" Spacing="1">
+                            <MudText Typo="Typo.subtitle1" Style="@($"font-weight:700;color:{SignedColour(_report.Ebitda)}")">
+                                @L["Ebitda"]
+                            </MudText>
+                            <MudIcon Icon="@Icons.Material.Outlined.Info" Size="Size.Small" Style="color:#AAA" />
+                        </MudStack>
+                    </MudTooltip>
+                    <MudSpacer />
+                    <MudText Typo="Typo.subtitle1" Style="@($"font-weight:700;font-variant-numeric:tabular-nums;color:{SignedColour(_report.Ebitda)}")">
+                        @_report.Ebitda.ToString("N2")
+                    </MudText>
+                </MudStack>
+            </MudPaper>
+
+            @* ── Interest ── *@
+            var interestLines = _report.Lines.Where(l => l.Group == PnlGroup.Interest).ToList();
+            @if (interestLines.Count > 0)
+            {
+                <div class="mb-3">
+                    <MudText Typo="Typo.subtitle2" Class="mt-2 mb-1" Style="text-transform:uppercase;letter-spacing:.06em;color:#555;font-weight:700">
+                        @L["Group_Interest"]
+                    </MudText>
+                    <MudDivider Class="mb-1" />
+                    @foreach (var line in interestLines)
+                    {
+                        <MudStack Row="true" AlignItems="AlignItems.Center" Style="padding:3px 0;border-bottom:1px solid #F0F0F0" Class="pnl-line-clickable" @onclick="@(() => OpenLineAsync(line))">
+                            <MudText Typo="Typo.body2" Style="min-width:80px;color:#999">@line.AccountCode</MudText>
+                            <MudText Typo="Typo.body2" Style="flex:1" Class="pnl-acct-name">@line.AccountName</MudText>
+                            <MudText Typo="Typo.body2" Style="min-width:130px;text-align:right;font-variant-numeric:tabular-nums">
+                                @line.Amount.ToString("N2")
+                            </MudText>
+                        </MudStack>
+                    }
+                    <MudStack Row="true" AlignItems="AlignItems.Center" Class="mt-1" Style="padding:4px 0;border-top:1px solid #CCC">
+                        <MudText Typo="Typo.body2" Style="flex:1;font-weight:600">@L["Sub_Interest"]</MudText>
+                        <MudText Typo="Typo.body2" Style="min-width:130px;text-align:right;font-variant-numeric:tabular-nums;font-weight:600">
+                            @_report.TotalInterest.ToString("N2")
+                        </MudText>
+                    </MudStack>
+                </div>
+            }
+
+            @* ── Tax ── *@
+            var taxLines = _report.Lines.Where(l => l.Group == PnlGroup.Tax).ToList();
+            @if (taxLines.Count > 0)
+            {
+                <div class="mb-3">
+                    <MudText Typo="Typo.subtitle2" Class="mt-2 mb-1" Style="text-transform:uppercase;letter-spacing:.06em;color:#555;font-weight:700">
+                        @L["Group_Tax"]
+                    </MudText>
+                    <MudDivider Class="mb-1" />
+                    @foreach (var line in taxLines)
+                    {
+                        <MudStack Row="true" AlignItems="AlignItems.Center" Style="padding:3px 0;border-bottom:1px solid #F0F0F0" Class="pnl-line-clickable" @onclick="@(() => OpenLineAsync(line))">
+                            <MudText Typo="Typo.body2" Style="min-width:80px;color:#999">@line.AccountCode</MudText>
+                            <MudText Typo="Typo.body2" Style="flex:1" Class="pnl-acct-name">@line.AccountName</MudText>
+                            <MudText Typo="Typo.body2" Style="min-width:130px;text-align:right;font-variant-numeric:tabular-nums">
+                                @line.Amount.ToString("N2")
+                            </MudText>
+                        </MudStack>
+                    }
+                    <MudStack Row="true" AlignItems="AlignItems.Center" Class="mt-1" Style="padding:4px 0;border-top:1px solid #CCC">
+                        <MudText Typo="Typo.body2" Style="flex:1;font-weight:600">@L["Sub_Tax"]</MudText>
+                        <MudText Typo="Typo.body2" Style="min-width:130px;text-align:right;font-variant-numeric:tabular-nums;font-weight:600">
+                            @_report.TotalTax.ToString("N2")
+                        </MudText>
+                    </MudStack>
+                </div>
+            }
+
+            @* ── Net Income ── *@
+            <MudPaper Elevation="1" Class="my-3 pa-4"
+                      Style="@($"background:#FAFAFA;border-left:6px solid {SignedColour(_report.NetIncome)}")">
+                <MudStack Row="true" AlignItems="AlignItems.Center">
+                    <MudText Typo="Typo.h6" Style="@($"font-weight:700;color:{SignedColour(_report.NetIncome)}")">
+                        @L["NetIncome"]
+                    </MudText>
+                    <MudSpacer />
+                    <MudText Typo="Typo.h6" Style="@($"font-weight:700;font-variant-numeric:tabular-nums;color:{SignedColour(_report.NetIncome)}")">
+                        @_report.NetIncome.ToString("N2")
+                    </MudText>
+                </MudStack>
+            </MudPaper>
+        }
+    }
+}
+
+@code {
+    private DateTime? _from         = new DateTime(DateTime.Today.Year, DateTime.Today.Month, 1);
+    private DateTime? _to           = DateTime.Today;
+    private bool      _hideZero     = true;
+    private bool      _loading;
+    private PnlReport?           _report;
+    private string?              _activePreset = "Preset_ThisMonth";
+
+    private bool                 _compEnabled;
+    private DateTime?            _compFrom;
+    private DateTime?            _compTo;
+    private string?              _compActivePreset;
+    private PnlComparisonReport? _compReport;
+
+    private bool             _budgetEnabled;
+    private PnlBudgetReport? _budgetReport;
+    private bool             _noBudget;
+
+    protected override async Task OnInitializedAsync()
+    {
+        var qs = QueryHelpers.ParseQuery(Nav.ToAbsoluteUri(Nav.Uri).Query);
+        if (qs.TryGetValue("from", out var fromSv) && DateOnly.TryParse(fromSv, out var fromDate))
+        {
+            _from = fromDate.ToDateTime(TimeOnly.MinValue);
+            _activePreset = null;
+        }
+        if (qs.TryGetValue("to", out var toSv) && DateOnly.TryParse(toSv, out var toDate))
+        {
+            _to = toDate.ToDateTime(TimeOnly.MinValue);
+            _activePreset = null;
+        }
+        await GenerateAsync();
+    }
+
+    // ── Primary period helpers ───────────────────────────────────────────
+
+    private Variant PresetVariant(string key) =>
+        _activePreset == key ? Variant.Filled : Variant.Outlined;
+
+    private void ApplyPreset(string key)
+    {
+        var today = DateTime.Today;
+        (_from, _to) = key switch
+        {
+            "Preset_ThisMonth"   => (new DateTime(today.Year, today.Month, 1), today),
+            "Preset_LastMonth"   => (new DateTime(today.AddMonths(-1).Year, today.AddMonths(-1).Month, 1),
+                                     new DateTime(today.AddMonths(-1).Year, today.AddMonths(-1).Month,
+                                         DateTime.DaysInMonth(today.AddMonths(-1).Year, today.AddMonths(-1).Month))),
+            "Preset_ThisQuarter" => (new DateTime(today.Year, ((today.Month - 1) / 3) * 3 + 1, 1), today),
+            "Preset_Ytd"         => (new DateTime(today.Year, 1, 1), today),
+            "Preset_LastYear"    => (new DateTime(today.Year - 1, 1, 1), new DateTime(today.Year - 1, 12, 31)),
+            _                    => (_from, _to),
+        };
+        _activePreset = key;
+        RecomputeCompIfPreset();
+    }
+
+    private void OnFromChanged(DateTime? d)
+    {
+        _from = d;
+        _activePreset = null;
+        RecomputeCompIfPreset();
+    }
+
+    private void OnToChanged(DateTime? d)
+    {
+        _to = d;
+        _activePreset = null;
+        RecomputeCompIfPreset();
+    }
+
+    // ── Comparison period helpers ────────────────────────────────────────
+
+    private Variant CompPresetVariant(string? key) =>
+        _compActivePreset == key ? Variant.Filled : Variant.Outlined;
+
+    private void ApplyCompPreset(string key)
+    {
+        if (_from is null || _to is null) return;
+        (_compFrom, _compTo) = key switch
+        {
+            "CompPreset_PriorMonth"   => (_from.Value.AddMonths(-1), _to.Value.AddMonths(-1)),
+            "CompPreset_PriorQuarter" => (_from.Value.AddMonths(-3), _to.Value.AddMonths(-3)),
+            "CompPreset_PriorYear"    => (_from.Value.AddYears(-1),  _to.Value.AddYears(-1)),
+            _                         => (_compFrom, _compTo),
+        };
+        _compActivePreset = key;
+    }
+
+    private void RecomputeCompIfPreset()
+    {
+        if (_compEnabled && _compActivePreset is not null and not "CompPreset_Custom")
+            ApplyCompPreset(_compActivePreset);
+    }
+
+    private void OnCompEnabledChanged(bool value)
+    {
+        _compEnabled = value;
+        if (value)
+        {
+            if (_compFrom is null || _compTo is null)
+                ApplyCompPreset("CompPreset_PriorYear");
+            _budgetEnabled = false;
+            _budgetReport  = null;
+            _noBudget      = false;
+        }
+        else
+        {
+            _compReport = null;
+        }
+    }
+
+    private void OnBudgetEnabledChanged(bool value)
+    {
+        _budgetEnabled = value;
+        if (value)
+        {
+            _compEnabled = false;
+            _compReport  = null;
+        }
+        else
+        {
+            _budgetReport = null;
+            _noBudget     = false;
+        }
+    }
+
+    // ── Generate & export ────────────────────────────────────────────────
+
+    private async Task GenerateAsync()
+    {
+        if (_from is null || _to is null) return;
+        _loading = true;
+        try
+        {
+            var primary = await PnlService.GenerateAsync(new PnlQuery(
+                CurrentUser.TenantId,
+                DateOnly.FromDateTime(_from.Value),
+                DateOnly.FromDateTime(_to.Value),
+                _hideZero));
+
+            _report       = primary;
+            _compReport   = null;
+            _budgetReport = null;
+            _noBudget     = false;
+
+            if (_compEnabled && _compFrom is not null && _compTo is not null)
+            {
+                var comparison = await PnlService.GenerateAsync(new PnlQuery(
+                    CurrentUser.TenantId,
+                    DateOnly.FromDateTime(_compFrom.Value),
+                    DateOnly.FromDateTime(_compTo.Value),
+                    _hideZero));
+
+                _compReport = new PnlComparisonReport(primary, comparison);
+            }
+
+            if (_budgetEnabled)
+            {
+                _budgetReport = await PnlService.GetBudgetOverlayAsync(primary, CurrentUser.TenantId,
+                    DateOnly.FromDateTime(_from.Value), DateOnly.FromDateTime(_to.Value));
+                _noBudget = _budgetReport is null;
+            }
+        }
+        finally { _loading = false; }
+    }
+
+    private async Task ExportPdfAsync()
+    {
+        if (_report is null) return;
+        _loading = true;
+        try
+        {
+            var meta = PnlExportMeta.Now(CurrentUser.UserName);
+            byte[] bytes;
+            string filename;
+            if (_budgetReport is not null)
+            {
+                bytes    = PnlExporter.ToPdf(_budgetReport, meta);
+                filename = $"PL_{_report.From:yyyy-MM}_{_report.To:yyyy-MM}_budget.pdf";
+            }
+            else if (_compReport is not null)
+            {
+                bytes    = PnlExporter.ToPdf(_compReport, meta);
+                filename = $"PL_{_compReport.Current.From:yyyy-MM}_{_compReport.Current.To:yyyy-MM}_vs_{_compReport.Comparison.From:yyyy-MM}_{_compReport.Comparison.To:yyyy-MM}.pdf";
+            }
+            else
+            {
+                bytes    = PnlExporter.ToPdf(_report, meta);
+                filename = $"PL_{_report.From:yyyy-MM}_{_report.To:yyyy-MM}.pdf";
+            }
+            await JS.InvokeVoidAsync("kairn.downloadFile", filename, "application/pdf", bytes);
+        }
+        finally { _loading = false; }
+    }
+
+    private async Task ExportCsvAsync()
+    {
+        if (_report is null) return;
+        _loading = true;
+        try
+        {
+            var meta = PnlExportMeta.Now(CurrentUser.UserName);
+            string csv;
+            string filename;
+            if (_budgetReport is not null)
+            {
+                csv      = PnlExporter.ToCsv(_budgetReport, meta);
+                filename = $"PL_{_report.From:yyyy-MM}_{_report.To:yyyy-MM}_budget.csv";
+            }
+            else if (_compReport is not null)
+            {
+                csv      = PnlExporter.ToCsv(_compReport, meta);
+                filename = $"PL_{_compReport.Current.From:yyyy-MM}_{_compReport.Current.To:yyyy-MM}_vs_{_compReport.Comparison.From:yyyy-MM}_{_compReport.Comparison.To:yyyy-MM}.csv";
+            }
+            else
+            {
+                csv      = PnlExporter.ToCsv(_report, meta);
+                filename = $"PL_{_report.From:yyyy-MM}_{_report.To:yyyy-MM}.csv";
+            }
+            await JS.InvokeVoidAsync("kairn.downloadFile", filename, "text/csv",
+                System.Text.Encoding.UTF8.GetBytes(csv));
+        }
+        finally { _loading = false; }
+    }
+
+    // ── Drill-down ───────────────────────────────────────────────────────
+
+    private Task OpenLineAsync(PnlAccountLine line) =>
+        OpenDrillDownAsync(line.AccountId, line.AccountCode, line.AccountName, line.Group,
+            _report!.From, _report.To);
+
+    private Task OpenCompLineAsync(PnlComparisonLine line) =>
+        OpenDrillDownAsync(line.AccountId, line.AccountCode, line.AccountName, line.Group,
+            _compReport!.Current.From, _compReport.Current.To);
+
+    private Task OpenBudgetLineAsync(PnlBudgetLine line) =>
+        OpenDrillDownAsync(line.AccountId, line.AccountCode, line.AccountName, line.Group,
+            _report!.From, _report.To);
+
+    private async Task OpenDrillDownAsync(
+        Guid accountId, string code, string name, PnlGroup group, DateOnly from, DateOnly to)
+    {
+        var parameters = new DialogParameters<PnlDrillDownDialog>
+        {
+            { d => d.AccountId,   accountId },
+            { d => d.AccountCode, code },
+            { d => d.AccountName, name },
+            { d => d.IsRevenue,   group == PnlGroup.Revenue },
+            { d => d.From,        from },
+            { d => d.To,          to },
+            { d => d.TenantId,    CurrentUser.TenantId },
+        };
+
+        await DialogService.ShowAsync<PnlDrillDownDialog>(
+            string.Empty, parameters,
+            new DialogOptions
+            {
+                MaxWidth         = MaxWidth.Large,
+                FullWidth        = true,
+                CloseButton      = true,
+                CloseOnEscapeKey = true,
+            });
+    }
+
+    // ── Colour helpers ───────────────────────────────────────────────────
+
+    private static string SignedColour(decimal value) =>
+        value > 0 ? "#1F6040" : value < 0 ? "#7E2A14" : "#8C8980";
+
+    private static string SummaryVarColour(decimal variance) =>
+        variance > 0 ? "#1F6040" : variance < 0 ? "#7E2A14" : "#8C8980";
+
+    private static string VarColour(decimal variance, PnlGroup group)
+    {
+        if (variance == 0m) return "#8C8980";
+        bool favorable = group == PnlGroup.Revenue ? variance > 0 : variance < 0;
+        return favorable ? "#1F6040" : "#7E2A14";
+    }
+
+    private static string FormatVarPct(decimal? pct) =>
+        pct.HasValue ? $"{pct.Value:+0.0;-0.0;0.0}%" : "N/A";
+
+    private static decimal? VarPct(decimal current, decimal comparison) =>
+        comparison == 0m ? null : Math.Round((current - comparison) / Math.Abs(comparison) * 100m, 1);
+}
