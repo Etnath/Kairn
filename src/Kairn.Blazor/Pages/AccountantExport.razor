@@ -1,0 +1,143 @@
+@page "/tax/export"
+@attribute [Authorize(Roles = "Admin,Bookkeeper")]
+@inject IStringLocalizer<AccountantExport> L
+@inject IAccountantExportService ExportService
+@inject ICurrentUserContext CurrentUser
+@inject IJSRuntime JS
+@inject ISnackbar Snackbar
+@inject NavigationManager Nav
+
+<PageTitle>@L["Title"] – Kairn</PageTitle>
+
+<MudStack Row="true" AlignItems="AlignItems.Center" Class="mb-6" Spacing="2">
+    <MudIconButton Icon="@Icons.Material.Filled.ArrowBack" Href="/tax" />
+    <MudText Typo="Typo.h5">@L["Title"]</MudText>
+</MudStack>
+
+<MudGrid Spacing="4">
+    <MudItem xs="12" md="7">
+        <MudPaper Class="pa-4" Elevation="1">
+            <MudStack Spacing="3">
+                <MudText Typo="Typo.body1">@L["Description"]</MudText>
+
+                <MudStack Row="true" Spacing="1" Wrap="Wrap.Wrap">
+                    <MudButton Variant="@PresetVariant("ThisYear")" Color="Color.Primary" Size="Size.Small"
+                               OnClick="@(() => ApplyPreset("ThisYear"))">@L["Preset_ThisYear"]</MudButton>
+                    <MudButton Variant="@PresetVariant("LastYear")" Color="Color.Primary" Size="Size.Small"
+                               OnClick="@(() => ApplyPreset("LastYear"))">@L["Preset_LastYear"]</MudButton>
+                    <MudButton Variant="@PresetVariant("Q1")" Color="Color.Secondary" Size="Size.Small"
+                               OnClick="@(() => ApplyPreset("Q1"))">@L["Preset_Q1"] @_quarterYear</MudButton>
+                    <MudButton Variant="@PresetVariant("Q2")" Color="Color.Secondary" Size="Size.Small"
+                               OnClick="@(() => ApplyPreset("Q2"))">@L["Preset_Q2"] @_quarterYear</MudButton>
+                    <MudButton Variant="@PresetVariant("Q3")" Color="Color.Secondary" Size="Size.Small"
+                               OnClick="@(() => ApplyPreset("Q3"))">@L["Preset_Q3"] @_quarterYear</MudButton>
+                    <MudButton Variant="@PresetVariant("Q4")" Color="Color.Secondary" Size="Size.Small"
+                               OnClick="@(() => ApplyPreset("Q4"))">@L["Preset_Q4"] @_quarterYear</MudButton>
+                </MudStack>
+
+                <MudStack Row="true" AlignItems="AlignItems.End" Spacing="3" Wrap="Wrap.Wrap">
+                    <MudDatePicker Label="@L["From"]"
+                                   Date="_from"
+                                   DateChanged="@(d => { _from = d; _activePreset = null; })"
+                                   DateFormat="dd/MM/yyyy"
+                                   MaxDate="DateTime.Today"
+                                   Style="max-width:180px" />
+                    <MudDatePicker Label="@L["To"]"
+                                   Date="_to"
+                                   DateChanged="@(d => { _to = d; _activePreset = null; })"
+                                   DateFormat="dd/MM/yyyy"
+                                   MaxDate="DateTime.Today"
+                                   Style="max-width:180px" />
+                </MudStack>
+
+                @if (_generating)
+                {
+                    <MudStack Spacing="1">
+                        <MudText Typo="Typo.body2" Color="Color.Secondary">@L["Generating"]</MudText>
+                        <MudProgressLinear Indeterminate="true" Color="Color.Primary" />
+                    </MudStack>
+                }
+                else
+                {
+                    <MudButton Variant="Variant.Filled" Color="Color.Primary"
+                               StartIcon="@Icons.Material.Filled.Download"
+                               Disabled="@(_from is null || _to is null)"
+                               OnClick="GenerateAndDownloadAsync"
+                               Size="Size.Large">
+                        @L["Generate"]
+                    </MudButton>
+                }
+            </MudStack>
+        </MudPaper>
+    </MudItem>
+
+    <MudItem xs="12" md="5">
+        <MudPaper Class="pa-4" Elevation="0" Style="background:var(--mud-palette-background-grey)">
+            <MudText Typo="Typo.subtitle2" Class="mb-2">@L["Contents_Title"]</MudText>
+            <MudList T="string" Dense="true" DisablePadding="true">
+                <MudListItem Icon="@Icons.Material.Filled.PictureAsPdf" IconColor="Color.Error">@L["Contents_TB"]</MudListItem>
+                <MudListItem Icon="@Icons.Material.Filled.PictureAsPdf" IconColor="Color.Error">@L["Contents_PnL"]</MudListItem>
+                <MudListItem Icon="@Icons.Material.Filled.PictureAsPdf" IconColor="Color.Error">@L["Contents_BS"]</MudListItem>
+                <MudListItem Icon="@Icons.Material.Filled.TableChart" IconColor="Color.Success">@L["Contents_JE"]</MudListItem>
+                <MudListItem Icon="@Icons.Material.Filled.PictureAsPdf" IconColor="Color.Error">@L["Contents_VAT"]</MudListItem>
+            </MudList>
+        </MudPaper>
+    </MudItem>
+</MudGrid>
+
+@code {
+    private DateTime? _from = new DateTime(DateTime.Today.Year, 1, 1);
+    private DateTime? _to   = new DateTime(DateTime.Today.Year, 12, 31);
+    private string?   _activePreset = "ThisYear";
+    private bool      _generating;
+    private int       _quarterYear = DateTime.Today.Year;
+
+    private Variant PresetVariant(string key) =>
+        _activePreset == key ? Variant.Filled : Variant.Outlined;
+
+    private void ApplyPreset(string key)
+    {
+        var today = DateTime.Today;
+        (_from, _to) = key switch
+        {
+            "ThisYear" => (new DateTime(today.Year, 1, 1),      new DateTime(today.Year, 12, 31)),
+            "LastYear" => (new DateTime(today.Year - 1, 1, 1),  new DateTime(today.Year - 1, 12, 31)),
+            "Q1"       => (new DateTime(_quarterYear, 1, 1),    new DateTime(_quarterYear, 3, 31)),
+            "Q2"       => (new DateTime(_quarterYear, 4, 1),    new DateTime(_quarterYear, 6, 30)),
+            "Q3"       => (new DateTime(_quarterYear, 7, 1),    new DateTime(_quarterYear, 9, 30)),
+            "Q4"       => (new DateTime(_quarterYear, 10, 1),   new DateTime(_quarterYear, 12, 31)),
+            _          => (_from, _to),
+        };
+        _activePreset = key;
+    }
+
+    private async Task GenerateAndDownloadAsync()
+    {
+        if (_from is null || _to is null) return;
+
+        _generating = true;
+        try
+        {
+            var from = DateOnly.FromDateTime(_from.Value);
+            var to   = DateOnly.FromDateTime(_to.Value);
+
+            var zipBytes = await ExportService.GenerateZipAsync(
+                CurrentUser.TenantId, from, to, CurrentUser.UserName);
+
+            var year     = from.Year == to.Year ? from.Year.ToString() : $"{from.Year}-{to.Year}";
+            var period   = $"{from:yyyy-MM-dd}_to_{to:yyyy-MM-dd}";
+            var filename = $"Kairn_AccountantExport_{year}_{period}.zip";
+
+            await JS.InvokeVoidAsync("kairn.downloadFile", filename,
+                "application/zip", zipBytes);
+        }
+        catch (Exception ex)
+        {
+            Snackbar.Add(ex.Message, Severity.Error);
+        }
+        finally
+        {
+            _generating = false;
+        }
+    }
+}

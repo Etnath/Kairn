@@ -1,12 +1,13 @@
 using System.Text;
 using Kairn.Application.Common;
 using Kairn.Application.Features.GL;
+using Kairn.Application.Features.Tax;
 using Kairn.Domain.Entities;
 using Microsoft.EntityFrameworkCore;
 
 namespace Kairn.Infrastructure.Persistence.Services;
 
-public class JournalEntryService(AppDbContext db) : IJournalEntryService
+public class JournalEntryService(AppDbContext db, ITaxPeriodChecker taxPeriods) : IJournalEntryService
 {
     public async Task<PagedResult<JournalEntryDto>> GetPagedAsync(JournalEntryQuery query, CancellationToken ct = default)
     {
@@ -208,6 +209,9 @@ public class JournalEntryService(AppDbContext db) : IJournalEntryService
         if (yearClosed)
             return Result<JournalEntryDto>.Fail($"Fiscal year {cmd.Date.Year} is closed. No new entries can be posted for that year.");
 
+        if (await taxPeriods.IsDateLockedAsync(cmd.TenantId, cmd.Date, ct))
+            return Result<JournalEntryDto>.Fail("This transaction falls within a locked tax period.");
+
         var reference = await GenerateReferenceAsync(cmd.TenantId, cmd.Date, ct);
         var now = DateTimeOffset.UtcNow;
 
@@ -261,6 +265,9 @@ public class JournalEntryService(AppDbContext db) : IJournalEntryService
         if (yearClosed)
             return Result<JournalEntryDto>.Fail($"Fiscal year {entry.Date.Year} is closed. This entry cannot be edited.");
 
+        if (await taxPeriods.IsDateLockedAsync(cmd.TenantId, entry.Date, ct))
+            return Result<JournalEntryDto>.Fail("This transaction falls within a locked tax period.");
+
         var validationError = ValidateLines(cmd.Lines);
         if (validationError is not null) return Result<JournalEntryDto>.Fail(validationError);
 
@@ -305,6 +312,9 @@ public class JournalEntryService(AppDbContext db) : IJournalEntryService
             .AnyAsync(x => x.TenantId == tenantId && x.FiscalYear == entry.Date.Year, ct);
         if (yearClosed)
             return Result.Fail($"Fiscal year {entry.Date.Year} is closed. This entry cannot be deleted.");
+
+        if (await taxPeriods.IsDateLockedAsync(tenantId, entry.Date, ct))
+            return Result.Fail("This transaction falls within a locked tax period.");
 
         entry.IsDeleted = true;
         await db.SaveChangesAsync(ct);

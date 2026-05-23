@@ -1,0 +1,40 @@
+<?xml version="1.0" encoding="utf-8"?>
+<root>
+  <resheader name="resmimetype"><value>text/microsoft-resx</value></resheader>
+  <resheader name="version"><value>2.0</value></resheader>
+  <data name="Title" xml:space="preserve"><value>Périodes fiscales</value></data>
+  <data name="NewPeriod" xml:space="preserve"><value>Nouvelle période</value></data>
+  <data name="GenerateQuarters" xml:space="preserve"><value>Générer les trimestres</value></data>
+  <data name="Col_Name" xml:space="preserve"><value>Nom</value></data>
+  <data name="Col_Start" xml:space="preserve"><value>Début</value></data>
+  <data name="Col_End" xml:space="preserve"><value>Fin</value></data>
+  <data name="Col_Status" xml:space="preserve"><value>Statut</value></data>
+  <data name="Col_LockedBy" xml:space="preserve"><value>Verrouillé par</value></data>
+  <data name="Col_LockedAt" xml:space="preserve"><value>Verrouillé le</value></data>
+  <data name="Status_Open" xml:space="preserve"><value>Ouvert</value></data>
+  <data name="Status_Locked" xml:space="preserve"><value>Verrouillé</value></data>
+  <data name="Lock" xml:space="preserve"><value>Verrouiller</value></data>
+  <data name="Unlock" xml:space="preserve"><value>Déverrouiller</value></data>
+  <data name="Delete" xml:space="preserve"><value>Supprimer</value></data>
+  <data name="NoData" xml:space="preserve"><value>Aucune période fiscale définie. Créez-en une ou générez les trimestres.</value></data>
+  <data name="Create_Title" xml:space="preserve"><value>Nouvelle période fiscale</value></data>
+  <data name="Field_Name" xml:space="preserve"><value>Nom</value></data>
+  <data name="Field_Start" xml:space="preserve"><value>Date de début</value></data>
+  <data name="Field_End" xml:space="preserve"><value>Date de fin</value></data>
+  <data name="Save" xml:space="preserve"><value>Enregistrer</value></data>
+  <data name="Cancel" xml:space="preserve"><value>Annuler</value></data>
+  <data name="Lock_Title" xml:space="preserve"><value>Verrouiller la période fiscale</value></data>
+  <data name="Lock_Warning" xml:space="preserve"><value>Le verrouillage de cette période empêchera toute création ou modification de transactions, factures, achats ou paiements dans sa plage de dates. Cette action doit être examinée avec soin.</value></data>
+  <data name="Lock_Confirm" xml:space="preserve"><value>Confirmer le verrouillage</value></data>
+  <data name="Unlock_Title" xml:space="preserve"><value>Déverrouiller la période fiscale</value></data>
+  <data name="Unlock_Warning" xml:space="preserve"><value>Vous êtes sur le point de déverrouiller une période fiscale précédemment verrouillée. Veuillez fournir un motif pour la piste d'audit.</value></data>
+  <data name="Unlock_Reason" xml:space="preserve"><value>Motif (obligatoire)</value></data>
+  <data name="Unlock_Confirm" xml:space="preserve"><value>Confirmer le déverrouillage</value></data>
+  <data name="Delete_Title" xml:space="preserve"><value>Supprimer la période fiscale</value></data>
+  <data name="Delete_Warning" xml:space="preserve"><value>Êtes-vous sûr de vouloir supprimer cette période ? Cette action est irréversible.</value></data>
+  <data name="Delete_Confirm" xml:space="preserve"><value>Supprimer</value></data>
+  <data name="GenerateQuarters_Title" xml:space="preserve"><value>Générer les périodes trimestrielles</value></data>
+  <data name="GenerateQuarters_Label" xml:space="preserve"><value>Exercice fiscal</value></data>
+  <data name="GenerateQuarters_Note" xml:space="preserve"><value>Les trimestres qui chevauchent une période existante seront ignorés automatiquement.</value></data>
+  <data name="GenerateQuarters_Confirm" xml:space="preserve"><value>Générer</value></data>
+</root>

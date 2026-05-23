@@ -1,11 +1,12 @@
 using Kairn.Application.Common;
 using Kairn.Application.Features.AP;
+using Kairn.Application.Features.Tax;
 using Kairn.Domain.Entities;
 using Microsoft.EntityFrameworkCore;
 
 namespace Kairn.Infrastructure.Persistence.Services;
 
-public class BillPaymentService(AppDbContext db) : IBillPaymentService
+public class BillPaymentService(AppDbContext db, ITaxPeriodChecker taxPeriods) : IBillPaymentService
 {
     private const string ApAccountCode = "401000";
 
@@ -39,6 +40,9 @@ public class BillPaymentService(AppDbContext db) : IBillPaymentService
             return Result<BillPaymentDto>.Fail("Payment amount must be greater than zero.");
         if (cmd.Amount > outstanding)
             return Result<BillPaymentDto>.Fail($"Payment amount ({cmd.Amount:N2}) exceeds the outstanding balance ({outstanding:N2}).");
+
+        if (await taxPeriods.IsDateLockedAsync(cmd.TenantId, cmd.Date, ct))
+            return Result<BillPaymentDto>.Fail("This transaction falls within a locked tax period.");
 
         var apAccount = await db.Accounts
             .FirstOrDefaultAsync(a => a.TenantId == cmd.TenantId && a.Code == ApAccountCode, ct);
@@ -121,6 +125,9 @@ public class BillPaymentService(AppDbContext db) : IBillPaymentService
 
         if (payment is null)
             return Result.Fail("Payment not found.");
+
+        if (await taxPeriods.IsDateLockedAsync(tenantId, payment.Date, ct))
+            return Result.Fail("This transaction falls within a locked tax period.");
 
         if (payment.JournalEntryId.HasValue)
         {

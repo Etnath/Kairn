@@ -1,0 +1,42 @@
+@using Kairn.Application.Features.Tax
+@inject ICurrentUserContext CurrentUser
+
+<MudDialog>
+    <DialogContent>
+        <MudStack Spacing="3">
+            <MudTextField @bind-Value="_name" Label="@L["Field_Name"]" Required="true" />
+            <MudDatePicker @bind-Date="_start" Label="@L["Field_Start"]" DateFormat="dd/MM/yyyy" Required="true" />
+            <MudDatePicker @bind-Date="_end" Label="@L["Field_End"]" DateFormat="dd/MM/yyyy" Required="true" />
+        </MudStack>
+    </DialogContent>
+    <DialogActions>
+        <MudButton OnClick="@(() => MudDialog.Cancel())">@L["Cancel"]</MudButton>
+        <MudButton Variant="Variant.Filled" Color="Color.Primary"
+                   Disabled="@(!IsValid)"
+                   OnClick="Submit">
+            @L["Save"]
+        </MudButton>
+    </DialogActions>
+</MudDialog>
+
+@code {
+    [CascadingParameter] IMudDialogInstance MudDialog { get; set; } = null!;
+
+    [Parameter] public IStringLocalizer<TaxPeriods> L { get; set; } = null!;
+
+    private string _name = "";
+    private DateTime? _start = DateTime.Today;
+    private DateTime? _end = DateTime.Today;
+
+    private bool IsValid => !string.IsNullOrWhiteSpace(_name) && _start.HasValue && _end.HasValue;
+
+    private void Submit()
+    {
+        var cmd = new CreateTaxPeriodCommand(
+            CurrentUser.TenantId,
+            _name.Trim(),
+            DateOnly.FromDateTime(_start!.Value),
+            DateOnly.FromDateTime(_end!.Value));
+        MudDialog.Close(DialogResult.Ok(cmd));
+    }
+}

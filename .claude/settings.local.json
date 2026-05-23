@@ -1,0 +1,30 @@
+{
+  "permissions": {
+    "allow": [
+      "PowerShell(dotnet new list *)",
+      "PowerShell(New-Item *)",
+      "Bash(dotnet build *)",
+      "Bash(dotnet ef *)",
+      "Bash(dotnet add *)",
+      "Bash(dotnet test *)",
+      "Bash(Remove-Item \"C:\\\\Users\\\\kevin\\\\source\\\\repos\\\\Kairn\\\\src\\\\Kairn.Blazor\\\\Resources\\\\Pages\\\\Login.en.resx\" -Force)",
+      "Bash(Remove-Item \"C:\\\\Users\\\\kevin\\\\source\\\\repos\\\\Kairn\\\\src\\\\Kairn.Blazor\\\\Resources\\\\Pages\\\\Login.fr.resx\" -Force)",
+      "Bash(pwsh tests/Kairn.Tests/bin/Release/net10.0/playwright.ps1 install chromium)",
+      "Bash(dotnet tool *)",
+      "Bash(playwright install *)",
+      "Bash(node tests/Kairn.Tests/bin/Release/net10.0/playwright.js install chromium)",
+      "Bash(powershell -File \"C:/Users/kevin/source/repos/Kairn/tests/Kairn.Tests/bin/Release/net10.0/playwright.ps1\" install chromium)",
+      "Bash(Move-Item \"C:\\\\Users\\\\kevin\\\\source\\\\repos\\\\Kairn\\\\src\\\\Kairn.Blazor\\\\Pages\\\\Settings\\\\ChartOfAccounts.razor\" \"C:\\\\Users\\\\kevin\\\\source\\\\repos\\\\Kairn\\\\src\\\\Kairn.Blazor\\\\Pages\\\\Coa\\\\ChartOfAccounts.razor\")",
+      "Bash(Move-Item \"C:\\\\Users\\\\kevin\\\\source\\\\repos\\\\Kairn\\\\src\\\\Kairn.Blazor\\\\Pages\\\\Settings\\\\AccountFormDialog.razor\" \"C:\\\\Users\\\\kevin\\\\source\\\\repos\\\\Kairn\\\\src\\\\Kairn.Blazor\\\\Pages\\\\Coa\\\\AccountFormDialog.razor\")",
+      "Bash(Remove-Item \"C:\\\\Users\\\\kevin\\\\source\\\\repos\\\\Kairn\\\\src\\\\Kairn.Blazor\\\\Pages\\\\Settings\" -Recurse)",
+      "PowerShell(Move-Item *)",
+      "Bash(dotnet clean *)",
+      "Bash(Get-Process -Name \"Kairn.Blazor\" -ErrorAction SilentlyContinue)",
+      "Bash(Select-Object Id, Name)",
+      "PowerShell(Get-Process *)",
+      "Bash(sqlite3 kairn.db \"SELECT MigrationId FROM __EFMigrationsHistory ORDER BY MigrationId;\")",
+      "Bash(xargs grep -l \"RecurringPostingJob\\\\|RecurringJob\\\\|IHostedService\")",
+      "Bash(Remove-Item *)"
+    ]
+  }
+}

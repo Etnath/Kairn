@@ -1,0 +1,30 @@
+@using Kairn.Application.Features.Tax
+
+<MudDialog>
+    <DialogContent>
+        <MudStack Spacing="3">
+            <MudNumericField @bind-Value="_year"
+                             Label="@L["GenerateQuarters_Label"]"
+                             Min="2000" Max="2100" Required="true" />
+            <MudText Typo="Typo.caption" Color="Color.Secondary">@L["GenerateQuarters_Note"]</MudText>
+        </MudStack>
+    </DialogContent>
+    <DialogActions>
+        <MudButton OnClick="@(() => MudDialog.Cancel())">@L["Cancel"]</MudButton>
+        <MudButton Variant="Variant.Filled" Color="Color.Primary"
+                   StartIcon="@Icons.Material.Filled.CalendarMonth"
+                   OnClick="Submit">
+            @L["GenerateQuarters_Confirm"]
+        </MudButton>
+    </DialogActions>
+</MudDialog>
+
+@code {
+    [CascadingParameter] IMudDialogInstance MudDialog { get; set; } = null!;
+
+    [Parameter] public IStringLocalizer<TaxPeriods> L { get; set; } = null!;
+
+    private int _year = DateTime.Today.Year;
+
+    private void Submit() => MudDialog.Close(DialogResult.Ok(_year));
+}

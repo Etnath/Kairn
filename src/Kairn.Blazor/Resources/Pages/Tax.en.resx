@@ -1,7 +1,15 @@
-﻿<?xml version="1.0" encoding="utf-8"?>
+<?xml version="1.0" encoding="utf-8"?>
 <root>
   <resheader name="resmimetype"><value>text/microsoft-resx</value></resheader>
   <resheader name="version"><value>2.0</value></resheader>
   <data name="Title" xml:space="preserve"><value>Tax &amp; VAT</value></data>
-  <data name="ComingSoon" xml:space="preserve"><value>This module is coming soon.</value></data>
+  <data name="VatReturn_Title" xml:space="preserve"><value>VAT Return</value></data>
+  <data name="VatReturn_Description" xml:space="preserve"><value>Generate a VAT return report for any period — output tax, input tax, and net VAT payable.</value></data>
+  <data name="TaxRates_Title" xml:space="preserve"><value>Tax Rate Configuration</value></data>
+  <data name="TaxRates_Description" xml:space="preserve"><value>Configure VAT rate categories, effective dates, and defaults.</value></data>
+  <data name="TaxPeriods_Title" xml:space="preserve"><value>Tax Period Locking</value></data>
+  <data name="TaxPeriods_Description" xml:space="preserve"><value>Lock tax periods to prevent modifications to transactions within their date range.</value></data>
+  <data name="Export_Title" xml:space="preserve"><value>Accountant Export</value></data>
+  <data name="Export_Description" xml:space="preserve"><value>Generate a one-click ZIP package with all financial statements and journal entries for your external accountant.</value></data>
+  <data name="Open" xml:space="preserve"><value>Open</value></data>
 </root>

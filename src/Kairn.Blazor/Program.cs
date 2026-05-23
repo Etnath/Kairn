@@ -161,6 +161,12 @@ try
     builder.Services.AddScoped<IMarginTrendService, MarginTrendService>();
     builder.Services.AddScoped<IMarginAlertService, MarginAlertService>();
     builder.Services.AddScoped<ITaxRateService, TaxRateService>();
+    builder.Services.AddScoped<TaxPeriodService>();
+    builder.Services.AddScoped<ITaxPeriodService>(sp => sp.GetRequiredService<TaxPeriodService>());
+    builder.Services.AddScoped<ITaxPeriodChecker>(sp => sp.GetRequiredService<TaxPeriodService>());
+    builder.Services.AddScoped<IVatReturnService, VatReturnService>();
+    builder.Services.AddScoped<IAccountantExportService, AccountantExportService>();
+    builder.Services.AddSingleton<IVatReturnExporter, VatReturnExporter>();
     builder.Services.AddSingleton<IGrossMarginExporter, GrossMarginExporter>();
     builder.Services.AddScoped<IFiscalYearCloseService, FiscalYearCloseService>();
     builder.Services.AddScoped<IRecurringEntryService, RecurringEntryService>();

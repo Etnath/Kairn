@@ -1,0 +1,40 @@
+<?xml version="1.0" encoding="utf-8"?>
+<root>
+  <resheader name="resmimetype"><value>text/microsoft-resx</value></resheader>
+  <resheader name="version"><value>2.0</value></resheader>
+  <data name="Title" xml:space="preserve"><value>Tax Periods</value></data>
+  <data name="NewPeriod" xml:space="preserve"><value>New Period</value></data>
+  <data name="GenerateQuarters" xml:space="preserve"><value>Generate Quarters</value></data>
+  <data name="Col_Name" xml:space="preserve"><value>Name</value></data>
+  <data name="Col_Start" xml:space="preserve"><value>Start</value></data>
+  <data name="Col_End" xml:space="preserve"><value>End</value></data>
+  <data name="Col_Status" xml:space="preserve"><value>Status</value></data>
+  <data name="Col_LockedBy" xml:space="preserve"><value>Locked By</value></data>
+  <data name="Col_LockedAt" xml:space="preserve"><value>Locked At</value></data>
+  <data name="Status_Open" xml:space="preserve"><value>Open</value></data>
+  <data name="Status_Locked" xml:space="preserve"><value>Locked</value></data>
+  <data name="Lock" xml:space="preserve"><value>Lock</value></data>
+  <data name="Unlock" xml:space="preserve"><value>Unlock</value></data>
+  <data name="Delete" xml:space="preserve"><value>Delete</value></data>
+  <data name="NoData" xml:space="preserve"><value>No tax periods defined. Create one or generate quarters.</value></data>
+  <data name="Create_Title" xml:space="preserve"><value>New Tax Period</value></data>
+  <data name="Field_Name" xml:space="preserve"><value>Name</value></data>
+  <data name="Field_Start" xml:space="preserve"><value>Start Date</value></data>
+  <data name="Field_End" xml:space="preserve"><value>End Date</value></data>
+  <data name="Save" xml:space="preserve"><value>Save</value></data>
+  <data name="Cancel" xml:space="preserve"><value>Cancel</value></data>
+  <data name="Lock_Title" xml:space="preserve"><value>Lock Tax Period</value></data>
+  <data name="Lock_Warning" xml:space="preserve"><value>Locking this period will prevent any new transactions, invoices, bills, or payments from being created or modified within its date range. This action should be reviewed carefully.</value></data>
+  <data name="Lock_Confirm" xml:space="preserve"><value>Confirm Lock</value></data>
+  <data name="Unlock_Title" xml:space="preserve"><value>Unlock Tax Period</value></data>
+  <data name="Unlock_Warning" xml:space="preserve"><value>You are about to unlock a previously locked tax period. Please provide a reason for the audit trail.</value></data>
+  <data name="Unlock_Reason" xml:space="preserve"><value>Reason (required)</value></data>
+  <data name="Unlock_Confirm" xml:space="preserve"><value>Confirm Unlock</value></data>
+  <data name="Delete_Title" xml:space="preserve"><value>Delete Tax Period</value></data>
+  <data name="Delete_Warning" xml:space="preserve"><value>Are you sure you want to delete this period? This cannot be undone.</value></data>
+  <data name="Delete_Confirm" xml:space="preserve"><value>Delete</value></data>
+  <data name="GenerateQuarters_Title" xml:space="preserve"><value>Generate Quarterly Periods</value></data>
+  <data name="GenerateQuarters_Label" xml:space="preserve"><value>Fiscal Year</value></data>
+  <data name="GenerateQuarters_Note" xml:space="preserve"><value>Quarters that already overlap with an existing period will be skipped automatically.</value></data>
+  <data name="GenerateQuarters_Confirm" xml:space="preserve"><value>Generate</value></data>
+</root>
