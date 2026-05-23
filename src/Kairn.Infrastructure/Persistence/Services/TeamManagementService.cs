@@ -20,14 +20,15 @@ public class TeamManagementService(
             .Join(db.Users,
                   m => m.UserId,
                   u => u.Id,
-                  (m, u) => new TeamMemberDto(
-                      u.Id,
-                      u.DisplayName ?? u.Email ?? u.Id,
-                      u.Email ?? "",
-                      m.Role,
-                      m.JoinedAt))
-            .OrderBy(d => d.Role)
-            .ThenBy(d => d.DisplayName)
+                  (m, u) => new { m, u })
+            .OrderBy(x => x.m.Role)
+            .ThenBy(x => x.u.DisplayName ?? x.u.Email ?? x.u.Id)
+            .Select(x => new TeamMemberDto(
+                      x.u.Id,
+                      x.u.DisplayName ?? x.u.Email ?? x.u.Id,
+                      x.u.Email ?? "",
+                      x.m.Role,
+                      x.m.JoinedAt))
             .ToListAsync(ct);
 
     public async Task<Result> InviteAsync(Guid tenantId, string email, TenantRole role,
