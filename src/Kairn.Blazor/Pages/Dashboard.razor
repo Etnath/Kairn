@@ -13,6 +13,7 @@
 @inject IDashboardSettingsService DashboardSettingsService
 @inject IUserDashboardPreferencesService PreferencesService
 @inject IMarginAlertService MarginAlertService
+@inject IVatThresholdService VatThresholdService
 @inject ICurrentUserContext CurrentUser
 @inject IState<DashboardState> KpiState
 @inject IDispatcher Dispatcher
@@ -127,7 +128,7 @@
                      Loading="@KpiState.Value.IsLoading" />
         </MudItem>
     }
-    @if (_showOutstandingAr)
+    @if (_showOutstandingAr && ProfileState?.IsAutoEntrepreneur != true)
     {
         <MudItem xs="12" sm="6" md="4">
             <KpiCard Title="@L["Kpi_OutstandingAr"]"
@@ -137,7 +138,7 @@
                      Loading="@KpiState.Value.IsLoading" />
         </MudItem>
     }
-    @if (_showOutstandingAp)
+    @if (_showOutstandingAp && ProfileState?.IsAutoEntrepreneur != true)
     {
         <MudItem xs="12" sm="6" md="4">
             <KpiCard Title="@L["Kpi_OutstandingAp"]"
@@ -155,6 +156,34 @@
                      DeltaPct="@KpiState.Value.Kpis?.CashBalance.DeltaPct"
                      IsHigherBetter="true"
                      Loading="@KpiState.Value.IsLoading" />
+        </MudItem>
+    }
+    @if (_alertsLoading || _vatStatus?.IsAutoEntrepreneur == true)
+    {
+        <MudItem xs="12" sm="6" md="4">
+            <MudPaper Class="pa-4" Elevation="1" Style="height:100%">
+                @if (_alertsLoading)
+                {
+                    <MudSkeleton Width="60%" Height="20px" Class="mb-2" />
+                    <MudSkeleton Width="80%" Height="36px" Class="mb-2" />
+                    <MudSkeleton Width="100%" Height="8px" />
+                }
+                else if (_vatStatus is not null)
+                {
+                    var pct       = _vatStatus.Pct;
+                    var barColor  = pct >= 100m ? Color.Error : pct >= 80m ? Color.Warning : Color.Default;
+                    var textColor = pct >= 100m ? Color.Error : pct >= 80m ? Color.Warning : Color.Secondary;
+                    <MudText Typo="Typo.caption" Color="Color.Secondary">@L["Kpi_VatThreshold"]</MudText>
+                    <MudText Typo="Typo.h5" Class="my-1" Color="@textColor">
+                        @_vatStatus.YtdRevenue.ToString("N0") €
+                    </MudText>
+                    <MudText Typo="Typo.caption" Color="Color.Secondary" Class="mb-2">
+                        @string.Format(L["Kpi_VatThreshold_Of"].Value, _vatStatus.Threshold.ToString("N0"), pct.ToString("0.0"))
+                    </MudText>
+                    <MudProgressLinear Color="@barColor" Value="@(Math.Min((double)pct, 100.0))"
+                                       Rounded="true" Size="Size.Small" />
+                }
+            </MudPaper>
         </MudItem>
     }
 </MudGrid>
@@ -306,7 +335,7 @@ else
 {
     var cashBalance  = KpiState.Value.Kpis?.CashBalance.Current ?? 0m;
     var cashLow      = cashBalance < _cashAlertThreshold;
-    var allClear     = _overdueCount == 0 && _billsDueSoonCount == 0 && !cashLow && _marginAlerts.Count == 0;
+    var allClear     = _overdueCount == 0 && _billsDueSoonCount == 0 && !cashLow && _marginAlerts.Count == 0 && _vatAlerts.Count == 0;
 
     <MudGrid>
         @if (allClear)
@@ -397,11 +426,31 @@ else
                                OnDismiss="@(() => DismissMarginAlertAsync(capturedId))" />
                 </MudItem>
             }
+            @foreach (var vatAlert in _vatAlerts)
+            {
+                var capturedVatId = vatAlert.Id;
+                var isExceeded    = vatAlert.Level == VatThresholdLevel.Exceeded;
+                <MudItem xs="12" md="6">
+                    <AlertCard Title="@(isExceeded ? L["Alert_VatExceeded_Title"].Value : L["Alert_VatWarning_Title"].Value)"
+                               Body="@(isExceeded
+                                       ? string.Format(L["Alert_VatExceeded_Body"].Value, vatAlert.Threshold.ToString("N0"))
+                                       : string.Format(L["Alert_VatWarning_Body"].Value, vatAlert.YtdRevenue.ToString("N0"), (_vatStatus?.Pct ?? 0m).ToString("0.0"), vatAlert.Threshold.ToString("N0")))"
+                               Icon="@(isExceeded ? Icons.Material.Filled.GppBad : Icons.Material.Filled.WarningAmber)"
+                               Background="@(isExceeded ? "#FAECE8" : "#FBF2E0")"
+                               IconColor="@(isExceeded ? "#7E2A14" : "#8F6008")"
+                               TextColor="@(isExceeded ? "#7E2A14" : "#8F6008")"
+                               Href="@(isExceeded ? "/settings/company-profile" : null)"
+                               LinkText="@(isExceeded ? L["Alert_VatExceeded_Link"].Value : null)"
+                               OnDismiss="@(() => DismissVatAlertAsync(capturedVatId))" />
+                </MudItem>
+            }
         }
     </MudGrid>
 }
 
 @code {
+    [CascadingParameter] public TenantProfileState? ProfileState { get; set; }
+
     // ── Alert data ───────────────────────────────────────────────────────────
     private int     _overdueCount;
     private decimal _overdueTotal;
@@ -411,7 +460,9 @@ else
     private int     _pendingExpenseCount;
     private int     _deprecFailureCount;
     private decimal _cashAlertThreshold = 5_000m;
-    private List<MarginAlertDto> _marginAlerts = [];
+    private List<MarginAlertDto>       _marginAlerts = [];
+    private VatThresholdStatusDto?     _vatStatus;
+    private List<VatThresholdAlertDto> _vatAlerts    = [];
     private bool    _alertsLoading = true;
     private Timer?  _refreshTimer;
 
@@ -515,19 +566,24 @@ else
     private async Task LoadAlertDataAsync()
     {
         _alertsLoading = true;
+        await VatThresholdService.RunCheckAsync(CurrentUser.TenantId);
         var t1 = InvoiceService.GetOverdueSummaryAsync(CurrentUser.TenantId);
         var t2 = BillService.GetBillsDueSoonSummaryAsync(CurrentUser.TenantId);
         var t3 = BillService.GetPendingApprovalCountAsync(CurrentUser.TenantId);
         var t4 = ExpenseReportService.GetPendingApprovalCountAsync(CurrentUser.TenantId);
         var t5 = FixedAssetService.GetRecentFailureCountAsync(CurrentUser.TenantId);
         var t6 = MarginAlertService.GetActiveAsync(CurrentUser.TenantId);
-        await Task.WhenAll(t1, t2, t3, t4, t5, t6);
+        var t7 = VatThresholdService.GetStatusAsync(CurrentUser.TenantId);
+        var t8 = VatThresholdService.GetActiveAsync(CurrentUser.TenantId);
+        await Task.WhenAll(t1, t2, t3, t4, t5, t6, t7, t8);
         (_overdueCount, _overdueTotal)           = t1.Result;
         (_billsDueSoonCount, _billsDueSoonTotal)  = t2.Result;
         _pendingApprovalCount = t3.Result;
         _pendingExpenseCount  = t4.Result;
         _deprecFailureCount   = t5.Result;
         _marginAlerts         = [.. t6.Result];
+        _vatStatus            = t7.Result;
+        _vatAlerts            = [.. t8.Result];
         _alertsLoading = false;
     }
 
@@ -549,7 +605,21 @@ else
     {
         var month = new DateOnly(DateTime.Today.Year, DateTime.Today.Month, 1);
         await MarginAlertService.RunCheckAsync(CurrentUser.TenantId, month);
-        _marginAlerts = [.. await MarginAlertService.GetActiveAsync(CurrentUser.TenantId)];
+        await VatThresholdService.RunCheckAsync(CurrentUser.TenantId);
+        var t1 = MarginAlertService.GetActiveAsync(CurrentUser.TenantId);
+        var t2 = VatThresholdService.GetStatusAsync(CurrentUser.TenantId);
+        var t3 = VatThresholdService.GetActiveAsync(CurrentUser.TenantId);
+        await Task.WhenAll(t1, t2, t3);
+        _marginAlerts = [.. t1.Result];
+        _vatStatus    = t2.Result;
+        _vatAlerts    = [.. t3.Result];
+        StateHasChanged();
+    }
+
+    private async Task DismissVatAlertAsync(Guid alertId)
+    {
+        await VatThresholdService.DismissAsync(alertId, CurrentUser.UserId);
+        _vatAlerts = _vatAlerts.Where(a => a.Id != alertId).ToList();
         StateHasChanged();
     }
 

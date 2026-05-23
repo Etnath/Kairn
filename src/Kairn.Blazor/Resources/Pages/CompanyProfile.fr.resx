@@ -1,0 +1,31 @@
+<?xml version="1.0" encoding="utf-8"?>
+<root>
+  <resheader name="resmimetype"><value>text/microsoft-resx</value></resheader>
+  <resheader name="version"><value>2.0</value></resheader>
+  <data name="Title" xml:space="preserve"><value>Profil de l'entreprise</value></data>
+  <data name="Back" xml:space="preserve"><value>Retour aux paramètres</value></data>
+  <data name="Section_Identity" xml:space="preserve"><value>Identité légale</value></data>
+  <data name="Section_Status" xml:space="preserve"><value>Statut juridique</value></data>
+  <data name="Section_Thresholds" xml:space="preserve"><value>Seuils de franchise en base de TVA</value></data>
+  <data name="Section_Logo" xml:space="preserve"><value>Logo</value></data>
+  <data name="Field_LegalName" xml:space="preserve"><value>Raison sociale</value></data>
+  <data name="Field_Siret" xml:space="preserve"><value>SIRET (14 chiffres)</value></data>
+  <data name="Field_Address" xml:space="preserve"><value>Adresse</value></data>
+  <data name="Field_PostalCode" xml:space="preserve"><value>Code postal</value></data>
+  <data name="Field_City" xml:space="preserve"><value>Ville</value></data>
+  <data name="Field_Country" xml:space="preserve"><value>Pays</value></data>
+  <data name="Field_BusinessStatus" xml:space="preserve"><value>Statut juridique</value></data>
+  <data name="Status_Standard" xml:space="preserve"><value>Standard (assujetti à la TVA)</value></data>
+  <data name="Status_AutoEntrepreneur" xml:space="preserve"><value>Auto-entrepreneur (franchise en base de TVA)</value></data>
+  <data name="Field_ActivityType" xml:space="preserve"><value>Type d'activité</value></data>
+  <data name="Activity_Services" xml:space="preserve"><value>Prestations de services / Profession libérale</value></data>
+  <data name="Activity_Commercial" xml:space="preserve"><value>Commerce / Hébergement</value></data>
+  <data name="Field_ThresholdServices" xml:space="preserve"><value>Seuil prestations de services (€)</value></data>
+  <data name="Field_ThresholdCommercial" xml:space="preserve"><value>Seuil activité commerciale (€)</value></data>
+  <data name="Threshold_Hint" xml:space="preserve"><value>Pré-rempli avec les valeurs légales 2024. Mettez à jour si l'administration fiscale les modifie.</value></data>
+  <data name="Logo_Hint" xml:space="preserve"><value>PNG ou JPG, max 1 Mo. Imprimé sur les factures et les rapports PDF.</value></data>
+  <data name="Logo_Change" xml:space="preserve"><value>Changer le logo</value></data>
+  <data name="Logo_Remove" xml:space="preserve"><value>Supprimer</value></data>
+  <data name="Save" xml:space="preserve"><value>Enregistrer</value></data>
+  <data name="Saved" xml:space="preserve"><value>Profil enregistré avec succès.</value></data>
+</root>

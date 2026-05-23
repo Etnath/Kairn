@@ -74,18 +74,31 @@
     <MudItem xs="12" md="5">
         <MudPaper Class="pa-4" Elevation="0" Style="background:var(--mud-palette-background-grey)">
             <MudText Typo="Typo.subtitle2" Class="mb-2">@L["Contents_Title"]</MudText>
-            <MudList T="string" Dense="true" DisablePadding="true">
-                <MudListItem Icon="@Icons.Material.Filled.PictureAsPdf" IconColor="Color.Error">@L["Contents_TB"]</MudListItem>
-                <MudListItem Icon="@Icons.Material.Filled.PictureAsPdf" IconColor="Color.Error">@L["Contents_PnL"]</MudListItem>
-                <MudListItem Icon="@Icons.Material.Filled.PictureAsPdf" IconColor="Color.Error">@L["Contents_BS"]</MudListItem>
-                <MudListItem Icon="@Icons.Material.Filled.TableChart" IconColor="Color.Success">@L["Contents_JE"]</MudListItem>
-                <MudListItem Icon="@Icons.Material.Filled.PictureAsPdf" IconColor="Color.Error">@L["Contents_VAT"]</MudListItem>
-            </MudList>
+            @if (ProfileState?.IsAutoEntrepreneur == true)
+            {
+                <MudList T="string" Dense="true" DisablePadding="true">
+                    <MudListItem Icon="@Icons.Material.Filled.TableRows" IconColor="Color.Primary">@L["Contents_LR"]</MudListItem>
+                    <MudListItem Icon="@Icons.Material.Filled.PictureAsPdf" IconColor="Color.Error">@L["Contents_PnL"]</MudListItem>
+                    <MudListItem Icon="@Icons.Material.Filled.TableChart" IconColor="Color.Success">@L["Contents_JE"]</MudListItem>
+                </MudList>
+            }
+            else
+            {
+                <MudList T="string" Dense="true" DisablePadding="true">
+                    <MudListItem Icon="@Icons.Material.Filled.PictureAsPdf" IconColor="Color.Error">@L["Contents_TB"]</MudListItem>
+                    <MudListItem Icon="@Icons.Material.Filled.PictureAsPdf" IconColor="Color.Error">@L["Contents_PnL"]</MudListItem>
+                    <MudListItem Icon="@Icons.Material.Filled.PictureAsPdf" IconColor="Color.Error">@L["Contents_BS"]</MudListItem>
+                    <MudListItem Icon="@Icons.Material.Filled.TableChart" IconColor="Color.Success">@L["Contents_JE"]</MudListItem>
+                    <MudListItem Icon="@Icons.Material.Filled.PictureAsPdf" IconColor="Color.Error">@L["Contents_VAT"]</MudListItem>
+                </MudList>
+            }
         </MudPaper>
     </MudItem>
 </MudGrid>
 
 @code {
+    [CascadingParameter] public TenantProfileState? ProfileState { get; set; }
+
     private DateTime? _from = new DateTime(DateTime.Today.Year, 1, 1);
     private DateTime? _to   = new DateTime(DateTime.Today.Year, 12, 31);
     private string?   _activePreset = "ThisYear";
@@ -122,7 +135,8 @@
             var to   = DateOnly.FromDateTime(_to.Value);
 
             var zipBytes = await ExportService.GenerateZipAsync(
-                CurrentUser.TenantId, from, to, CurrentUser.UserName);
+                CurrentUser.TenantId, from, to, CurrentUser.UserName,
+                isAutoEntrepreneur: ProfileState?.IsAutoEntrepreneur == true);
 
             var year     = from.Year == to.Year ? from.Year.ToString() : $"{from.Year}-{to.Year}";
             var period   = $"{from:yyyy-MM-dd}_to_{to:yyyy-MM-dd}";

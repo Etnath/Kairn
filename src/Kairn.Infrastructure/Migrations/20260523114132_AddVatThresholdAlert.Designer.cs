@@ -3,6 +3,7 @@ using System;
 using Kairn.Infrastructure.Persistence;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore.Infrastructure;
+using Microsoft.EntityFrameworkCore.Migrations;
 using Microsoft.EntityFrameworkCore.Storage.ValueConversion;
 
 #nullable disable
@@ -10,9 +11,11 @@ using Microsoft.EntityFrameworkCore.Storage.ValueConversion;
 namespace Kairn.Infrastructure.Migrations
 {
     [DbContext(typeof(AppDbContext))]
-    partial class AppDbContextModelSnapshot : ModelSnapshot
+    [Migration("20260523114132_AddVatThresholdAlert")]
+    partial class AddVatThresholdAlert
     {
-        protected override void BuildModel(ModelBuilder modelBuilder)
+        /// <inheritdoc />
+        protected override void BuildTargetModel(ModelBuilder modelBuilder)
         {
 #pragma warning disable 612, 618
             modelBuilder.HasAnnotation("ProductVersion", "10.0.5");
@@ -1705,22 +1708,6 @@ namespace Kairn.Infrastructure.Migrations
                     b.HasKey("UserId");
 
                     b.ToTable("UserDashboardPreferences", (string)null);
-                });
-
-            modelBuilder.Entity("Kairn.Domain.Entities.UserNavPreferences", b =>
-                {
-                    b.Property<string>("UserId")
-                        .HasMaxLength(450)
-                        .HasColumnType("TEXT");
-
-                    b.Property<string>("CollapsedGroups")
-                        .IsRequired()
-                        .HasMaxLength(500)
-                        .HasColumnType("TEXT");
-
-                    b.HasKey("UserId");
-
-                    b.ToTable("UserNavPreferences", (string)null);
                 });
 
             modelBuilder.Entity("Kairn.Domain.Entities.VatThresholdAlert", b =>

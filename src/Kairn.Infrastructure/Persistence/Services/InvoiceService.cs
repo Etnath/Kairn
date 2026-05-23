@@ -1,5 +1,6 @@
 using Kairn.Application.Common;
 using Kairn.Application.Features.AR;
+using Kairn.Application.Features.CompanyProfile;
 using Kairn.Application.Features.Tax;
 using Kairn.Domain.Entities;
 using Kairn.Infrastructure.Reports;
@@ -7,7 +8,7 @@ using Microsoft.EntityFrameworkCore;
 
 namespace Kairn.Infrastructure.Persistence.Services;
 
-public class InvoiceService(AppDbContext db, ITaxPeriodChecker taxPeriods) : IInvoiceService
+public class InvoiceService(AppDbContext db, ITaxPeriodChecker taxPeriods, ITenantProfileService profileService) : IInvoiceService
 {
     // Well-known account codes for GL posting
     private const string ArAccountCode = "411000";
@@ -327,7 +328,23 @@ public class InvoiceService(AppDbContext db, ITaxPeriodChecker taxPeriods) : IIn
             .FirstOrDefaultAsync(i => i.Id == id && i.TenantId == tenantId, ct);
 
         if (invoice is null) return null;
-        return InvoicePdfGenerator.Generate(ToDto(invoice));
+
+        var profile = await profileService.GetAsync(tenantId, ct);
+        var pdfOptions = new InvoicePdfOptions(
+            IsAutoEntrepreneur: profile.BusinessStatus == Domain.Entities.BusinessStatus.AutoEntrepreneur,
+            CompanyName: string.IsNullOrWhiteSpace(profile.LegalName) ? "Kairn" : profile.LegalName,
+            Siret: profile.Siret,
+            CompanyAddress: BuildAddress(profile));
+
+        return InvoicePdfGenerator.Generate(ToDto(invoice), pdfOptions);
+    }
+
+    private static string? BuildAddress(TenantProfileDto p)
+    {
+        var parts = new[] { p.AddressLine, p.PostalCode, p.City, p.Country }
+            .Where(s => !string.IsNullOrWhiteSpace(s));
+        var addr = string.Join(", ", parts);
+        return string.IsNullOrEmpty(addr) ? null : addr;
     }
 
     public async Task<string> GenerateReferenceAsync(Guid tenantId, DateOnly date, CancellationToken ct = default)

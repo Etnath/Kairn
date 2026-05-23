@@ -11,6 +11,8 @@ using Kairn.Application.Features.Budgets;
 using Kairn.Application.Features.Dashboard;
 using Kairn.Application.Features.MarginAnalysis;
 using Kairn.Application.Features.Tax;
+using Kairn.Application.Features.CompanyProfile;
+using Kairn.Application.Features.Nav;
 using Kairn.Application.Features.GL;
 using Kairn.Infrastructure.Email;
 using Kairn.Infrastructure.Jobs;
@@ -57,6 +59,7 @@ try
     // ── Database ─────────────────────────────────────────────────────────────
     builder.Services.AddScoped<AuditLogInterceptor>();
     builder.Services.AddScoped<ICurrentUserContext, CurrentUserContext>();
+    builder.Services.AddScoped<TenantProfileState>();
     builder.Services.AddHttpContextAccessor();
 
     if (builder.Environment.IsDevelopment())
@@ -129,6 +132,9 @@ try
     builder.Services.AddScoped<IBillService, BillService>();
     builder.Services.AddScoped<IBillPaymentService, BillPaymentService>();
     builder.Services.AddScoped<IApSettingsService, ApSettingsService>();
+    builder.Services.AddScoped<ITenantProfileService, TenantProfileService>();
+    builder.Services.AddScoped<IVatThresholdService, VatThresholdService>();
+    builder.Services.AddScoped<IUserNavPreferencesService, UserNavPreferencesService>();
     builder.Services.AddScoped<IExpenseReportService, ExpenseReportService>();
     builder.Services.AddScoped<IApAgingService, ApAgingService>();
     builder.Services.AddSingleton<IApAgingExporter, ApAgingExporter>();

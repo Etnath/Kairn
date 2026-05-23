@@ -42,6 +42,9 @@ public class AppDbContext : IdentityDbContext<ApplicationUser>
     public DbSet<MarginAlert>                MarginAlerts               => Set<MarginAlert>();
     public DbSet<TaxRate>                    TaxRates                   => Set<TaxRate>();
     public DbSet<TaxPeriod>                  TaxPeriods                 => Set<TaxPeriod>();
+    public DbSet<TenantProfile>              TenantProfiles             => Set<TenantProfile>();
+    public DbSet<VatThresholdAlert>          VatThresholdAlerts         => Set<VatThresholdAlert>();
+    public DbSet<UserNavPreferences>         UserNavPreferences          => Set<UserNavPreferences>();
     public DbSet<ExpenseReport> ExpenseReports => Set<ExpenseReport>();
     public DbSet<ExpenseReportLine> ExpenseReportLines => Set<ExpenseReportLine>();
     public DbSet<Budget> Budgets => Set<Budget>();

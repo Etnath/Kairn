@@ -20,4 +20,5 @@
   <data name="Contents_BS" xml:space="preserve"><value>Balance Sheet (PDF + CSV)</value></data>
   <data name="Contents_JE" xml:space="preserve"><value>Journal Entries (Excel)</value></data>
   <data name="Contents_VAT" xml:space="preserve"><value>VAT Summary (PDF + CSV)</value></data>
+  <data name="Contents_LR" xml:space="preserve"><value>Livre des recettes (CSV)</value></data>
 </root>

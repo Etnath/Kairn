@@ -3,6 +3,7 @@ using System;
 using Kairn.Infrastructure.Persistence;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore.Infrastructure;
+using Microsoft.EntityFrameworkCore.Migrations;
 using Microsoft.EntityFrameworkCore.Storage.ValueConversion;
 
 #nullable disable
@@ -10,9 +11,11 @@ using Microsoft.EntityFrameworkCore.Storage.ValueConversion;
 namespace Kairn.Infrastructure.Migrations
 {
     [DbContext(typeof(AppDbContext))]
-    partial class AppDbContextModelSnapshot : ModelSnapshot
+    [Migration("20260523100040_AddTenantProfile")]
+    partial class AddTenantProfile
     {
-        protected override void BuildModel(ModelBuilder modelBuilder)
+        /// <inheritdoc />
+        protected override void BuildTargetModel(ModelBuilder modelBuilder)
         {
 #pragma warning disable 612, 618
             modelBuilder.HasAnnotation("ProductVersion", "10.0.5");
@@ -1705,72 +1708,6 @@ namespace Kairn.Infrastructure.Migrations
                     b.HasKey("UserId");
 
                     b.ToTable("UserDashboardPreferences", (string)null);
-                });
-
-            modelBuilder.Entity("Kairn.Domain.Entities.UserNavPreferences", b =>
-                {
-                    b.Property<string>("UserId")
-                        .HasMaxLength(450)
-                        .HasColumnType("TEXT");
-
-                    b.Property<string>("CollapsedGroups")
-                        .IsRequired()
-                        .HasMaxLength(500)
-                        .HasColumnType("TEXT");
-
-                    b.HasKey("UserId");
-
-                    b.ToTable("UserNavPreferences", (string)null);
-                });
-
-            modelBuilder.Entity("Kairn.Domain.Entities.VatThresholdAlert", b =>
-                {
-                    b.Property<Guid>("Id")
-                        .ValueGeneratedOnAdd()
-                        .HasColumnType("TEXT");
-
-                    b.Property<DateTimeOffset>("CreatedAt")
-                        .HasColumnType("TEXT");
-
-                    b.Property<DateTimeOffset?>("DismissedAt")
-                        .HasColumnType("TEXT");
-
-                    b.Property<string>("DismissedByUserId")
-                        .HasColumnType("TEXT");
-
-                    b.Property<bool>("IsDismissed")
-                        .HasColumnType("INTEGER");
-
-                    b.Property<string>("Level")
-                        .IsRequired()
-                        .HasColumnType("TEXT");
-
-                    b.Property<uint>("RowVersion")
-                        .HasColumnType("INTEGER");
-
-                    b.Property<Guid>("TenantId")
-                        .HasColumnType("TEXT");
-
-                    b.Property<decimal>("Threshold")
-                        .HasPrecision(18, 4)
-                        .HasColumnType("TEXT");
-
-                    b.Property<DateTimeOffset>("UpdatedAt")
-                        .HasColumnType("TEXT");
-
-                    b.Property<int>("Year")
-                        .HasColumnType("INTEGER");
-
-                    b.Property<decimal>("YtdRevenue")
-                        .HasPrecision(18, 4)
-                        .HasColumnType("TEXT");
-
-                    b.HasKey("Id");
-
-                    b.HasIndex("TenantId", "Year", "Level")
-                        .IsUnique();
-
-                    b.ToTable("VatThresholdAlerts");
                 });
 
             modelBuilder.Entity("Kairn.Domain.Entities.Vendor", b =>

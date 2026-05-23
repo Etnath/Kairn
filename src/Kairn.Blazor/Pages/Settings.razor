@@ -3,9 +3,47 @@
 @inject IStringLocalizer<Settings> L
 
 <PageTitle>@L["Title"] – Kairn</PageTitle>
-<MudText Typo="Typo.h5" Class="mb-6">@L["Title"]</MudText>
+<MudText Typo="Typo.h5" Class="mb-4">@L["Title"]</MudText>
+
+<AuthorizeView Roles="Admin">
+    @if (ProfileState is not null)
+    {
+        var isAe = ProfileState.IsAutoEntrepreneur;
+        <MudAlert Severity="@(isAe ? Severity.Info : Severity.Normal)"
+                  Class="mb-4" Dense="true" Icon="@Icons.Material.Filled.Business"
+                  ContentAlignment="HorizontalAlignment.Left">
+            <MudStack Row="true" AlignItems="AlignItems.Center" Spacing="2" Wrap="Wrap.Wrap">
+                <MudText Typo="Typo.body2">
+                    <b>@L["Banner_Status"]</b>
+                    @(isAe ? L["Banner_AutoEntrepreneur"].Value : L["Banner_Standard"].Value)
+                </MudText>
+                <MudLink Href="/settings/company-profile" Typo="Typo.body2">
+                    @L["Banner_Change"] →
+                </MudLink>
+            </MudStack>
+        </MudAlert>
+    }
+</AuthorizeView>
 
 <MudGrid>
+    <AuthorizeView Roles="Admin">
+        <MudItem xs="12" sm="6" md="4">
+            <MudCard>
+                <MudCardContent>
+                    <MudStack Row="true" AlignItems="AlignItems.Center" Spacing="2" Class="mb-2">
+                        <MudIcon Icon="@Icons.Material.Filled.Business" Color="Color.Primary" />
+                        <MudText Typo="Typo.h6">@L["CompanyProfile.Title"]</MudText>
+                    </MudStack>
+                    <MudText Typo="Typo.body2" Color="Color.Secondary">@L["CompanyProfile.Description"]</MudText>
+                </MudCardContent>
+                <MudCardActions>
+                    <MudButton Href="/settings/company-profile" Variant="Variant.Text" Color="Color.Primary">
+                        @L["Open"]
+                    </MudButton>
+                </MudCardActions>
+            </MudCard>
+        </MudItem>
+    </AuthorizeView>
     <MudItem xs="12" sm="6" md="4">
         <MudCard>
             <MudCardContent>
@@ -94,22 +132,29 @@
             </MudCard>
         </MudItem>
     </AuthorizeView>
-    <AuthorizeView Roles="Admin">
-        <MudItem xs="12" sm="6" md="4">
-            <MudCard>
-                <MudCardContent>
-                    <MudStack Row="true" AlignItems="AlignItems.Center" Spacing="2" Class="mb-2">
-                        <MudIcon Icon="@Icons.Material.Filled.Percent" Color="Color.Primary" />
-                        <MudText Typo="Typo.h6">@L["TaxRates.Title"]</MudText>
-                    </MudStack>
-                    <MudText Typo="Typo.body2" Color="Color.Secondary">@L["TaxRates.Description"]</MudText>
-                </MudCardContent>
-                <MudCardActions>
-                    <MudButton Href="/settings/tax-rates" Variant="Variant.Text" Color="Color.Primary">
-                        @L["Open"]
-                    </MudButton>
-                </MudCardActions>
-            </MudCard>
-        </MudItem>
-    </AuthorizeView>
+    @if (ProfileState?.IsAutoEntrepreneur != true)
+    {
+        <AuthorizeView Roles="Admin">
+            <MudItem xs="12" sm="6" md="4">
+                <MudCard>
+                    <MudCardContent>
+                        <MudStack Row="true" AlignItems="AlignItems.Center" Spacing="2" Class="mb-2">
+                            <MudIcon Icon="@Icons.Material.Filled.Percent" Color="Color.Primary" />
+                            <MudText Typo="Typo.h6">@L["TaxRates.Title"]</MudText>
+                        </MudStack>
+                        <MudText Typo="Typo.body2" Color="Color.Secondary">@L["TaxRates.Description"]</MudText>
+                    </MudCardContent>
+                    <MudCardActions>
+                        <MudButton Href="/settings/tax-rates" Variant="Variant.Text" Color="Color.Primary">
+                            @L["Open"]
+                        </MudButton>
+                    </MudCardActions>
+                </MudCard>
+            </MudItem>
+        </AuthorizeView>
+    }
 </MudGrid>
+
+@code {
+    [CascadingParameter] public TenantProfileState? ProfileState { get; set; }
+}

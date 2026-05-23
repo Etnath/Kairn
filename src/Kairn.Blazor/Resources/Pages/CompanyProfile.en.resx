@@ -1,0 +1,31 @@
+<?xml version="1.0" encoding="utf-8"?>
+<root>
+  <resheader name="resmimetype"><value>text/microsoft-resx</value></resheader>
+  <resheader name="version"><value>2.0</value></resheader>
+  <data name="Title" xml:space="preserve"><value>Company Profile</value></data>
+  <data name="Back" xml:space="preserve"><value>Back to Settings</value></data>
+  <data name="Section_Identity" xml:space="preserve"><value>Legal Identity</value></data>
+  <data name="Section_Status" xml:space="preserve"><value>Business Status</value></data>
+  <data name="Section_Thresholds" xml:space="preserve"><value>VAT Franchise Thresholds</value></data>
+  <data name="Section_Logo" xml:space="preserve"><value>Logo</value></data>
+  <data name="Field_LegalName" xml:space="preserve"><value>Legal Name</value></data>
+  <data name="Field_Siret" xml:space="preserve"><value>SIRET (14 digits)</value></data>
+  <data name="Field_Address" xml:space="preserve"><value>Street Address</value></data>
+  <data name="Field_PostalCode" xml:space="preserve"><value>Postal Code</value></data>
+  <data name="Field_City" xml:space="preserve"><value>City</value></data>
+  <data name="Field_Country" xml:space="preserve"><value>Country</value></data>
+  <data name="Field_BusinessStatus" xml:space="preserve"><value>Business Status</value></data>
+  <data name="Status_Standard" xml:space="preserve"><value>Standard (VAT registered)</value></data>
+  <data name="Status_AutoEntrepreneur" xml:space="preserve"><value>Auto-entrepreneur (franchise en base de TVA)</value></data>
+  <data name="Field_ActivityType" xml:space="preserve"><value>Activity Type</value></data>
+  <data name="Activity_Services" xml:space="preserve"><value>Services / Liberal profession</value></data>
+  <data name="Activity_Commercial" xml:space="preserve"><value>Commercial / Accommodation</value></data>
+  <data name="Field_ThresholdServices" xml:space="preserve"><value>Services threshold (€)</value></data>
+  <data name="Field_ThresholdCommercial" xml:space="preserve"><value>Commercial threshold (€)</value></data>
+  <data name="Threshold_Hint" xml:space="preserve"><value>Pre-filled with 2024 statutory values. Update when the government revises them.</value></data>
+  <data name="Logo_Hint" xml:space="preserve"><value>PNG or JPG, max 1 MB. Printed on invoices and PDF reports.</value></data>
+  <data name="Logo_Change" xml:space="preserve"><value>Change Logo</value></data>
+  <data name="Logo_Remove" xml:space="preserve"><value>Remove</value></data>
+  <data name="Save" xml:space="preserve"><value>Save</value></data>
+  <data name="Saved" xml:space="preserve"><value>Company profile saved successfully.</value></data>
+</root>

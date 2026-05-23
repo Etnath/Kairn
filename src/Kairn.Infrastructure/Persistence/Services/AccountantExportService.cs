@@ -3,6 +3,7 @@ using System.Text;
 using ClosedXML.Excel;
 using Kairn.Application.Features.Reports;
 using Kairn.Application.Features.Tax;
+using Kairn.Domain.Entities;
 using Microsoft.EntityFrameworkCore;
 
 namespace Kairn.Infrastructure.Persistence.Services;
@@ -20,26 +21,11 @@ public class AccountantExportService(
 {
     public async Task<byte[]> GenerateZipAsync(
         Guid tenantId, DateOnly from, DateOnly to, string generatedBy,
+        bool isAutoEntrepreneur = false,
         CancellationToken ct = default)
     {
         var period = $"{from:yyyy-MM-dd}_to_{to:yyyy-MM-dd}";
         var meta   = new PnlExportMeta(generatedBy, DateTimeOffset.UtcNow);
-        var bsMeta = new BsExportMeta(generatedBy, DateTimeOffset.UtcNow);
-
-        // Run report generation in parallel where possible
-        var tbTask  = trialBalanceService.GenerateAsync(tenantId, to, ct);
-        var pnlTask = pnlService.GenerateAsync(new PnlQuery(tenantId, from, to, HideZero: false), ct);
-        var bsTask  = bsService.GenerateAsync(new BsQuery(tenantId, to), ct);
-        var vatTask = vatReturnService.GenerateAsync(tenantId, from, to, ct);
-
-        await Task.WhenAll(tbTask, pnlTask, bsTask, vatTask);
-
-        var tb  = await tbTask;
-        var pnl = await pnlTask;
-        var bs  = await bsTask;
-        var vat = await vatTask;
-
-        var jeBytes = await BuildJournalEntriesXlsxAsync(tenantId, from, to, ct);
 
         using var ms      = new MemoryStream();
         using var archive = new ZipArchive(ms, ZipArchiveMode.Create, leaveOpen: true);
@@ -59,19 +45,75 @@ public class AccountantExportService(
             w.Write(text);
         }
 
-        AddBytes($"TrialBalance_{period}.pdf",  trialBalanceExporter.ToPdf(tb));
-        AddText ($"TrialBalance_{period}.csv",   trialBalanceExporter.ToCsv(tb));
-        AddBytes($"ProfitLoss_{period}.pdf",     pnlExporter.ToPdf(pnl, meta));
-        AddText ($"ProfitLoss_{period}.csv",     pnlExporter.ToCsv(pnl, meta));
-        AddBytes($"BalanceSheet_{period}.pdf",   bsExporter.ToPdf(bs, bsMeta));
-        AddText ($"BalanceSheet_{period}.csv",   bsExporter.ToCsv(bs, bsMeta));
-        AddBytes($"JournalEntries_{period}.xlsx", jeBytes);
-        AddBytes($"VATSummary_{period}.pdf",     vatReturnExporter.ToPdf(vat));
-        AddText ($"VATSummary_{period}.csv",     vatReturnExporter.ToCsv(vat));
+        if (isAutoEntrepreneur)
+        {
+            var pnlTask = pnlService.GenerateAsync(new PnlQuery(tenantId, from, to, HideZero: false), ct);
+            var jeTask  = BuildJournalEntriesXlsxAsync(tenantId, from, to, ct);
+            var lrTask  = BuildLivreDesRecettesCsvAsync(tenantId, from, to, ct);
+            await Task.WhenAll(pnlTask, jeTask, lrTask);
+
+            var pnl = pnlTask.Result;
+            AddText ($"LivreDesRecettes_{period}.csv",   lrTask.Result);
+            AddBytes($"ProfitLoss_{period}.pdf",          pnlExporter.ToPdf(pnl, meta));
+            AddText ($"ProfitLoss_{period}.csv",          pnlExporter.ToCsv(pnl, meta));
+            AddBytes($"JournalEntries_{period}.xlsx",     jeTask.Result);
+        }
+        else
+        {
+            var bsMeta  = new BsExportMeta(generatedBy, DateTimeOffset.UtcNow);
+            var tbTask  = trialBalanceService.GenerateAsync(tenantId, to, ct);
+            var pnlTask = pnlService.GenerateAsync(new PnlQuery(tenantId, from, to, HideZero: false), ct);
+            var bsTask  = bsService.GenerateAsync(new BsQuery(tenantId, to), ct);
+            var vatTask = vatReturnService.GenerateAsync(tenantId, from, to, ct);
+            await Task.WhenAll(tbTask, pnlTask, bsTask, vatTask);
+
+            var jeBytes = await BuildJournalEntriesXlsxAsync(tenantId, from, to, ct);
+
+            AddBytes($"TrialBalance_{period}.pdf",    trialBalanceExporter.ToPdf(tbTask.Result));
+            AddText ($"TrialBalance_{period}.csv",    trialBalanceExporter.ToCsv(tbTask.Result));
+            AddBytes($"ProfitLoss_{period}.pdf",      pnlExporter.ToPdf(pnlTask.Result, meta));
+            AddText ($"ProfitLoss_{period}.csv",      pnlExporter.ToCsv(pnlTask.Result, meta));
+            AddBytes($"BalanceSheet_{period}.pdf",    bsExporter.ToPdf(bsTask.Result, bsMeta));
+            AddText ($"BalanceSheet_{period}.csv",    bsExporter.ToCsv(bsTask.Result, bsMeta));
+            AddBytes($"JournalEntries_{period}.xlsx", jeBytes);
+            AddBytes($"VATSummary_{period}.pdf",      vatReturnExporter.ToPdf(vatTask.Result));
+            AddText ($"VATSummary_{period}.csv",      vatReturnExporter.ToCsv(vatTask.Result));
+        }
 
         archive.Dispose();
         return ms.ToArray();
     }
+
+    private async Task<string> BuildLivreDesRecettesCsvAsync(
+        Guid tenantId, DateOnly from, DateOnly to, CancellationToken ct)
+    {
+        var invoices = await db.Invoices
+            .Include(i => i.Customer)
+            .Include(i => i.Lines)
+            .Where(i => i.TenantId == tenantId
+                     && !i.IsCreditNote
+                     && i.Date >= from
+                     && i.Date <= to
+                     && i.Status != InvoiceStatus.Draft
+                     && i.Status != InvoiceStatus.Void)
+            .OrderBy(i => i.Date)
+            .ThenBy(i => i.Reference)
+            .ToListAsync(ct);
+
+        var sb = new StringBuilder();
+        sb.AppendLine("Date,Numéro,Client,Montant HT");
+        foreach (var inv in invoices)
+        {
+            var net = inv.Lines.Sum(l => l.NetAmount);
+            sb.AppendLine($"{inv.Date:dd/MM/yyyy},{CsvEscape(inv.Reference)},{CsvEscape(inv.Customer.Name)},{net:N2}");
+        }
+        return sb.ToString();
+    }
+
+    private static string CsvEscape(string s) =>
+        s.Contains(',') || s.Contains('"') || s.Contains('\n')
+            ? $"\"{s.Replace("\"", "\"\"")}\""
+            : s;
 
     private async Task<byte[]> BuildJournalEntriesXlsxAsync(
         Guid tenantId, DateOnly from, DateOnly to, CancellationToken ct)

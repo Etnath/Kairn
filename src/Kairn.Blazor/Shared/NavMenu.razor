@@ -1,53 +1,147 @@
 @inject IStringLocalizer<NavMenu> L
+@inject IUserNavPreferencesService NavPrefs
+@inject ICurrentUserContext CurrentUser
+@inject NavigationManager Navigation
+@implements IDisposable
 
 <MudNavMenu>
-    <MudNavLink Href="/" Match="NavLinkMatch.All" Icon="@Icons.Material.Filled.Dashboard">
-        @L["Nav.Dashboard"]
-    </MudNavLink>
-    <MudNavLink Href="/ledger" Icon="@Icons.Material.Filled.MenuBook">
-        @L["Nav.GeneralLedger"]
-    </MudNavLink>
-    <MudNavLink Href="/customers" Icon="@Icons.Material.Filled.People">
-        @L["Nav.Customers"]
-    </MudNavLink>
-    <MudNavLink Href="/invoicing" Icon="@Icons.Material.Filled.Receipt">
-        @L["Nav.Invoicing"]
-    </MudNavLink>
-    <MudNavLink Href="/ar-aging" Icon="@Icons.Material.Filled.StackedBarChart">
-        @L["Nav.ArAging"]
-    </MudNavLink>
-    <MudNavLink Href="/vendors" Icon="@Icons.Material.Filled.Store">
-        @L["Nav.Vendors"]
-    </MudNavLink>
-    <MudNavLink Href="/bills" Icon="@Icons.Material.Filled.RequestPage">
-        @L["Nav.Bills"]
-    </MudNavLink>
-    <MudNavLink Href="/ap-payment-schedule" Icon="@Icons.Material.Filled.EventAvailable">
-        @L["Nav.ApPaymentSchedule"]
-    </MudNavLink>
-    <MudNavLink Href="/ap-aging" Icon="@Icons.Material.Filled.StackedBarChart">
-        @L["Nav.ApAging"]
-    </MudNavLink>
-    <MudNavLink Href="/expense-reports" Icon="@Icons.Material.Filled.ReceiptLong">
-        @L["Nav.ExpenseReports"]
-    </MudNavLink>
-    <MudNavLink Href="/reports" Icon="@Icons.Material.Filled.BarChart">
-        @L["Nav.Reports"]
-    </MudNavLink>
-    <MudNavLink Href="/margin" Icon="@Icons.Material.Filled.TrendingUp">
-        @L["Nav.MarginAnalysis"]
-    </MudNavLink>
-    <MudNavLink Href="/tax" Icon="@Icons.Material.Filled.AccountBalance">
-        @L["Nav.Tax"]
-    </MudNavLink>
-    <MudNavLink Href="/budgets" Icon="@Icons.Material.Filled.Savings">
-        @L["Nav.Budgets"]
-    </MudNavLink>
-    <MudNavLink Href="/fixed-assets" Icon="@Icons.Material.Filled.Inventory">
-        @L["Nav.FixedAssets"]
-    </MudNavLink>
+    <MudNavGroup Title="@L["Group.Overview"]" Icon="@Icons.Material.Filled.Home"
+                 Expanded="@IsExpanded("Overview")"
+                 ExpandedChanged="@(v => ToggleGroup("Overview", v))">
+        <MudNavLink Href="/" Match="NavLinkMatch.All" Icon="@Icons.Material.Filled.Dashboard">
+            @L["Nav.Dashboard"]
+        </MudNavLink>
+    </MudNavGroup>
+
+    <MudNavGroup Title="@L["Group.Sales"]" Icon="@Icons.Material.Filled.PointOfSale"
+                 Expanded="@IsExpanded("Sales")"
+                 ExpandedChanged="@(v => ToggleGroup("Sales", v))">
+        <MudNavLink Href="/customers" Icon="@Icons.Material.Filled.People">
+            @L["Nav.Customers"]
+        </MudNavLink>
+        <MudNavLink Href="/invoicing" Icon="@Icons.Material.Filled.Receipt">
+            @L["Nav.Invoicing"]
+        </MudNavLink>
+        <MudNavLink Href="/ar-aging" Icon="@Icons.Material.Filled.StackedBarChart">
+            @L["Nav.ArAging"]
+        </MudNavLink>
+    </MudNavGroup>
+
+    <MudNavGroup Title="@L["Group.Purchases"]" Icon="@Icons.Material.Filled.ShoppingCart"
+                 Expanded="@IsExpanded("Purchases")"
+                 ExpandedChanged="@(v => ToggleGroup("Purchases", v))">
+        <MudNavLink Href="/vendors" Icon="@Icons.Material.Filled.Store">
+            @L["Nav.Vendors"]
+        </MudNavLink>
+        <MudNavLink Href="/bills" Icon="@Icons.Material.Filled.RequestPage">
+            @L["Nav.Bills"]
+        </MudNavLink>
+        <MudNavLink Href="/ap-payment-schedule" Icon="@Icons.Material.Filled.EventAvailable">
+            @L["Nav.ApPaymentSchedule"]
+        </MudNavLink>
+        <MudNavLink Href="/ap-aging" Icon="@Icons.Material.Filled.StackedBarChart">
+            @L["Nav.ApAging"]
+        </MudNavLink>
+        @if (ProfileState?.IsAutoEntrepreneur != true)
+        {
+            <MudNavLink Href="/expense-reports" Icon="@Icons.Material.Filled.ReceiptLong">
+                @L["Nav.ExpenseReports"]
+            </MudNavLink>
+        }
+    </MudNavGroup>
+
+    <MudNavGroup Title="@L["Group.Accounting"]" Icon="@Icons.Material.Filled.MenuBook"
+                 Expanded="@IsExpanded("Accounting")"
+                 ExpandedChanged="@(v => ToggleGroup("Accounting", v))">
+        <MudNavLink Href="/ledger" Icon="@Icons.Material.Filled.MenuBook">
+            @L["Nav.GeneralLedger"]
+        </MudNavLink>
+        <MudNavLink Href="/reports" Icon="@Icons.Material.Filled.BarChart">
+            @L["Nav.Reports"]
+        </MudNavLink>
+        <MudNavLink Href="/budgets" Icon="@Icons.Material.Filled.Savings">
+            @L["Nav.Budgets"]
+        </MudNavLink>
+        @if (ProfileState?.IsAutoEntrepreneur != true)
+        {
+            <MudNavLink Href="/fixed-assets" Icon="@Icons.Material.Filled.Inventory">
+                @L["Nav.FixedAssets"]
+            </MudNavLink>
+        }
+    </MudNavGroup>
+
+    <MudNavGroup Title="@L["Group.Tax"]" Icon="@Icons.Material.Filled.AccountBalance"
+                 Expanded="@IsExpanded("Tax")"
+                 ExpandedChanged="@(v => ToggleGroup("Tax", v))">
+        @if (ProfileState?.IsAutoEntrepreneur != true)
+        {
+            <MudNavLink Href="/tax" Icon="@Icons.Material.Filled.AccountBalance">
+                @L["Nav.Tax"]
+            </MudNavLink>
+        }
+        <MudNavLink Href="/margin" Icon="@Icons.Material.Filled.TrendingUp">
+            @L["Nav.MarginAnalysis"]
+        </MudNavLink>
+    </MudNavGroup>
+
     <MudDivider Class="my-2" />
     <MudNavLink Href="/settings" Icon="@Icons.Material.Filled.Settings">
         @L["Nav.Settings"]
     </MudNavLink>
 </MudNavMenu>
+
+@code {
+    [CascadingParameter] public TenantProfileState? ProfileState { get; set; }
+
+    private HashSet<string> _collapsed = [];
+
+    private static readonly Dictionary<string, string[]> GroupRoutes = new()
+    {
+        ["Overview"]   = ["/"],
+        ["Sales"]      = ["/customers", "/invoicing", "/ar-aging"],
+        ["Purchases"]  = ["/vendors", "/bills", "/ap-payment-schedule", "/ap-aging", "/expense-reports"],
+        ["Accounting"] = ["/ledger", "/reports", "/budgets", "/fixed-assets"],
+        ["Tax"]        = ["/tax", "/margin"],
+    };
+
+    protected override async Task OnInitializedAsync()
+    {
+        _collapsed = await NavPrefs.GetCollapsedAsync(CurrentUser.UserId);
+        ExpandForUrl(Navigation.Uri);
+        Navigation.LocationChanged += HandleLocationChanged;
+    }
+
+    private bool IsExpanded(string group) => !_collapsed.Contains(group);
+
+    private void ToggleGroup(string group, bool expanded)
+    {
+        if (expanded) _collapsed.Remove(group);
+        else _collapsed.Add(group);
+        _ = NavPrefs.SaveCollapsedAsync(CurrentUser.UserId, _collapsed);
+    }
+
+    private void HandleLocationChanged(object? sender, LocationChangedEventArgs e)
+    {
+        ExpandForUrl(e.Location);
+        InvokeAsync(StateHasChanged);
+    }
+
+    private void ExpandForUrl(string url)
+    {
+        var rel  = Navigation.ToBaseRelativePath(url).Split('?')[0].TrimEnd('/');
+        var path = rel.Length == 0 ? "/" : "/" + rel;
+        foreach (var (group, routes) in GroupRoutes)
+        {
+            if (routes.Any(r => MatchRoute(path, r)))
+                _collapsed.Remove(group);
+        }
+    }
+
+    private static bool MatchRoute(string path, string route) =>
+        route == "/"
+            ? path == "/"
+            : path.Equals(route, StringComparison.OrdinalIgnoreCase)
+              || path.StartsWith(route + "/", StringComparison.OrdinalIgnoreCase);
+
+    public void Dispose() => Navigation.LocationChanged -= HandleLocationChanged;
+}

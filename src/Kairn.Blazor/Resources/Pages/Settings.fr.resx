@@ -17,4 +17,10 @@
   <data name="ProductLines.Description" xml:space="preserve"><value>Définir les catégories produits/services pour l'analyse des marges</value></data>
   <data name="TaxRates.Title" xml:space="preserve"><value>Taux de TVA</value></data>
   <data name="TaxRates.Description" xml:space="preserve"><value>Configurer les taux de TVA par catégorie avec dates d'effet</value></data>
+  <data name="CompanyProfile.Title" xml:space="preserve"><value>Profil de l'entreprise</value></data>
+  <data name="CompanyProfile.Description" xml:space="preserve"><value>Identité légale, statut juridique et seuils de franchise TVA</value></data>
+  <data name="Banner_Status" xml:space="preserve"><value>Statut de l'entreprise : </value></data>
+  <data name="Banner_Standard" xml:space="preserve"><value>Standard (assujetti à la TVA)</value></data>
+  <data name="Banner_AutoEntrepreneur" xml:space="preserve"><value>Auto-entrepreneur (franchise en base de TVA)</value></data>
+  <data name="Banner_Change" xml:space="preserve"><value>Modifier</value></data>
 </root>

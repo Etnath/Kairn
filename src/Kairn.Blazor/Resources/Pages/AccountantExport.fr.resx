@@ -20,4 +20,5 @@
   <data name="Contents_BS" xml:space="preserve"><value>Bilan (PDF + CSV)</value></data>
   <data name="Contents_JE" xml:space="preserve"><value>Écritures comptables (Excel)</value></data>
   <data name="Contents_VAT" xml:space="preserve"><value>Récapitulatif TVA (PDF + CSV)</value></data>
+  <data name="Contents_LR" xml:space="preserve"><value>Livre des recettes (CSV)</value></data>
 </root>
