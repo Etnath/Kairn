@@ -3,6 +3,7 @@ using System;
 using Kairn.Infrastructure.Persistence;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore.Infrastructure;
+using Microsoft.EntityFrameworkCore.Migrations;
 using Microsoft.EntityFrameworkCore.Storage.ValueConversion;
 
 #nullable disable
@@ -10,9 +11,11 @@ using Microsoft.EntityFrameworkCore.Storage.ValueConversion;
 namespace Kairn.Infrastructure.Migrations
 {
     [DbContext(typeof(AppDbContext))]
-    partial class AppDbContextModelSnapshot : ModelSnapshot
+    [Migration("20260522063011_AddMarginAlerts")]
+    partial class AddMarginAlerts
     {
-        protected override void BuildModel(ModelBuilder modelBuilder)
+        /// <inheritdoc />
+        protected override void BuildTargetModel(ModelBuilder modelBuilder)
         {
 #pragma warning disable 612, 618
             modelBuilder.HasAnnotation("ProductVersion", "10.0.5");
@@ -290,9 +293,6 @@ namespace Kairn.Infrastructure.Migrations
 
                     b.Property<decimal>("TaxRate")
                         .HasPrecision(18, 4)
-                        .HasColumnType("TEXT");
-
-                    b.Property<Guid?>("TaxRateId")
                         .HasColumnType("TEXT");
 
                     b.Property<decimal>("UnitPrice")
@@ -909,9 +909,6 @@ namespace Kairn.Infrastructure.Migrations
                         .HasPrecision(18, 4)
                         .HasColumnType("TEXT");
 
-                    b.Property<Guid?>("TaxRateId")
-                        .HasColumnType("TEXT");
-
                     b.Property<decimal>("UnitPrice")
                         .HasPrecision(18, 4)
                         .HasColumnType("TEXT");
@@ -1474,59 +1471,6 @@ namespace Kairn.Infrastructure.Migrations
                     b.HasIndex("TenantId", "AttemptedAt");
 
                     b.ToTable("RecurringJobLogs");
-                });
-
-            modelBuilder.Entity("Kairn.Domain.Entities.TaxRate", b =>
-                {
-                    b.Property<Guid>("Id")
-                        .ValueGeneratedOnAdd()
-                        .HasColumnType("TEXT");
-
-                    b.Property<string>("Category")
-                        .IsRequired()
-                        .HasMaxLength(20)
-                        .HasColumnType("TEXT");
-
-                    b.Property<DateTimeOffset>("CreatedAt")
-                        .HasColumnType("TEXT");
-
-                    b.Property<bool>("IsActive")
-                        .HasColumnType("INTEGER");
-
-                    b.Property<bool>("IsDefault")
-                        .HasColumnType("INTEGER");
-
-                    b.Property<string>("Name")
-                        .IsRequired()
-                        .HasMaxLength(100)
-                        .HasColumnType("TEXT");
-
-                    b.Property<decimal>("Rate")
-                        .HasPrecision(7, 4)
-                        .HasColumnType("TEXT");
-
-                    b.Property<uint>("RowVersion")
-                        .HasColumnType("INTEGER");
-
-                    b.Property<Guid>("TenantId")
-                        .HasColumnType("TEXT");
-
-                    b.Property<DateTimeOffset>("UpdatedAt")
-                        .HasColumnType("TEXT");
-
-                    b.Property<DateOnly>("ValidFrom")
-                        .HasColumnType("TEXT");
-
-                    b.Property<DateOnly?>("ValidTo")
-                        .HasColumnType("TEXT");
-
-                    b.HasKey("Id");
-
-                    b.HasIndex("TenantId", "IsActive");
-
-                    b.HasIndex("TenantId", "Category", "IsDefault");
-
-                    b.ToTable("TaxRates", (string)null);
                 });
 
             modelBuilder.Entity("Kairn.Domain.Entities.TenantApSettings", b =>

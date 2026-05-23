@@ -13,6 +13,7 @@ public static class DatabaseSeeder
     {
         await SeedRolesAsync(roleManager);
         await SeedChartOfAccountsAsync(context);
+        await SeedTaxRatesAsync(context);
 
         if (isDevelopment)
             await SeedDevAdminAsync(userManager);
@@ -143,6 +144,41 @@ public static class DatabaseSeeder
         context.Accounts.AddRange(accounts);
         await context.SaveChangesAsync();
     }
+
+    private static async Task SeedTaxRatesAsync(AppDbContext context)
+    {
+        if (await context.TaxRates.AnyAsync())
+            return;
+
+        var tenantId = Guid.Empty;
+        var now      = DateTimeOffset.UtcNow;
+
+        context.TaxRates.AddRange(
+            TaxRt(tenantId, "TVA Normale",      20m,  TaxCategory.Standard,    isDefault: true,  new DateOnly(2014, 1, 1), null, now),
+            TaxRt(tenantId, "TVA Intermédiaire", 10m, TaxCategory.Intermediate, isDefault: true,  new DateOnly(2012, 1, 1), null, now),
+            TaxRt(tenantId, "TVA Réduite",       5.5m, TaxCategory.Reduced,    isDefault: true,  new DateOnly(1982, 7, 1), null, now),
+            TaxRt(tenantId, "TVA Super-Réduite", 2.1m, TaxCategory.SuperReduced, isDefault: true, new DateOnly(1982, 7, 1), null, now),
+            TaxRt(tenantId, "TVA Exonérée",      0m,  TaxCategory.Exempt,      isDefault: true,  new DateOnly(2014, 1, 1), null, now)
+        );
+
+        await context.SaveChangesAsync();
+    }
+
+    private static TaxRate TaxRt(Guid tenantId, string name, decimal rate, TaxCategory category,
+        bool isDefault, DateOnly validFrom, DateOnly? validTo, DateTimeOffset now) => new()
+    {
+        Id        = Guid.NewGuid(),
+        TenantId  = tenantId,
+        Name      = name,
+        Rate      = rate,
+        Category  = category,
+        IsDefault = isDefault,
+        ValidFrom = validFrom,
+        ValidTo   = validTo,
+        IsActive  = true,
+        CreatedAt = now,
+        UpdatedAt = now,
+    };
 
     private static Account Acct(string code, string name, AccountType type, Guid tenantId,
         DateTimeOffset now, bool isCurrent = true) => new()

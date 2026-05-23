@@ -84,7 +84,8 @@ public class InvoiceService(AppDbContext db) : IInvoiceService
                 Quantity = l.Quantity,
                 UnitPrice = l.UnitPrice,
                 DiscountPct = l.DiscountPct,
-                TaxRate = l.TaxRate,
+                TaxRate   = l.TaxRate,
+                TaxRateId = l.TaxRateId,
                 SortOrder = l.SortOrder == 0 ? i : l.SortOrder,
             });
         }
@@ -131,7 +132,8 @@ public class InvoiceService(AppDbContext db) : IInvoiceService
                 Quantity = l.Quantity,
                 UnitPrice = l.UnitPrice,
                 DiscountPct = l.DiscountPct,
-                TaxRate = l.TaxRate,
+                TaxRate   = l.TaxRate,
+                TaxRateId = l.TaxRateId,
                 SortOrder = l.SortOrder == 0 ? i : l.SortOrder,
             });
         }
@@ -328,7 +330,7 @@ public class InvoiceService(AppDbContext db) : IInvoiceService
         var lines = i.Lines
             .OrderBy(l => l.SortOrder)
             .Select(l => new InvoiceLineDto(l.Id, l.Description, l.Quantity, l.UnitPrice,
-                l.DiscountPct, l.TaxRate, l.SortOrder))
+                l.DiscountPct, l.TaxRate, l.SortOrder, l.TaxRateId))
             .ToList();
 
         var subtotal = i.Lines.Sum(l => l.NetAmount);

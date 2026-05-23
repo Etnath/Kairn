@@ -9,6 +9,8 @@ using Kairn.Application.Features.Reconciliation;
 using Kairn.Application.Features.Reports;
 using Kairn.Application.Features.Budgets;
 using Kairn.Application.Features.Dashboard;
+using Kairn.Application.Features.MarginAnalysis;
+using Kairn.Application.Features.Tax;
 using Kairn.Application.Features.GL;
 using Kairn.Infrastructure.Email;
 using Kairn.Infrastructure.Jobs;
@@ -153,6 +155,13 @@ try
     builder.Services.AddScoped<IDashboardService, DashboardService>();
     builder.Services.AddScoped<IDashboardSettingsService, DashboardSettingsService>();
     builder.Services.AddScoped<IUserDashboardPreferencesService, UserDashboardPreferencesService>();
+    builder.Services.AddScoped<IProductLineService, ProductLineService>();
+    builder.Services.AddScoped<IGrossMarginService, GrossMarginService>();
+    builder.Services.AddScoped<INetMarginService, NetMarginService>();
+    builder.Services.AddScoped<IMarginTrendService, MarginTrendService>();
+    builder.Services.AddScoped<IMarginAlertService, MarginAlertService>();
+    builder.Services.AddScoped<ITaxRateService, TaxRateService>();
+    builder.Services.AddSingleton<IGrossMarginExporter, GrossMarginExporter>();
     builder.Services.AddScoped<IFiscalYearCloseService, FiscalYearCloseService>();
     builder.Services.AddScoped<IRecurringEntryService, RecurringEntryService>();
     builder.Services.AddHostedService<RecurringPostingJob>();
@@ -160,6 +169,7 @@ try
     builder.Services.AddScoped<IExchangeRateService, ExchangeRateService>();
     builder.Services.AddHostedService<ExchangeRateRefreshJob>();
     builder.Services.AddHostedService<DepreciationJob>();
+    builder.Services.AddHostedService<MarginAlertJob>();
     builder.Services.AddHttpClient("Frankfurter", client =>
     {
         client.Timeout = TimeSpan.FromSeconds(10);

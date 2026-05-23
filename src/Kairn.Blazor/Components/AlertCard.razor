@@ -18,6 +18,13 @@
                 @LinkText →
             </MudLink>
         }
+        @if (OnDismiss.HasDelegate)
+        {
+            <MudIconButton Icon="@Icons.Material.Filled.Close" Size="Size.Small"
+                           Style="@($"color:{TextColor};opacity:0.6;flex-shrink:0")"
+                           title="Ignorer"
+                           OnClick="OnDismiss" />
+        }
     </MudStack>
 </MudPaper>
 
@@ -27,7 +34,8 @@
     [Parameter, EditorRequired] public string Background { get; set; } = "";
     [Parameter, EditorRequired] public string IconColor  { get; set; } = "";
     [Parameter, EditorRequired] public string TextColor  { get; set; } = "";
-    [Parameter] public string? Body     { get; set; }
-    [Parameter] public string? Href     { get; set; }
-    [Parameter] public string? LinkText { get; set; }
+    [Parameter] public string?        Body      { get; set; }
+    [Parameter] public string?        Href      { get; set; }
+    [Parameter] public string?        LinkText  { get; set; }
+    [Parameter] public EventCallback  OnDismiss { get; set; }
 }

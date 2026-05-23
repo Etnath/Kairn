@@ -1,7 +1,432 @@
 @page "/margin"
 @attribute [Authorize]
+@using ApexCharts
+@using ChartType = ApexCharts.ChartType
+@using Size = MudBlazor.Size
+@using Color = MudBlazor.Color
 @inject IStringLocalizer<MarginAnalysis> L
+@inject IProductLineService ProductLineService
+@inject IGrossMarginService GrossMarginService
+@inject INetMarginService NetMarginService
+@inject IMarginTrendService MarginTrendService
+@inject IGrossMarginExporter GrossMarginExporter
+@inject ICurrentUserContext CurrentUser
+@inject IJSRuntime JS
 
 <PageTitle>@L["Title"] – Kairn</PageTitle>
-<MudText Typo="Typo.h5" Class="mb-4">@L["Title"]</MudText>
-<MudText Color="Color.Secondary">@L["ComingSoon"]</MudText>
+
+<MudStack Row="true" AlignItems="AlignItems.Center" Justify="Justify.SpaceBetween" Class="mb-4">
+    <MudText Typo="Typo.h5">@L["Title"]</MudText>
+    <AuthorizeView Roles="Admin">
+        <MudButton Href="/margin/product-lines" Variant="Variant.Outlined"
+                   StartIcon="@Icons.Material.Filled.TrendingUp" Size="Size.Small">
+            @L["ProductLines_Link"]
+        </MudButton>
+    </AuthorizeView>
+</MudStack>
+
+@if (_loading)
+{
+    <MudProgressCircular Indeterminate="true" />
+}
+else if (_productLineCount == 0)
+{
+    <MudPaper Class="pa-6" Elevation="0" Outlined="true" Style="max-width:520px">
+        <MudStack AlignItems="AlignItems.Center" Spacing="3">
+            <MudIcon Icon="@Icons.Material.Filled.TrendingUp" Size="Size.Large" Color="Color.Secondary" />
+            <MudText Typo="Typo.subtitle1"><b>@L["NoProductLines"]</b></MudText>
+            <MudText Typo="Typo.body2" Color="Color.Secondary" Style="text-align:center">
+                @L["NoProductLines_Body"]
+            </MudText>
+            <AuthorizeView Roles="Admin">
+                <MudButton Href="/margin/product-lines" Variant="Variant.Filled" Color="Color.Primary"
+                           StartIcon="@Icons.Material.Filled.Add">
+                    @L["NoProductLines_Link"]
+                </MudButton>
+            </AuthorizeView>
+        </MudStack>
+    </MudPaper>
+}
+else
+{
+    <MudTabs Elevation="1" Rounded="true" ApplyEffectsToContainer="true"
+             ActivePanelIndex="@_activeTabIndex" ActivePanelIndexChanged="OnTabActivated">
+
+        <!-- ── Gross Margin tab ─────────────────────────────────────────── -->
+        <MudTabPanel Text="@L["Tab_GrossMargin"]" Icon="@Icons.Material.Filled.BarChart">
+            @ReportControls(false)
+            @GrossMarginTable()
+        </MudTabPanel>
+
+        <!-- ── Net Margin tab ──────────────────────────────────────────── -->
+        <MudTabPanel Text="@L["Tab_NetMargin"]" Icon="@Icons.Material.Filled.AccountBalance">
+            @ReportControls(false)
+            @NetMarginTable()
+        </MudTabPanel>
+
+        <!-- ── Trends tab ──────────────────────────────────────────────── -->
+        <MudTabPanel Text="@L["Tab_Trends"]" Icon="@Icons.Material.Filled.ShowChart">
+            @TrendsPanel()
+        </MudTabPanel>
+
+    </MudTabs>
+}
+
+@* ── Render fragments ─────────────────────────────────────────────────── *@
+
+@code {
+    // shared render fragments used by multiple tabs
+    private RenderFragment ReportControls(bool showExport) => __builder =>
+    {
+        <MudStack Row="true" Wrap="Wrap.Wrap" AlignItems="AlignItems.Center" Spacing="2" Class="mt-3 mb-2">
+            <MudButton Variant="@PresetVariant("ThisMonth")"   Size="Size.Small" OnClick="@(() => ApplyPreset("ThisMonth"))">@L["Preset_ThisMonth"]</MudButton>
+            <MudButton Variant="@PresetVariant("LastMonth")"   Size="Size.Small" OnClick="@(() => ApplyPreset("LastMonth"))">@L["Preset_LastMonth"]</MudButton>
+            <MudButton Variant="@PresetVariant("ThisQuarter")" Size="Size.Small" OnClick="@(() => ApplyPreset("ThisQuarter"))">@L["Preset_ThisQuarter"]</MudButton>
+            <MudButton Variant="@PresetVariant("Ytd")"         Size="Size.Small" OnClick="@(() => ApplyPreset("Ytd"))">@L["Preset_Ytd"]</MudButton>
+            <MudButton Variant="@PresetVariant("LastYear")"    Size="Size.Small" OnClick="@(() => ApplyPreset("LastYear"))">@L["Preset_LastYear"]</MudButton>
+        </MudStack>
+        <MudStack Row="true" AlignItems="AlignItems.Center" Spacing="3" Class="mb-4" Wrap="Wrap.Wrap">
+            <MudDatePicker Label="@L["DateFrom"]" @bind-Date="_from"
+                           DateFormat="dd/MM/yyyy" MaxDate="DateTime.Today" Style="max-width:180px" />
+            <MudDatePicker Label="@L["DateTo"]" @bind-Date="_to"
+                           DateFormat="dd/MM/yyyy" MaxDate="DateTime.Today" Style="max-width:180px" />
+            <MudButton Variant="Variant.Filled" Color="Color.Primary"
+                       OnClick="GenerateAsync" Disabled="_generating"
+                       StartIcon="@Icons.Material.Filled.BarChart">
+                @(_generating ? L["Generating"] : L["Generate"])
+            </MudButton>
+            @if (_grossReport is not null || _netReport is not null)
+            {
+                <MudButton Variant="Variant.Outlined" StartIcon="@Icons.Material.Filled.PictureAsPdf"
+                           OnClick="ExportPdfAsync">@L["ExportPdf"]</MudButton>
+                <MudButton Variant="Variant.Outlined" StartIcon="@Icons.Material.Filled.TableChart"
+                           OnClick="ExportCsvAsync">@L["ExportCsv"]</MudButton>
+            }
+        </MudStack>
+        @if (_generating)
+        {
+            <MudProgressLinear Indeterminate="true" Class="mb-4" />
+        }
+        @if (_grossReport is null && !_generating)
+        {
+            <MudText Color="Color.Secondary" Class="mb-4">@L["SelectRange"]</MudText>
+        }
+    };
+
+    private RenderFragment GrossMarginTable() => __builder =>
+    {
+        @if (_grossReport is not null)
+        {
+            <MudTable T="GrossMarginRow" Items="_grossReport.Rows" Dense="true" Hover="true" Elevation="0"
+                      RowStyleFunc="@((row, _) => row.BelowThreshold ? "background-color:#FAECE8; color:#7E2A14" : string.Empty)">
+                <HeaderContent>
+                    <MudTh>@L["Col_ProductLine"]</MudTh>
+                    <MudTh Style="text-align:right">@L["Col_Revenue"]</MudTh>
+                    <MudTh Style="text-align:right">@L["Col_Cogs"]</MudTh>
+                    <MudTh Style="text-align:right">@L["Col_GrossProfit"]</MudTh>
+                    <MudTh Style="text-align:right">@L["Col_MarginPct"]</MudTh>
+                </HeaderContent>
+                <RowTemplate>
+                    <MudTd DataLabel="@L["Col_ProductLine"].Value">@context.Name</MudTd>
+                    <MudTd DataLabel="@L["Col_Revenue"].Value"     Style="text-align:right;font-variant-numeric:tabular-nums">@context.Revenue.ToString("N2")</MudTd>
+                    <MudTd DataLabel="@L["Col_Cogs"].Value"        Style="text-align:right;font-variant-numeric:tabular-nums">@context.Cogs.ToString("N2")</MudTd>
+                    <MudTd DataLabel="@L["Col_GrossProfit"].Value" Style="text-align:right;font-variant-numeric:tabular-nums">@context.GrossProfit.ToString("N2")</MudTd>
+                    <MudTd DataLabel="@L["Col_MarginPct"].Value"   Style="text-align:right;font-variant-numeric:tabular-nums">
+                        @(context.GrossMarginPct.HasValue ? $"{context.GrossMarginPct.Value:0.0}%" : "N/A")
+                    </MudTd>
+                </RowTemplate>
+                <FooterContent>
+                    <MudTd Style="font-weight:700;background:var(--mud-palette-lines-default)">@L["Totals"]</MudTd>
+                    <MudTd Style="text-align:right;font-weight:700;font-variant-numeric:tabular-nums;background:var(--mud-palette-lines-default)">@_grossReport.TotalRevenue.ToString("N2")</MudTd>
+                    <MudTd Style="text-align:right;font-weight:700;font-variant-numeric:tabular-nums;background:var(--mud-palette-lines-default)">@_grossReport.TotalCogs.ToString("N2")</MudTd>
+                    <MudTd Style="text-align:right;font-weight:700;font-variant-numeric:tabular-nums;background:var(--mud-palette-lines-default)">@_grossReport.TotalGrossProfit.ToString("N2")</MudTd>
+                    <MudTd Style="text-align:right;font-weight:700;font-variant-numeric:tabular-nums;background:var(--mud-palette-lines-default)">
+                        @(_grossReport.TotalMarginPct.HasValue ? $"{_grossReport.TotalMarginPct.Value:0.0}%" : "N/A")
+                    </MudTd>
+                </FooterContent>
+            </MudTable>
+        }
+    };
+
+    private RenderFragment NetMarginTable() => __builder =>
+    {
+        @if (_netReport is not null)
+        {
+            @if (!_netReport.AnyRulesConfigured)
+            {
+                <MudAlert Severity="Severity.Info" Dense="true" Class="mb-3">
+                    @L["NetMargin_NoRules"]
+                    <AuthorizeView Roles="Admin">
+                        <MudLink Href="/margin/product-lines">@L["NetMargin_NoRulesLink"]</MudLink>
+                    </AuthorizeView>
+                </MudAlert>
+            }
+            <MudTable T="NetMarginRow" Items="_netReport.Rows" Dense="true" Hover="true" Elevation="0"
+                      RowStyleFunc="@((row, _) => row.BelowThreshold ? "background-color:#FAECE8; color:#7E2A14" : string.Empty)">
+                <HeaderContent>
+                    <MudTh>@L["Col_ProductLine"]</MudTh>
+                    <MudTh Style="text-align:right">@L["Col_Revenue"]</MudTh>
+                    <MudTh Style="text-align:right">@L["Col_Cogs"]</MudTh>
+                    <MudTh Style="text-align:right">@L["Col_GrossProfit"]</MudTh>
+                    <MudTh Style="text-align:right">@L["Col_AllocatedOpEx"]</MudTh>
+                    <MudTh Style="text-align:right">@L["Col_NetProfit"]</MudTh>
+                    <MudTh Style="text-align:right">@L["Col_NetMarginPct"]</MudTh>
+                </HeaderContent>
+                <RowTemplate>
+                    <MudTd DataLabel="@L["Col_ProductLine"].Value">@context.Name</MudTd>
+                    <MudTd DataLabel="@L["Col_Revenue"].Value"       Style="text-align:right;font-variant-numeric:tabular-nums">@context.Revenue.ToString("N2")</MudTd>
+                    <MudTd DataLabel="@L["Col_Cogs"].Value"          Style="text-align:right;font-variant-numeric:tabular-nums">@context.Cogs.ToString("N2")</MudTd>
+                    <MudTd DataLabel="@L["Col_GrossProfit"].Value"   Style="text-align:right;font-variant-numeric:tabular-nums">@context.GrossProfit.ToString("N2")</MudTd>
+                    <MudTd DataLabel="@L["Col_AllocatedOpEx"].Value" Style="text-align:right;font-variant-numeric:tabular-nums">@context.AllocatedOpEx.ToString("N2")</MudTd>
+                    <MudTd DataLabel="@L["Col_NetProfit"].Value"
+                           Style="@($"text-align:right;font-variant-numeric:tabular-nums;{(context.NetProfit < 0 ? "color:#7E2A14" : "")}")">
+                        @context.NetProfit.ToString("N2")
+                    </MudTd>
+                    <MudTd DataLabel="@L["Col_NetMarginPct"].Value"
+                           Style="@($"text-align:right;font-variant-numeric:tabular-nums;{(context.NetMarginPct < 0 ? "color:#7E2A14" : "")}")">
+                        @(context.NetMarginPct.HasValue ? $"{context.NetMarginPct.Value:0.0}%" : "N/A")
+                    </MudTd>
+                </RowTemplate>
+                <FooterContent>
+                    <MudTd Style="font-weight:700;background:var(--mud-palette-lines-default)">@L["Totals"]</MudTd>
+                    <MudTd Style="text-align:right;font-weight:700;font-variant-numeric:tabular-nums;background:var(--mud-palette-lines-default)">@_netReport.TotalRevenue.ToString("N2")</MudTd>
+                    <MudTd Style="text-align:right;font-weight:700;font-variant-numeric:tabular-nums;background:var(--mud-palette-lines-default)">@_netReport.TotalCogs.ToString("N2")</MudTd>
+                    <MudTd Style="text-align:right;font-weight:700;font-variant-numeric:tabular-nums;background:var(--mud-palette-lines-default)">@_netReport.TotalGrossProfit.ToString("N2")</MudTd>
+                    <MudTd Style="text-align:right;font-weight:700;font-variant-numeric:tabular-nums;background:var(--mud-palette-lines-default)">@_netReport.TotalAllocated.ToString("N2")</MudTd>
+                    <MudTd Style="text-align:right;font-weight:700;font-variant-numeric:tabular-nums;background:var(--mud-palette-lines-default)">@_netReport.TotalNetProfit.ToString("N2")</MudTd>
+                    <MudTd Style="text-align:right;font-weight:700;font-variant-numeric:tabular-nums;background:var(--mud-palette-lines-default)">
+                        @(_netReport.TotalNetMarginPct.HasValue ? $"{_netReport.TotalNetMarginPct.Value:0.0}%" : "N/A")
+                    </MudTd>
+                </FooterContent>
+            </MudTable>
+        }
+    };
+
+    private RenderFragment TrendsPanel() => __builder =>
+    {
+        <MudStack Row="true" AlignItems="AlignItems.Center" Spacing="3" Class="mt-3 mb-4" Wrap="Wrap.Wrap">
+            <MudDatePicker Label="@L["DateFrom"]" @bind-Date="_trendFrom"
+                           DateFormat="dd/MM/yyyy" MaxDate="DateTime.Today" Style="max-width:180px" />
+            <MudDatePicker Label="@L["DateTo"]" @bind-Date="_trendTo"
+                           DateFormat="dd/MM/yyyy" MaxDate="DateTime.Today" Style="max-width:180px" />
+            <MudButton Variant="Variant.Filled" Color="Color.Primary"
+                       OnClick="LoadTrendAsync" Disabled="_trendGenerating"
+                       StartIcon="@Icons.Material.Filled.ShowChart">
+                @(_trendGenerating ? L["Generating"] : L["Generate"])
+            </MudButton>
+        </MudStack>
+
+        @if (_trendGenerating)
+        {
+            <MudProgressLinear Indeterminate="true" Class="mb-4" />
+        }
+        else if (_trendReport is null)
+        {
+            <MudText Color="Color.Secondary">@L["SelectRange"]</MudText>
+        }
+        else if (!_trendReport.Series.Any())
+        {
+            <MudText Color="Color.Secondary">@L["SelectRange"]</MudText>
+        }
+        else
+        {
+            <ApexChart TItem="MarginTrendPoint"
+                       Options="_trendOptions"
+                       Height="400">
+                @foreach (var series in _trendReport.Series)
+                {
+                    <ApexPointSeries TItem="MarginTrendPoint"
+                                     Items="series.Points"
+                                     Name="@series.ProductLineName"
+                                     SeriesType="SeriesType.Line"
+                                     XValue="@(p => p.Month.ToString("MMM yy"))"
+                                     YValue="@(p => p.GrossMarginPct ?? 0m)" />
+                }
+            </ApexChart>
+        }
+    };
+}
+
+@code {
+    // ── Brand colours for trend series (cycles if more lines than colours) ─
+    private static readonly List<string> TrendColors =
+    [
+        "#3A9463", "#4D7A9E", "#C2492A", "#8F6008",
+        "#6B3D8A", "#2B7B8A", "#B07C39", "#4A6E3A",
+    ];
+
+    // ── Page state ────────────────────────────────────────────────────────
+    private bool _loading = true;
+    private int  _productLineCount;
+    private int  _activeTabIndex;
+
+    // Gross / Net shared controls
+    private string    _activePreset = "ThisMonth";
+    private DateTime? _from = new DateTime(DateTime.Today.Year, DateTime.Today.Month, 1);
+    private DateTime? _to   = DateTime.Today;
+    private bool              _generating;
+    private GrossMarginReport? _grossReport;
+    private NetMarginReport?   _netReport;
+
+    // Trends controls
+    private DateTime? _trendFrom = DateTime.Today.AddMonths(-11).AddDays(1 - DateTime.Today.Day);
+    private DateTime? _trendTo   = DateTime.Today;
+    private bool              _trendGenerating;
+    private MarginTrendReport? _trendReport;
+
+    private ApexChartOptions<MarginTrendPoint> _trendOptions = new()
+    {
+        Chart      = new Chart { Type = ChartType.Line, Toolbar = new Toolbar { Show = false } },
+        Colors     = TrendColors,
+        Stroke     = new Stroke { Curve = Curve.Smooth },
+        DataLabels = new DataLabels { Enabled = false },
+        Markers    = new Markers { Size = 3 },
+        Grid       = new Grid { BorderColor = "#D6D3CA" },
+        Legend     = new Legend { Show = true, Position = LegendPosition.Bottom },
+        Xaxis      = new XAxis { Labels = new XAxisLabels { Style = new AxisLabelStyle { Colors = "#8C8980" } } },
+        Yaxis      = new List<YAxis>
+        {
+            new()
+            {
+                Labels = new YAxisLabels
+                {
+                    Style     = new AxisLabelStyle { Colors = "#8C8980" },
+                    Formatter = "function(val) { return val.toFixed(1) + '%'; }",
+                },
+            },
+        },
+        Tooltip = new Tooltip
+        {
+            Shared = true,
+            Y = new TooltipY { Formatter = "function(val) { return val != null ? val.toFixed(1) + '%' : '—'; }" },
+        },
+    };
+
+    // ── Lifecycle ─────────────────────────────────────────────────────────
+    protected override async Task OnInitializedAsync()
+    {
+        var lines = await ProductLineService.GetAllAsync(CurrentUser.TenantId);
+        _productLineCount = lines.Count(p => p.IsActive);
+        _loading = false;
+    }
+
+    // ── Tab activation ────────────────────────────────────────────────────
+    private async Task OnTabActivated(int index)
+    {
+        _activeTabIndex = index;
+        if (index == 2 && _trendReport is null && !_trendGenerating)
+            await LoadTrendAsync();
+    }
+
+    // ── Gross / Net margin ────────────────────────────────────────────────
+    private Variant PresetVariant(string key) =>
+        _activePreset == key ? Variant.Filled : Variant.Outlined;
+
+    private void ApplyPreset(string key)
+    {
+        _activePreset = key;
+        var today = DateTime.Today;
+        (_from, _to) = key switch
+        {
+            "ThisMonth"   => (new DateTime(today.Year, today.Month, 1), (DateTime?)today),
+            "LastMonth"   => (new DateTime(today.Year, today.Month, 1).AddMonths(-1),
+                              new DateTime(today.Year, today.Month, 1).AddDays(-1)),
+            "ThisQuarter" => QuarterRange(today),
+            "Ytd"         => (new DateTime(today.Year, 1, 1), (DateTime?)today),
+            "LastYear"    => (new DateTime(today.Year - 1, 1, 1), new DateTime(today.Year - 1, 12, 31)),
+            _             => (_from, _to),
+        };
+    }
+
+    private static (DateTime?, DateTime?) QuarterRange(DateTime d)
+    {
+        var q     = (d.Month - 1) / 3;
+        var start = new DateTime(d.Year, q * 3 + 1, 1);
+        return (start, start.AddMonths(3).AddDays(-1));
+    }
+
+    private async Task GenerateAsync()
+    {
+        if (_from is null || _to is null) return;
+        _generating = true;
+        try
+        {
+            var query = new GrossMarginQuery(
+                CurrentUser.TenantId,
+                DateOnly.FromDateTime(_from.Value),
+                DateOnly.FromDateTime(_to.Value));
+
+            var t1 = GrossMarginService.GenerateAsync(query);
+            var t2 = NetMarginService.GenerateAsync(query);
+            await Task.WhenAll(t1, t2);
+            _grossReport = t1.Result;
+            _netReport   = t2.Result;
+        }
+        finally
+        {
+            _generating = false;
+        }
+    }
+
+    private async Task ExportPdfAsync()
+    {
+        var meta  = GrossMarginExportMeta.Now(CurrentUser.UserName);
+        byte[]? bytes;
+        string  fileName;
+
+        if (_activeTabIndex == 1 && _netReport is not null)
+        {
+            bytes    = GrossMarginExporter.ToPdf(_netReport, meta);
+            fileName = $"net-margin-{_netReport.From:yyyy-MM-dd}-{_netReport.To:yyyy-MM-dd}.pdf";
+        }
+        else if (_grossReport is not null)
+        {
+            bytes    = GrossMarginExporter.ToPdf(_grossReport, meta);
+            fileName = $"gross-margin-{_grossReport.From:yyyy-MM-dd}-{_grossReport.To:yyyy-MM-dd}.pdf";
+        }
+        else return;
+
+        await JS.InvokeVoidAsync("kairn.downloadFile", fileName, "application/pdf", bytes);
+    }
+
+    private async Task ExportCsvAsync()
+    {
+        var meta = GrossMarginExportMeta.Now(CurrentUser.UserName);
+        string? csv;
+        string  fileName;
+
+        if (_activeTabIndex == 1 && _netReport is not null)
+        {
+            csv      = GrossMarginExporter.ToCsv(_netReport, meta);
+            fileName = $"net-margin-{_netReport.From:yyyy-MM-dd}-{_netReport.To:yyyy-MM-dd}.csv";
+        }
+        else if (_grossReport is not null)
+        {
+            csv      = GrossMarginExporter.ToCsv(_grossReport, meta);
+            fileName = $"gross-margin-{_grossReport.From:yyyy-MM-dd}-{_grossReport.To:yyyy-MM-dd}.csv";
+        }
+        else return;
+
+        await JS.InvokeVoidAsync("kairn.downloadFile", fileName, "text/csv",
+            System.Text.Encoding.UTF8.GetBytes(csv));
+    }
+
+    // ── Trend chart ───────────────────────────────────────────────────────
+    private async Task LoadTrendAsync()
+    {
+        if (_trendFrom is null || _trendTo is null) return;
+        _trendGenerating = true;
+        try
+        {
+            _trendReport = await MarginTrendService.GenerateAsync(
+                new MarginTrendQuery(
+                    CurrentUser.TenantId,
+                    DateOnly.FromDateTime(_trendFrom.Value),
+                    DateOnly.FromDateTime(_trendTo.Value)));
+        }
+        finally
+        {
+            _trendGenerating = false;
+        }
+    }
+}

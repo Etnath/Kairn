@@ -36,7 +36,8 @@ public record InvoiceLineDto(
     decimal UnitPrice,
     decimal DiscountPct,
     decimal TaxRate,
-    int SortOrder);
+    int SortOrder,
+    Guid? TaxRateId = null);
 
 public record InvoiceQuery(
     Guid TenantId,
@@ -49,12 +50,13 @@ public record InvoiceQuery(
     bool ExcludeClosedStatuses = false);
 
 public record InvoiceLineInput(
-    string Description,
+    string  Description,
     decimal Quantity,
     decimal UnitPrice,
     decimal DiscountPct,
     decimal TaxRate,
-    int SortOrder);
+    int     SortOrder,
+    Guid?   TaxRateId = null);
 
 public record CreateInvoiceCommand(
     Guid TenantId,

@@ -43,8 +43,9 @@ public class BillLine
     public string Description { get; set; } = string.Empty;
     public decimal Quantity { get; set; } = 1m;
     public decimal UnitPrice { get; set; }
-    public decimal TaxRate { get; set; }
-    public Guid ExpenseAccountId { get; set; }
+    public decimal TaxRate   { get; set; }
+    public Guid?   TaxRateId { get; set; }
+    public Guid    ExpenseAccountId { get; set; }
     public int SortOrder { get; set; }
 
     public Bill Bill { get; set; } = null!;

@@ -1,0 +1,151 @@
+@page "/settings/tax-rates"
+@attribute [Authorize(Roles = "Admin")]
+@inject IStringLocalizer<TaxRates> L
+@inject ITaxRateService TaxRateService
+@inject ICurrentUserContext CurrentUser
+@inject IDialogService DialogService
+@inject NavigationManager Nav
+
+<PageTitle>@L["Title"] – Kairn</PageTitle>
+
+<MudStack Row="true" AlignItems="AlignItems.Center" Class="mb-4">
+    <MudIconButton Icon="@Icons.Material.Filled.ArrowBack" Size="Size.Small"
+                   title="@L["Cancel"]"
+                   OnClick="@(() => Nav.NavigateTo("/settings"))" />
+    <MudText Typo="Typo.h5">@L["Title"]</MudText>
+    <MudSpacer />
+    <MudButton Variant="Variant.Filled" Color="Color.Primary"
+               StartIcon="@Icons.Material.Filled.Add"
+               OnClick="OpenCreateDialog">
+        @L["NewRate"]
+    </MudButton>
+</MudStack>
+
+<MudTable T="TaxRateDto" Items="_rates" Dense="true" Hover="true" Breakpoint="Breakpoint.Sm">
+    <HeaderContent>
+        <MudTh>@L["Col_Name"]</MudTh>
+        <MudTh Style="width:90px">@L["Col_Rate"]</MudTh>
+        <MudTh Style="width:130px">@L["Col_Category"]</MudTh>
+        <MudTh Style="width:70px">@L["Col_Default"]</MudTh>
+        <MudTh Style="width:110px">@L["Col_ValidFrom"]</MudTh>
+        <MudTh Style="width:110px">@L["Col_ValidTo"]</MudTh>
+        <MudTh Style="width:70px">@L["Col_Active"]</MudTh>
+        <MudTh Style="width:110px">@L["Col_Actions"]</MudTh>
+    </HeaderContent>
+    <RowTemplate>
+        <MudTd DataLabel="@L["Col_Name"]">
+            <MudText Typo="Typo.body2"
+                     Style="@(context.IsActive ? "" : "opacity:0.55;text-decoration:line-through")">
+                @context.Name
+            </MudText>
+        </MudTd>
+        <MudTd DataLabel="@L["Col_Rate"]">
+            @context.Rate.ToString("N2")%
+        </MudTd>
+        <MudTd DataLabel="@L["Col_Category"]">
+            @CategoryLabel(context.Category)
+        </MudTd>
+        <MudTd DataLabel="@L["Col_Default"]">
+            @if (context.IsDefault)
+            {
+                <MudIcon Icon="@Icons.Material.Filled.CheckCircle" Color="Color.Primary" Size="Size.Small" />
+            }
+        </MudTd>
+        <MudTd DataLabel="@L["Col_ValidFrom"]">
+            @context.ValidFrom.ToString("dd/MM/yyyy")
+        </MudTd>
+        <MudTd DataLabel="@L["Col_ValidTo"]">
+            @(context.ValidTo.HasValue
+                ? context.ValidTo.Value.ToString("dd/MM/yyyy")
+                : L["Indefinite"].Value)
+        </MudTd>
+        <MudTd DataLabel="@L["Col_Active"]">
+            @if (context.IsActive)
+            {
+                <MudIcon Icon="@Icons.Material.Filled.CheckCircle" Color="Color.Success" Size="Size.Small" />
+            }
+            else
+            {
+                <MudIcon Icon="@Icons.Material.Filled.Cancel" Color="Color.Default" Size="Size.Small" />
+            }
+        </MudTd>
+        <MudTd @onclick:stopPropagation="true">
+            <MudTooltip Text="@L["Edit"]">
+                <MudIconButton Icon="@Icons.Material.Filled.Edit" Size="Size.Small"
+                               OnClick="@(() => OpenEditDialog(context))" />
+            </MudTooltip>
+            @if (context.IsActive)
+            {
+                <MudTooltip Text="@L["Deactivate"]">
+                    <MudIconButton Icon="@Icons.Material.Filled.ToggleOff" Size="Size.Small"
+                                   OnClick="@(() => ToggleActiveAsync(context, false))" />
+                </MudTooltip>
+            }
+            else
+            {
+                <MudTooltip Text="@L["Activate"]">
+                    <MudIconButton Icon="@Icons.Material.Filled.ToggleOn" Size="Size.Small"
+                                   Color="Color.Primary"
+                                   OnClick="@(() => ToggleActiveAsync(context, true))" />
+                </MudTooltip>
+            }
+        </MudTd>
+    </RowTemplate>
+    <NoRecordsContent>
+        <MudStack AlignItems="AlignItems.Center" Class="pa-6" Spacing="2">
+            <MudIcon Icon="@Icons.Material.Filled.Percent" Size="Size.Large" Color="Color.Secondary" />
+            <MudText Typo="Typo.subtitle1">@L["Empty_Title"]</MudText>
+            <MudText Typo="Typo.body2" Color="Color.Secondary">@L["Empty_Body"]</MudText>
+        </MudStack>
+    </NoRecordsContent>
+</MudTable>
+
+@code {
+    private IReadOnlyList<TaxRateDto> _rates = [];
+
+    protected override async Task OnInitializedAsync()
+    {
+        _rates = await TaxRateService.GetAllAsync(CurrentUser.TenantId);
+    }
+
+    private string CategoryLabel(TaxCategory cat) => cat switch
+    {
+        TaxCategory.Standard     => L["Cat_Standard"],
+        TaxCategory.Intermediate => L["Cat_Intermediate"],
+        TaxCategory.Reduced      => L["Cat_Reduced"],
+        TaxCategory.SuperReduced => L["Cat_SuperReduced"],
+        TaxCategory.Exempt       => L["Cat_Exempt"],
+        _                        => cat.ToString()
+    };
+
+    private async Task OpenCreateDialog()
+    {
+        var parameters = new DialogParameters<TaxRateFormDialog>
+        {
+            { x => x.AllRates, _rates }
+        };
+        var dialog = await DialogService.ShowAsync<TaxRateFormDialog>(L["CreateTitle"], parameters);
+        var result = await dialog.Result;
+        if (result is { Canceled: false })
+            _rates = await TaxRateService.GetAllAsync(CurrentUser.TenantId);
+    }
+
+    private async Task OpenEditDialog(TaxRateDto rate)
+    {
+        var parameters = new DialogParameters<TaxRateFormDialog>
+        {
+            { x => x.Rate, rate },
+            { x => x.AllRates, _rates }
+        };
+        var dialog = await DialogService.ShowAsync<TaxRateFormDialog>(L["EditTitle"], parameters);
+        var result = await dialog.Result;
+        if (result is { Canceled: false })
+            _rates = await TaxRateService.GetAllAsync(CurrentUser.TenantId);
+    }
+
+    private async Task ToggleActiveAsync(TaxRateDto rate, bool active)
+    {
+        await TaxRateService.SetActiveAsync(rate.Id, CurrentUser.TenantId, active);
+        _rates = await TaxRateService.GetAllAsync(CurrentUser.TenantId);
+    }
+}

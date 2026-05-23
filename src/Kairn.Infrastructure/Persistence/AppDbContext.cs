@@ -37,6 +37,10 @@ public class AppDbContext : IdentityDbContext<ApplicationUser>
     public DbSet<TenantApSettings> TenantApSettings => Set<TenantApSettings>();
     public DbSet<TenantDashboardSettings>    TenantDashboardSettings    => Set<TenantDashboardSettings>();
     public DbSet<UserDashboardPreferences>   UserDashboardPreferences   => Set<UserDashboardPreferences>();
+    public DbSet<ProductLine>                ProductLines               => Set<ProductLine>();
+    public DbSet<ProductLineAccount>         ProductLineAccounts        => Set<ProductLineAccount>();
+    public DbSet<MarginAlert>                MarginAlerts               => Set<MarginAlert>();
+    public DbSet<TaxRate>                    TaxRates                   => Set<TaxRate>();
     public DbSet<ExpenseReport> ExpenseReports => Set<ExpenseReport>();
     public DbSet<ExpenseReportLine> ExpenseReportLines => Set<ExpenseReportLine>();
     public DbSet<Budget> Budgets => Set<Budget>();

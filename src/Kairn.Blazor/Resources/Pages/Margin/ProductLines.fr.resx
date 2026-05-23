@@ -1,0 +1,35 @@
+<?xml version="1.0" encoding="utf-8"?>
+<root>
+  <resheader name="resmimetype"><value>text/microsoft-resx</value></resheader>
+  <resheader name="version"><value>2.0</value></resheader>
+  <data name="Title" xml:space="preserve"><value>Lignes de produits</value></data>
+  <data name="CreateTitle" xml:space="preserve"><value>Nouvelle ligne de produit</value></data>
+  <data name="EditTitle" xml:space="preserve"><value>Modifier la ligne de produit</value></data>
+  <data name="NewProductLine" xml:space="preserve"><value>Nouvelle ligne de produit</value></data>
+  <data name="Search" xml:space="preserve"><value>Rechercher une ligne de produit…</value></data>
+  <data name="Col_Name" xml:space="preserve"><value>Nom</value></data>
+  <data name="Col_Description" xml:space="preserve"><value>Description</value></data>
+  <data name="Col_RevenueAccounts" xml:space="preserve"><value>Comptes de produits</value></data>
+  <data name="Col_CogsAccounts" xml:space="preserve"><value>Comptes de charges</value></data>
+  <data name="Col_MarginThreshold" xml:space="preserve"><value>Seuil d'alerte (%)</value></data>
+  <data name="Col_Active" xml:space="preserve"><value>Actif</value></data>
+  <data name="Col_Actions" xml:space="preserve"><value>Actions</value></data>
+  <data name="Field_Name" xml:space="preserve"><value>Nom</value></data>
+  <data name="Field_Description" xml:space="preserve"><value>Description</value></data>
+  <data name="Field_RevenueAccounts" xml:space="preserve"><value>Comptes de produits</value></data>
+  <data name="Field_CogsAccounts" xml:space="preserve"><value>Comptes de charges (COGS)</value></data>
+  <data name="Field_MarginThreshold" xml:space="preserve"><value>Seuil d'alerte de marge (%)</value></data>
+  <data name="Field_MarginThresholdHint" xml:space="preserve"><value>Une alerte se déclenche lorsque la marge brute passe sous ce pourcentage. Laisser vide pour désactiver.</value></data>
+  <data name="Field_OpExAllocationPct" xml:space="preserve"><value>Allocation des charges indirectes (%)</value></data>
+  <data name="Field_OpExAllocationPctHint" xml:space="preserve"><value>Pourcentage des charges indirectes non allouées attribué à cette ligne (ex. 40 = 40 %). Laisser vide pour aucune.</value></data>
+  <data name="Col_OpExAllocationPct" xml:space="preserve"><value>Alloc. charges (%)</value></data>
+  <data name="Field_IsActive" xml:space="preserve"><value>Actif</value></data>
+  <data name="InactiveNote" xml:space="preserve"><value>Les lignes inactives sont masquées dans les rapports de marge, mais leur historique est conservé.</value></data>
+  <data name="Err_DuplicateName" xml:space="preserve"><value>Une ligne de produit portant ce nom existe déjà.</value></data>
+  <data name="Err_Save" xml:space="preserve"><value>Une erreur est survenue. Veuillez réessayer.</value></data>
+  <data name="Save" xml:space="preserve"><value>Enregistrer</value></data>
+  <data name="Cancel" xml:space="preserve"><value>Annuler</value></data>
+  <data name="Edit" xml:space="preserve"><value>Modifier</value></data>
+  <data name="Empty_Title" xml:space="preserve"><value>Aucune ligne de produit définie.</value></data>
+  <data name="Empty_Body" xml:space="preserve"><value>Créez votre première ligne de produit pour activer les rapports d'analyse des marges.</value></data>
+</root>

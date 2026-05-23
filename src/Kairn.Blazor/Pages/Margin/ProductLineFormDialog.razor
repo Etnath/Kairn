@@ -1,0 +1,177 @@
+@inject IProductLineService ProductLineService
+@inject ICurrentUserContext CurrentUser
+@inject IStringLocalizer<ProductLines> L
+
+<MudDialog>
+    <DialogContent>
+        <MudForm @ref="_form" @bind-IsValid="_isValid">
+            <MudStack Spacing="3">
+                <MudTextField @bind-Value="_model.Name" Label="@L["Field_Name"]"
+                              Required="true" RequiredError="@L["Field_Name"]"
+                              Immediate="true" />
+
+                <MudTextField @bind-Value="_model.Description" Label="@L["Field_Description"]"
+                              Lines="2" AutoGrow="true" Immediate="true" />
+
+                <MudSelect T="Guid" MultiSelection="true"
+                           @bind-SelectedValues="_selectedRevenueIds"
+                           Label="@L["Field_RevenueAccounts"]">
+                    @foreach (var acc in _revenueAccounts)
+                    {
+                        <MudSelectItem T="Guid" Value="acc.Id">@acc.Code – @acc.Name</MudSelectItem>
+                    }
+                </MudSelect>
+
+                <MudSelect T="Guid" MultiSelection="true"
+                           @bind-SelectedValues="_selectedCogsIds"
+                           Label="@L["Field_CogsAccounts"]">
+                    @foreach (var acc in _cogsAccounts)
+                    {
+                        <MudSelectItem T="Guid" Value="acc.Id">@acc.Code – @acc.Name</MudSelectItem>
+                    }
+                </MudSelect>
+
+                <MudNumericField T="decimal?" @bind-Value="_model.MarginAlertThreshold"
+                                 Label="@L["Field_MarginThreshold"]"
+                                 HelperText="@L["Field_MarginThresholdHint"]"
+                                 Format="N1" Min="0m" Max="100m" HideSpinButtons="true" />
+
+                <MudNumericField T="decimal?" @bind-Value="_model.OpExAllocationPct"
+                                 Label="@L["Field_OpExAllocationPct"]"
+                                 HelperText="@L["Field_OpExAllocationPctHint"]"
+                                 Format="N1" Min="0m" Max="100m" HideSpinButtons="true" />
+
+                @if (_isEdit)
+                {
+                    <MudSwitch T="bool" @bind-Value="_model.IsActive"
+                               Label="@L["Field_IsActive"]" Color="Color.Primary" />
+                    @if (!_model.IsActive)
+                    {
+                        <MudText Typo="Typo.caption" Color="Color.Warning">
+                            @L["InactiveNote"]
+                        </MudText>
+                    }
+                }
+
+                @if (_errorMessage is not null)
+                {
+                    <MudAlert Severity="Severity.Error" Dense="true">@_errorMessage</MudAlert>
+                }
+            </MudStack>
+        </MudForm>
+    </DialogContent>
+    <DialogActions>
+        <MudButton OnClick="Cancel">@L["Cancel"]</MudButton>
+        <MudButton Color="Color.Primary" Variant="Variant.Filled"
+                   OnClick="Submit" Disabled="@_saving">
+            @if (_saving)
+            {
+                <MudProgressCircular Size="Size.Small" Indeterminate="true" Class="mr-2" />
+            }
+            @L["Save"]
+        </MudButton>
+    </DialogActions>
+</MudDialog>
+
+@code {
+    [CascadingParameter] private IMudDialogInstance MudDialog { get; set; } = null!;
+    [Parameter] public ProductLineDto? ProductLine    { get; set; }
+    [Parameter] public List<Account>   AllAccounts    { get; set; } = [];
+
+    private MudForm  _form = null!;
+    private bool     _isValid;
+    private bool     _saving;
+    private bool     _isEdit;
+    private string?  _errorMessage;
+    private FormModel _model = new();
+
+    private IEnumerable<Guid> _selectedRevenueIds = [];
+    private IEnumerable<Guid> _selectedCogsIds    = [];
+
+    private IReadOnlyList<Account> _revenueAccounts = [];
+    private IReadOnlyList<Account> _cogsAccounts    = [];
+
+    protected override void OnParametersSet()
+    {
+        _isEdit = ProductLine is not null;
+
+        _revenueAccounts = AllAccounts
+            .Where(a => a.Type == AccountType.Revenue && a.IsActive)
+            .OrderBy(a => a.Code)
+            .ToList();
+
+        _cogsAccounts = AllAccounts
+            .Where(a => a.Type == AccountType.Expense && a.IsActive)
+            .OrderBy(a => a.Code)
+            .ToList();
+
+        if (_isEdit)
+        {
+            _model = new FormModel
+            {
+                Name                 = ProductLine!.Name,
+                Description          = ProductLine.Description,
+                MarginAlertThreshold = ProductLine.MarginAlertThreshold,
+                OpExAllocationPct    = ProductLine.OpExAllocationPct,
+                IsActive             = ProductLine.IsActive,
+            };
+            _selectedRevenueIds = ProductLine.RevenueAccounts.Select(a => a.AccountId).ToHashSet();
+            _selectedCogsIds    = ProductLine.CogsAccounts.Select(a => a.AccountId).ToHashSet();
+        }
+    }
+
+    private void Cancel() => MudDialog.Cancel();
+
+    private async Task Submit()
+    {
+        await _form.Validate();
+        if (!_isValid) return;
+
+        _saving = true;
+        _errorMessage = null;
+
+        Result<ProductLineDto> result;
+        if (_isEdit)
+        {
+            result = await ProductLineService.UpdateAsync(new UpdateProductLineCommand(
+                ProductLine!.Id,
+                CurrentUser.TenantId,
+                _model.Name,
+                _model.Description,
+                _model.MarginAlertThreshold,
+                _model.OpExAllocationPct,
+                _model.IsActive,
+                _selectedRevenueIds.ToList(),
+                _selectedCogsIds.ToList()));
+        }
+        else
+        {
+            result = await ProductLineService.CreateAsync(new CreateProductLineCommand(
+                CurrentUser.TenantId,
+                _model.Name,
+                _model.Description,
+                _model.MarginAlertThreshold,
+                _model.OpExAllocationPct,
+                _selectedRevenueIds.ToList(),
+                _selectedCogsIds.ToList()));
+        }
+
+        _saving = false;
+
+        if (result.IsSuccess)
+            MudDialog.Close(DialogResult.Ok(result.Value));
+        else
+            _errorMessage = result.Error == "Name already exists."
+                ? L["Err_DuplicateName"]
+                : L["Err_Save"];
+    }
+
+    private class FormModel
+    {
+        public string   Name                 { get; set; } = "";
+        public string?  Description          { get; set; }
+        public decimal? MarginAlertThreshold { get; set; }
+        public decimal? OpExAllocationPct    { get; set; }
+        public bool     IsActive             { get; set; } = true;
+    }
+}

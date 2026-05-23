@@ -1,0 +1,164 @@
+@page "/margin/product-lines"
+@attribute [Authorize(Roles = "Admin")]
+@inject IStringLocalizer<ProductLines> L
+@inject IProductLineService ProductLineService
+@inject IAccountService AccountService
+@inject ICurrentUserContext CurrentUser
+@inject IDialogService DialogService
+@inject NavigationManager Nav
+
+<PageTitle>@L["Title"] – Kairn</PageTitle>
+
+<MudStack Row="true" AlignItems="AlignItems.Center" Class="mb-4">
+    <MudIconButton Icon="@Icons.Material.Filled.ArrowBack" Size="Size.Small"
+                   OnClick="@(() => Nav.NavigateTo("/margin"))" />
+    <MudText Typo="Typo.h5">@L["Title"]</MudText>
+    <MudSpacer />
+    <MudButton Variant="Variant.Filled" Color="Color.Primary"
+               StartIcon="@Icons.Material.Filled.Add"
+               OnClick="OpenCreateDialog">
+        @L["NewProductLine"]
+    </MudButton>
+</MudStack>
+
+<MudTextField @bind-Value="_search" Placeholder="@L["Search"]"
+              Adornment="Adornment.Start" AdornmentIcon="@Icons.Material.Filled.Search"
+              Immediate="true" Clearable="true" Class="mb-4" />
+
+<MudTable T="ProductLineDto" Items="_filtered" Dense="true" Hover="true"
+          Breakpoint="Breakpoint.Sm">
+    <HeaderContent>
+        <MudTh>@L["Col_Name"]</MudTh>
+        <MudTh>@L["Col_RevenueAccounts"]</MudTh>
+        <MudTh>@L["Col_CogsAccounts"]</MudTh>
+        <MudTh Style="width:130px">@L["Col_MarginThreshold"]</MudTh>
+        <MudTh Style="width:130px">@L["Col_OpExAllocationPct"]</MudTh>
+        <MudTh Style="width:70px">@L["Col_Active"]</MudTh>
+        <MudTh Style="width:80px">@L["Col_Actions"]</MudTh>
+    </HeaderContent>
+    <RowTemplate>
+        <MudTd DataLabel="@L["Col_Name"]">
+            @if (!context.IsActive)
+            {
+                <MudText Typo="Typo.body2" Style="text-decoration:line-through;opacity:0.6">
+                    @context.Name
+                </MudText>
+                @if (!string.IsNullOrEmpty(context.Description))
+                {
+                    <MudText Typo="Typo.caption" Style="opacity:0.5">@context.Description</MudText>
+                }
+            }
+            else
+            {
+                <MudText Typo="Typo.body2">@context.Name</MudText>
+                @if (!string.IsNullOrEmpty(context.Description))
+                {
+                    <MudText Typo="Typo.caption" Color="Color.Secondary">@context.Description</MudText>
+                }
+            }
+        </MudTd>
+        <MudTd DataLabel="@L["Col_RevenueAccounts"]">
+            <MudText Typo="Typo.body2" Color="Color.Secondary">
+                @(context.RevenueAccounts.Count == 0
+                    ? "—"
+                    : string.Join(", ", context.RevenueAccounts.Select(a => a.AccountCode)))
+            </MudText>
+        </MudTd>
+        <MudTd DataLabel="@L["Col_CogsAccounts"]">
+            <MudText Typo="Typo.body2" Color="Color.Secondary">
+                @(context.CogsAccounts.Count == 0
+                    ? "—"
+                    : string.Join(", ", context.CogsAccounts.Select(a => a.AccountCode)))
+            </MudText>
+        </MudTd>
+        <MudTd DataLabel="@L["Col_MarginThreshold"]">
+            @if (context.MarginAlertThreshold.HasValue)
+            {
+                <MudText Typo="Typo.body2">@context.MarginAlertThreshold.Value.ToString("N1") %</MudText>
+            }
+            else
+            {
+                <MudText Typo="Typo.body2" Color="Color.Secondary">—</MudText>
+            }
+        </MudTd>
+        <MudTd DataLabel="@L["Col_OpExAllocationPct"]">
+            @if (context.OpExAllocationPct.HasValue)
+            {
+                <MudText Typo="Typo.body2">@context.OpExAllocationPct.Value.ToString("N1") %</MudText>
+            }
+            else
+            {
+                <MudText Typo="Typo.body2" Color="Color.Secondary">—</MudText>
+            }
+        </MudTd>
+        <MudTd DataLabel="@L["Col_Active"]">
+            @if (context.IsActive)
+            {
+                <MudIcon Icon="@Icons.Material.Filled.CheckCircle" Color="Color.Success" Size="Size.Small" />
+            }
+            else
+            {
+                <MudIcon Icon="@Icons.Material.Filled.Cancel" Color="Color.Default" Size="Size.Small" />
+            }
+        </MudTd>
+        <MudTd @onclick:stopPropagation="true">
+            <MudIconButton Icon="@Icons.Material.Filled.Edit" Size="Size.Small"
+                           title="@L["Edit"]"
+                           OnClick="@(() => OpenEditDialog(context))" />
+        </MudTd>
+    </RowTemplate>
+    <NoRecordsContent>
+        <MudStack AlignItems="AlignItems.Center" Class="pa-6" Spacing="2">
+            <MudIcon Icon="@Icons.Material.Filled.TrendingUp" Size="Size.Large" Color="Color.Secondary" />
+            <MudText Typo="Typo.subtitle1">@L["Empty_Title"]</MudText>
+            <MudText Typo="Typo.body2" Color="Color.Secondary">@L["Empty_Body"]</MudText>
+        </MudStack>
+    </NoRecordsContent>
+</MudTable>
+
+@code {
+    private IReadOnlyList<ProductLineDto> _lines    = [];
+    private IReadOnlyList<Account>        _accounts = [];
+    private string _search = "";
+
+    private IEnumerable<ProductLineDto> _filtered =>
+        string.IsNullOrWhiteSpace(_search)
+            ? _lines
+            : _lines.Where(p =>
+                p.Name.Contains(_search, StringComparison.OrdinalIgnoreCase) ||
+                (p.Description ?? "").Contains(_search, StringComparison.OrdinalIgnoreCase));
+
+    protected override async Task OnInitializedAsync()
+    {
+        var t1 = ProductLineService.GetAllAsync(CurrentUser.TenantId);
+        var t2 = AccountService.GetAllAsync(CurrentUser.TenantId);
+        await Task.WhenAll(t1, t2);
+        _lines    = t1.Result;
+        _accounts = t2.Result;
+    }
+
+    private async Task OpenCreateDialog()
+    {
+        var parameters = new DialogParameters<ProductLineFormDialog>
+        {
+            { x => x.AllAccounts, _accounts.ToList() }
+        };
+        var dialog = await DialogService.ShowAsync<ProductLineFormDialog>(L["CreateTitle"], parameters);
+        var result = await dialog.Result;
+        if (result is { Canceled: false })
+            _lines = await ProductLineService.GetAllAsync(CurrentUser.TenantId);
+    }
+
+    private async Task OpenEditDialog(ProductLineDto line)
+    {
+        var parameters = new DialogParameters<ProductLineFormDialog>
+        {
+            { x => x.ProductLine, line },
+            { x => x.AllAccounts, _accounts.ToList() }
+        };
+        var dialog = await DialogService.ShowAsync<ProductLineFormDialog>(L["EditTitle"], parameters);
+        var result = await dialog.Result;
+        if (result is { Canceled: false })
+            _lines = await ProductLineService.GetAllAsync(CurrentUser.TenantId);
+    }
+}

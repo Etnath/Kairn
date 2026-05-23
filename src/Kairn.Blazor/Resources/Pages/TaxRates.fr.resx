@@ -1,0 +1,38 @@
+<?xml version="1.0" encoding="utf-8"?>
+<root>
+  <resheader name="resmimetype"><value>text/microsoft-resx</value></resheader>
+  <resheader name="version"><value>2.0</value></resheader>
+  <data name="Title" xml:space="preserve"><value>Taux de TVA</value></data>
+  <data name="NewRate" xml:space="preserve"><value>Nouveau taux</value></data>
+  <data name="CreateTitle" xml:space="preserve"><value>Créer un taux de TVA</value></data>
+  <data name="EditTitle" xml:space="preserve"><value>Modifier le taux de TVA</value></data>
+  <data name="Col_Name" xml:space="preserve"><value>Nom</value></data>
+  <data name="Col_Rate" xml:space="preserve"><value>Taux (%)</value></data>
+  <data name="Col_Category" xml:space="preserve"><value>Catégorie</value></data>
+  <data name="Col_Default" xml:space="preserve"><value>Défaut</value></data>
+  <data name="Col_ValidFrom" xml:space="preserve"><value>Valide du</value></data>
+  <data name="Col_ValidTo" xml:space="preserve"><value>Valide au</value></data>
+  <data name="Col_Active" xml:space="preserve"><value>Actif</value></data>
+  <data name="Col_Actions" xml:space="preserve"><value>Actions</value></data>
+  <data name="Field_Name" xml:space="preserve"><value>Nom</value></data>
+  <data name="Field_Rate" xml:space="preserve"><value>Taux (%)</value></data>
+  <data name="Field_Category" xml:space="preserve"><value>Catégorie</value></data>
+  <data name="Field_IsDefault" xml:space="preserve"><value>Taux par défaut pour cette catégorie</value></data>
+  <data name="Field_ValidFrom" xml:space="preserve"><value>Valide à partir du</value></data>
+  <data name="Field_ValidTo" xml:space="preserve"><value>Valide jusqu'au (vide = indéfini)</value></data>
+  <data name="Cat_Standard" xml:space="preserve"><value>Normal</value></data>
+  <data name="Cat_Intermediate" xml:space="preserve"><value>Intermédiaire</value></data>
+  <data name="Cat_Reduced" xml:space="preserve"><value>Réduit</value></data>
+  <data name="Cat_SuperReduced" xml:space="preserve"><value>Super-réduit</value></data>
+  <data name="Cat_Exempt" xml:space="preserve"><value>Exonéré</value></data>
+  <data name="Indefinite" xml:space="preserve"><value>Indéfini</value></data>
+  <data name="Locked_Tooltip" xml:space="preserve"><value>Ce taux a été appliqué à une transaction validée et ne peut pas être modifié.</value></data>
+  <data name="Activate" xml:space="preserve"><value>Activer</value></data>
+  <data name="Deactivate" xml:space="preserve"><value>Désactiver</value></data>
+  <data name="Edit" xml:space="preserve"><value>Modifier</value></data>
+  <data name="Save" xml:space="preserve"><value>Enregistrer</value></data>
+  <data name="Cancel" xml:space="preserve"><value>Annuler</value></data>
+  <data name="Empty_Title" xml:space="preserve"><value>Aucun taux de TVA configuré</value></data>
+  <data name="Empty_Body" xml:space="preserve"><value>Créez votre premier taux de TVA pour l'appliquer aux factures et achats.</value></data>
+  <data name="DefaultUnset_Notice" xml:space="preserve"><value>En définissant ce taux comme défaut, le taux par défaut actuel de cette catégorie sera désélectionné.</value></data>
+</root>

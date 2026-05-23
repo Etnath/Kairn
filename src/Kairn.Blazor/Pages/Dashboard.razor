@@ -12,6 +12,7 @@
 @inject IFixedAssetService FixedAssetService
 @inject IDashboardSettingsService DashboardSettingsService
 @inject IUserDashboardPreferencesService PreferencesService
+@inject IMarginAlertService MarginAlertService
 @inject ICurrentUserContext CurrentUser
 @inject IState<DashboardState> KpiState
 @inject IDispatcher Dispatcher
@@ -286,7 +287,12 @@ else if (KpiState.Value.Charts is { } charts)
 }
 
 <MudDivider Class="my-4" />
-<MudText Typo="Typo.h6" Class="mb-3">@L["Alerts_Title"]</MudText>
+<MudStack Row="true" AlignItems="AlignItems.Center" Justify="Justify.SpaceBetween" Class="mb-3">
+    <MudText Typo="Typo.h6">@L["Alerts_Title"]</MudText>
+    <MudIconButton Icon="@Icons.Material.Filled.Refresh" Size="Size.Small"
+                   title="@L["Alert_CheckNow"]" OnClick="CheckMarginAlertsAsync"
+                   Disabled="_alertsLoading" />
+</MudStack>
 
 @if (_alertsLoading)
 {
@@ -300,7 +306,7 @@ else
 {
     var cashBalance  = KpiState.Value.Kpis?.CashBalance.Current ?? 0m;
     var cashLow      = cashBalance < _cashAlertThreshold;
-    var allClear     = _overdueCount == 0 && _billsDueSoonCount == 0 && !cashLow;
+    var allClear     = _overdueCount == 0 && _billsDueSoonCount == 0 && !cashLow && _marginAlerts.Count == 0;
 
     <MudGrid>
         @if (allClear)
@@ -376,6 +382,21 @@ else
                                TextColor="#1D4D33" />
                 }
             </MudItem>
+            @foreach (var alert in _marginAlerts)
+            {
+                var capturedId = alert.Id;
+                <MudItem xs="12" md="6">
+                    <AlertCard Title="@L["Alert_MarginBelow_Title"]"
+                               Body="@string.Format(L["Alert_MarginBelow_Body"].Value, alert.ProductLineName, alert.MarginPct.ToString("0.0"), alert.ThresholdPct.ToString("0.0"))"
+                               Icon="@Icons.Material.Filled.TrendingDown"
+                               Background="#FAECE8"
+                               IconColor="#7E2A14"
+                               TextColor="#7E2A14"
+                               Href="/margin"
+                               LinkText="@L["Alert_MarginBelow_Link"]"
+                               OnDismiss="@(() => DismissMarginAlertAsync(capturedId))" />
+                </MudItem>
+            }
         }
     </MudGrid>
 }
@@ -390,6 +411,7 @@ else
     private int     _pendingExpenseCount;
     private int     _deprecFailureCount;
     private decimal _cashAlertThreshold = 5_000m;
+    private List<MarginAlertDto> _marginAlerts = [];
     private bool    _alertsLoading = true;
     private Timer?  _refreshTimer;
 
@@ -498,12 +520,14 @@ else
         var t3 = BillService.GetPendingApprovalCountAsync(CurrentUser.TenantId);
         var t4 = ExpenseReportService.GetPendingApprovalCountAsync(CurrentUser.TenantId);
         var t5 = FixedAssetService.GetRecentFailureCountAsync(CurrentUser.TenantId);
-        await Task.WhenAll(t1, t2, t3, t4, t5);
+        var t6 = MarginAlertService.GetActiveAsync(CurrentUser.TenantId);
+        await Task.WhenAll(t1, t2, t3, t4, t5, t6);
         (_overdueCount, _overdueTotal)           = t1.Result;
         (_billsDueSoonCount, _billsDueSoonTotal)  = t2.Result;
         _pendingApprovalCount = t3.Result;
         _pendingExpenseCount  = t4.Result;
         _deprecFailureCount   = t5.Result;
+        _marginAlerts         = [.. t6.Result];
         _alertsLoading = false;
     }
 
@@ -511,6 +535,21 @@ else
     {
         Dispatcher.Dispatch(new LoadDashboardKpisAction());
         await LoadAlertDataAsync();
+        StateHasChanged();
+    }
+
+    private async Task DismissMarginAlertAsync(Guid alertId)
+    {
+        await MarginAlertService.DismissAsync(alertId, CurrentUser.UserId);
+        _marginAlerts = _marginAlerts.Where(a => a.Id != alertId).ToList();
+        StateHasChanged();
+    }
+
+    private async Task CheckMarginAlertsAsync()
+    {
+        var month = new DateOnly(DateTime.Today.Year, DateTime.Today.Month, 1);
+        await MarginAlertService.RunCheckAsync(CurrentUser.TenantId, month);
+        _marginAlerts = [.. await MarginAlertService.GetActiveAsync(CurrentUser.TenantId)];
         StateHasChanged();
     }
 

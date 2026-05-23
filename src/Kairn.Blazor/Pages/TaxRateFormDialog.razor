@@ -1,0 +1,156 @@
+@inject ITaxRateService TaxRateService
+@inject ICurrentUserContext CurrentUser
+@inject IStringLocalizer<TaxRates> L
+
+<MudDialog>
+    <DialogContent>
+        @if (_isLocked)
+        {
+            <MudAlert Severity="Severity.Info" Dense="true" Class="mb-3"
+                      Icon="@Icons.Material.Filled.Lock">
+                @L["Locked_Tooltip"]
+            </MudAlert>
+        }
+        <MudForm @ref="_form" @bind-IsValid="_isValid">
+            <MudStack Spacing="3">
+                <MudTextField @bind-Value="_name" Label="@L["Field_Name"]"
+                              Required="true" RequiredError="@L["Field_Name"].Value"
+                              Immediate="true" />
+
+                <MudNumericField T="decimal" @bind-Value="_rate" Label="@L["Field_Rate"]"
+                                 Min="0m" Max="100m" Format="N2" Required="true"
+                                 HideSpinButtons="true" Disabled="@_isLocked" />
+
+                <MudSelect T="TaxCategory" @bind-Value="_category" Label="@L["Field_Category"]"
+                           Required="true" Disabled="@_isLocked">
+                    @foreach (TaxCategory cat in Enum.GetValues<TaxCategory>())
+                    {
+                        <MudSelectItem T="TaxCategory" Value="@cat">@CategoryLabel(cat)</MudSelectItem>
+                    }
+                </MudSelect>
+
+                <MudCheckBox T="bool" @bind-Value="_isDefault" Label="@L["Field_IsDefault"]" />
+                @if (_isDefault && HasDefaultConflict)
+                {
+                    <MudText Typo="Typo.caption" Color="Color.Warning">
+                        @L["DefaultUnset_Notice"]
+                    </MudText>
+                }
+
+                <MudDatePicker @bind-Date="_validFromDate" Label="@L["Field_ValidFrom"]"
+                               DateFormat="dd/MM/yyyy" Editable="true" Required="true" />
+
+                <MudDatePicker @bind-Date="_validToDate" Label="@L["Field_ValidTo"]"
+                               DateFormat="dd/MM/yyyy" Editable="true" Clearable="true" />
+
+                @if (_errorMessage is not null)
+                {
+                    <MudAlert Severity="Severity.Error" Dense="true">@_errorMessage</MudAlert>
+                }
+            </MudStack>
+        </MudForm>
+    </DialogContent>
+    <DialogActions>
+        <MudButton OnClick="Cancel">@L["Cancel"]</MudButton>
+        <MudButton Color="Color.Primary" Variant="Variant.Filled"
+                   OnClick="Submit" Disabled="@_saving">
+            @if (_saving)
+            {
+                <MudProgressCircular Size="Size.Small" Indeterminate="true" Class="mr-2" />
+            }
+            @L["Save"]
+        </MudButton>
+    </DialogActions>
+</MudDialog>
+
+@code {
+    [CascadingParameter] private IMudDialogInstance MudDialog { get; set; } = null!;
+    [Parameter] public TaxRateDto? Rate { get; set; }
+    [Parameter] public IReadOnlyList<TaxRateDto> AllRates { get; set; } = [];
+
+    private MudForm  _form = null!;
+    private bool     _isValid;
+    private bool     _saving;
+    private bool     _isEdit;
+    private bool     _isLocked;
+    private string?  _errorMessage;
+
+    private string      _name          = "";
+    private decimal     _rate          = 0m;
+    private TaxCategory _category      = TaxCategory.Standard;
+    private bool        _isDefault     = false;
+    private DateTime?   _validFromDate;
+    private DateTime?   _validToDate;
+
+    private bool HasDefaultConflict =>
+        AllRates.Any(r => r.Category == _category && r.IsDefault &&
+                          r.Id != (Rate?.Id ?? Guid.Empty));
+
+    protected override async Task OnInitializedAsync()
+    {
+        _isEdit = Rate is not null;
+
+        if (_isEdit)
+        {
+            _name          = Rate!.Name;
+            _rate          = Rate.Rate;
+            _category      = Rate.Category;
+            _isDefault     = Rate.IsDefault;
+            _validFromDate = Rate.ValidFrom.ToDateTime(TimeOnly.MinValue);
+            _validToDate   = Rate.ValidTo?.ToDateTime(TimeOnly.MinValue);
+            _isLocked      = await TaxRateService.IsUsedInPostedTransactionAsync(Rate.Id);
+        }
+        else
+        {
+            _validFromDate = DateTime.Today;
+        }
+    }
+
+    private string CategoryLabel(TaxCategory cat) => cat switch
+    {
+        TaxCategory.Standard     => L["Cat_Standard"],
+        TaxCategory.Intermediate => L["Cat_Intermediate"],
+        TaxCategory.Reduced      => L["Cat_Reduced"],
+        TaxCategory.SuperReduced => L["Cat_SuperReduced"],
+        TaxCategory.Exempt       => L["Cat_Exempt"],
+        _                        => cat.ToString()
+    };
+
+    private void Cancel() => MudDialog.Cancel();
+
+    private async Task Submit()
+    {
+        await _form.Validate();
+        if (!_isValid) return;
+        if (!_validFromDate.HasValue) return;
+
+        _saving = true;
+        _errorMessage = null;
+
+        var validFrom = DateOnly.FromDateTime(_validFromDate.Value);
+        var validTo   = _validToDate.HasValue
+            ? DateOnly.FromDateTime(_validToDate.Value)
+            : (DateOnly?)null;
+
+        Result<TaxRateDto> result;
+        if (_isEdit)
+        {
+            result = await TaxRateService.UpdateAsync(new UpdateTaxRateCommand(
+                Rate!.Id, CurrentUser.TenantId,
+                _name, _rate, _category, _isDefault, validFrom, validTo));
+        }
+        else
+        {
+            result = await TaxRateService.CreateAsync(new CreateTaxRateCommand(
+                CurrentUser.TenantId,
+                _name, _rate, _category, _isDefault, validFrom, validTo));
+        }
+
+        _saving = false;
+
+        if (result.IsSuccess)
+            MudDialog.Close(DialogResult.Ok(result.Value));
+        else
+            _errorMessage = result.Error;
+    }
+}

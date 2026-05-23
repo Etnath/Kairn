@@ -10,7 +10,8 @@ public record BillLineDto(
     decimal TaxRate,
     Guid ExpenseAccountId,
     string ExpenseAccountName,
-    int SortOrder)
+    int SortOrder,
+    Guid? TaxRateId = null)
 {
     public decimal NetAmount => Quantity * UnitPrice;
     public decimal TaxAmount => NetAmount * TaxRate / 100m;
@@ -40,12 +41,13 @@ public record BillDto(
 }
 
 public record BillLineInput(
-    string Description,
+    string  Description,
     decimal Quantity,
     decimal UnitPrice,
     decimal TaxRate,
-    Guid ExpenseAccountId,
-    int SortOrder = 0);
+    Guid    ExpenseAccountId,
+    int     SortOrder  = 0,
+    Guid?   TaxRateId  = null);
 
 public record BillQuery(
     Guid TenantId,

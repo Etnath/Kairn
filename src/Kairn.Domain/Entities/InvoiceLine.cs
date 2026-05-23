@@ -8,8 +8,9 @@ public class InvoiceLine
     public decimal Quantity { get; set; } = 1m;
     public decimal UnitPrice { get; set; }
     public decimal DiscountPct { get; set; }   // 0–100
-    public decimal TaxRate { get; set; }        // 0–100
-    public int SortOrder { get; set; }
+    public decimal TaxRate    { get; set; }       // 0–100
+    public Guid?   TaxRateId  { get; set; }
+    public int     SortOrder  { get; set; }
 
     public Invoice Invoice { get; set; } = null!;
 

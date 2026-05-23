@@ -13,4 +13,8 @@
   <data name="AP.Description" xml:space="preserve"><value>Configurer le workflow d'approbation des factures</value></data>
   <data name="Dashboard.Title" xml:space="preserve"><value>Paramètres du tableau de bord</value></data>
   <data name="Dashboard.Description" xml:space="preserve"><value>Configurer les seuils d'alerte</value></data>
+  <data name="ProductLines.Title" xml:space="preserve"><value>Lignes de produits</value></data>
+  <data name="ProductLines.Description" xml:space="preserve"><value>Définir les catégories produits/services pour l'analyse des marges</value></data>
+  <data name="TaxRates.Title" xml:space="preserve"><value>Taux de TVA</value></data>
+  <data name="TaxRates.Description" xml:space="preserve"><value>Configurer les taux de TVA par catégorie avec dates d'effet</value></data>
 </root>

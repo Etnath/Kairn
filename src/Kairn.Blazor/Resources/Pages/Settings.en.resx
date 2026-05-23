@@ -13,4 +13,8 @@
   <data name="AP.Description" xml:space="preserve"><value>Configure bill approval workflow</value></data>
   <data name="Dashboard.Title" xml:space="preserve"><value>Dashboard Settings</value></data>
   <data name="Dashboard.Description" xml:space="preserve"><value>Configure alert thresholds</value></data>
+  <data name="ProductLines.Title" xml:space="preserve"><value>Product Lines</value></data>
+  <data name="ProductLines.Description" xml:space="preserve"><value>Define product/service categories for margin analysis</value></data>
+  <data name="TaxRates.Title" xml:space="preserve"><value>Tax Rates</value></data>
+  <data name="TaxRates.Description" xml:space="preserve"><value>Configure VAT rates by category with effective date ranges</value></data>
 </root>

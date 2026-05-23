@@ -5,6 +5,7 @@
 @inject IInvoiceService InvoiceService
 @inject ICustomerService CustomerService
 @inject IAccountService AccountService
+@inject ITaxRateService TaxRateService
 @inject ICurrentUserContext CurrentUser
 @inject NavigationManager Navigation
 
@@ -160,11 +161,15 @@ else
                                                  HideSpinButtons="true" Margin="Margin.Dense" />
                             </MudTd>
                             <MudTd>
-                                <MudSelect T="decimal" @bind-Value="context.TaxRate"
-                                           Dense="true" Margin="Margin.Dense">
-                                    @foreach (var rate in TaxRates)
+                                <MudSelect T="TaxRateDto?" Value="@GetSelectedRate(context)"
+                                           ValueChanged="@(r => SetRate(context, r))"
+                                           Dense="true" Margin="Margin.Dense"
+                                           ToStringFunc="@(r => r is null ? "" : $"{r.Name} ({r.Rate:N1}%)")">
+                                    @foreach (var r in _taxRates)
                                     {
-                                        <MudSelectItem T="decimal" Value="@rate">@rate.ToString("N1")%</MudSelectItem>
+                                        <MudSelectItem T="TaxRateDto?" Value="@((TaxRateDto?)r)">
+                                            @r.Name (@r.Rate.ToString("N1")%)
+                                        </MudSelectItem>
                                     }
                                 </MudSelect>
                             </MudTd>
@@ -215,7 +220,7 @@ else
 @code {
     [Parameter] public Guid? Id { get; set; }
 
-    private static readonly decimal[] TaxRates = [0m, 2.1m, 5.5m, 10m, 20m];
+    private IReadOnlyList<TaxRateDto> _taxRates = [];
 
     private MudForm _form = null!;
     private bool _isValid;
@@ -244,8 +249,13 @@ else
 
     protected override async Task OnInitializedAsync()
     {
-        _customers = await CustomerService.GetAllAsync(CurrentUser.TenantId);
-        var accounts = await AccountService.GetAllAsync(CurrentUser.TenantId);
+        var t1 = CustomerService.GetAllAsync(CurrentUser.TenantId);
+        var t2 = AccountService.GetAllAsync(CurrentUser.TenantId);
+        var t3 = TaxRateService.GetActiveAsync(CurrentUser.TenantId);
+        await Task.WhenAll(t1, t2, t3);
+        _customers = t1.Result;
+        _taxRates  = t3.Result;
+        var accounts = t2.Result;
         _revenueAccounts = accounts
             .Where(a => a.Type == Kairn.Domain.Entities.AccountType.Revenue && a.IsActive)
             .OrderBy(a => a.Code)
@@ -277,6 +287,7 @@ else
                 UnitPrice = l.UnitPrice,
                 DiscountPct = l.DiscountPct,
                 TaxRate = l.TaxRate,
+                TaxRateId = l.TaxRateId,
             }).ToList();
         }
         else
@@ -316,7 +327,14 @@ else
             _dueDate = date.Value.AddDays(_selectedCustomer.PaymentTermsDays);
     }
 
-    private void AddLine() => _lines.Add(new LineItemModel());
+    private void AddLine()
+    {
+        var line = new LineItemModel();
+        var defaultRate = _taxRates.FirstOrDefault(r => r.IsDefault && r.Category == TaxCategory.Standard);
+        if (defaultRate is not null)
+            SetRate(line, defaultRate);
+        _lines.Add(line);
+    }
     private void RemoveLine(LineItemModel line) => _lines.Remove(line);
 
     private async Task Save()
@@ -330,7 +348,7 @@ else
         _errorMessage = null;
 
         var lines = _lines.Select((l, i) => new InvoiceLineInput(
-            l.Description, l.Quantity, l.UnitPrice, l.DiscountPct, l.TaxRate, i)).ToList();
+            l.Description, l.Quantity, l.UnitPrice, l.DiscountPct, l.TaxRate, i, l.TaxRateId)).ToList();
 
         Result<InvoiceDto> result;
         if (_isEdit)
@@ -357,19 +375,29 @@ else
             _errorMessage = result.Error;
     }
 
+    private TaxRateDto? GetSelectedRate(LineItemModel line)
+        => _taxRates.FirstOrDefault(r => r.Id == line.TaxRateId);
+
+    private void SetRate(LineItemModel line, TaxRateDto? rate)
+    {
+        line.TaxRateId = rate?.Id;
+        line.TaxRate   = rate?.Rate ?? 0m;
+    }
+
     private class LineItemModel
     {
-        public Guid Id { get; set; } = Guid.NewGuid();
-        public string Description { get; set; } = "";
-        public decimal Quantity { get; set; } = 1m;
-        public decimal UnitPrice { get; set; }
+        public Guid    Id          { get; set; } = Guid.NewGuid();
+        public string  Description { get; set; } = "";
+        public decimal Quantity    { get; set; } = 1m;
+        public decimal UnitPrice   { get; set; }
         public decimal DiscountPct { get; set; }
-        public decimal TaxRate { get; set; }
+        public decimal TaxRate     { get; set; }
+        public Guid?   TaxRateId   { get; set; }
 
-        public decimal GrossAmount => Quantity * UnitPrice;
+        public decimal GrossAmount  => Quantity * UnitPrice;
         public decimal DiscountAmount => GrossAmount * DiscountPct / 100m;
-        public decimal NetAmount => GrossAmount - DiscountAmount;
-        public decimal TaxAmount => NetAmount * TaxRate / 100m;
-        public decimal LineTotal => NetAmount + TaxAmount;
+        public decimal NetAmount    => GrossAmount - DiscountAmount;
+        public decimal TaxAmount    => NetAmount * TaxRate / 100m;
+        public decimal LineTotal    => NetAmount + TaxAmount;
     }
 }

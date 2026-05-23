@@ -76,4 +76,40 @@
             </MudCard>
         </MudItem>
     </AuthorizeView>
+    <AuthorizeView Roles="Admin">
+        <MudItem xs="12" sm="6" md="4">
+            <MudCard>
+                <MudCardContent>
+                    <MudStack Row="true" AlignItems="AlignItems.Center" Spacing="2" Class="mb-2">
+                        <MudIcon Icon="@Icons.Material.Filled.TrendingUp" Color="Color.Primary" />
+                        <MudText Typo="Typo.h6">@L["ProductLines.Title"]</MudText>
+                    </MudStack>
+                    <MudText Typo="Typo.body2" Color="Color.Secondary">@L["ProductLines.Description"]</MudText>
+                </MudCardContent>
+                <MudCardActions>
+                    <MudButton Href="/margin/product-lines" Variant="Variant.Text" Color="Color.Primary">
+                        @L["Open"]
+                    </MudButton>
+                </MudCardActions>
+            </MudCard>
+        </MudItem>
+    </AuthorizeView>
+    <AuthorizeView Roles="Admin">
+        <MudItem xs="12" sm="6" md="4">
+            <MudCard>
+                <MudCardContent>
+                    <MudStack Row="true" AlignItems="AlignItems.Center" Spacing="2" Class="mb-2">
+                        <MudIcon Icon="@Icons.Material.Filled.Percent" Color="Color.Primary" />
+                        <MudText Typo="Typo.h6">@L["TaxRates.Title"]</MudText>
+                    </MudStack>
+                    <MudText Typo="Typo.body2" Color="Color.Secondary">@L["TaxRates.Description"]</MudText>
+                </MudCardContent>
+                <MudCardActions>
+                    <MudButton Href="/settings/tax-rates" Variant="Variant.Text" Color="Color.Primary">
+                        @L["Open"]
+                    </MudButton>
+                </MudCardActions>
+            </MudCard>
+        </MudItem>
+    </AuthorizeView>
 </MudGrid>

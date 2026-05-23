@@ -5,6 +5,7 @@
 @inject IBillService BillService
 @inject IVendorService VendorService
 @inject IAccountService AccountService
+@inject ITaxRateService TaxRateService
 @inject ICurrentUserContext CurrentUser
 @inject NavigationManager Navigation
 
@@ -173,11 +174,15 @@ else
                                                  HideSpinButtons="true" Margin="Margin.Dense" />
                             </MudTd>
                             <MudTd>
-                                <MudSelect T="decimal" @bind-Value="context.TaxRate"
-                                           Dense="true" Margin="Margin.Dense">
-                                    @foreach (var rate in TaxRates)
+                                <MudSelect T="TaxRateDto?" Value="@GetSelectedRate(context)"
+                                           ValueChanged="@(r => SetRate(context, r))"
+                                           Dense="true" Margin="Margin.Dense"
+                                           ToStringFunc="@(r => r is null ? "" : $"{r.Name} ({r.Rate:N1}%)")">
+                                    @foreach (var r in _taxRates)
                                     {
-                                        <MudSelectItem T="decimal" Value="@rate">@rate.ToString("N1")%</MudSelectItem>
+                                        <MudSelectItem T="TaxRateDto?" Value="@((TaxRateDto?)r)">
+                                            @r.Name (@r.Rate.ToString("N1")%)
+                                        </MudSelectItem>
                                     }
                                 </MudSelect>
                             </MudTd>
@@ -236,7 +241,7 @@ else
 @code {
     [Parameter] public Guid? Id { get; set; }
 
-    private static readonly decimal[] TaxRates = [0m, 2.1m, 5.5m, 10m, 20m];
+    private IReadOnlyList<TaxRateDto> _taxRates = [];
 
     private MudForm _form = null!;
     private bool _isValid;
@@ -267,8 +272,13 @@ else
 
     protected override async Task OnInitializedAsync()
     {
-        _vendors = await VendorService.GetAllAsync(CurrentUser.TenantId);
-        var accounts = await AccountService.GetAllAsync(CurrentUser.TenantId);
+        var t1 = VendorService.GetAllAsync(CurrentUser.TenantId);
+        var t2 = AccountService.GetAllAsync(CurrentUser.TenantId);
+        var t3 = TaxRateService.GetActiveAsync(CurrentUser.TenantId);
+        await Task.WhenAll(t1, t2, t3);
+        _vendors  = t1.Result;
+        _taxRates = t3.Result;
+        var accounts = t2.Result;
         _expenseAccounts = accounts
             .Where(a => a.Type == Kairn.Domain.Entities.AccountType.Expense && a.IsActive)
             .OrderBy(a => a.Code)
@@ -305,6 +315,7 @@ else
                 Quantity = l.Quantity,
                 UnitPrice = l.UnitPrice,
                 TaxRate = l.TaxRate,
+                TaxRateId = l.TaxRateId,
                 ExpenseAccountId = l.ExpenseAccountId,
             }).ToList();
         }
@@ -348,8 +359,14 @@ else
 
     private void AddLine()
     {
-        var defaultAccount = _selectedVendor?.DefaultExpenseAccountId ?? Guid.Empty;
-        _lines.Add(new BillLineModel { ExpenseAccountId = defaultAccount });
+        var line = new BillLineModel
+        {
+            ExpenseAccountId = _selectedVendor?.DefaultExpenseAccountId ?? Guid.Empty
+        };
+        var defaultRate = _taxRates.FirstOrDefault(r => r.IsDefault && r.Category == TaxCategory.Standard);
+        if (defaultRate is not null)
+            SetRate(line, defaultRate);
+        _lines.Add(line);
     }
 
     private void RemoveLine(BillLineModel line) => _lines.Remove(line);
@@ -391,7 +408,7 @@ else
         }
 
         var lines = _lines.Select((l, i) => new BillLineInput(
-            l.Description, l.Quantity, l.UnitPrice, l.TaxRate, l.ExpenseAccountId, i)).ToList();
+            l.Description, l.Quantity, l.UnitPrice, l.TaxRate, l.ExpenseAccountId, i, l.TaxRateId)).ToList();
 
         Result<BillDto> result;
         if (_isEdit)
@@ -425,14 +442,24 @@ else
             _errorMessage = result.Error;
     }
 
+    private TaxRateDto? GetSelectedRate(BillLineModel line)
+        => _taxRates.FirstOrDefault(r => r.Id == line.TaxRateId);
+
+    private void SetRate(BillLineModel line, TaxRateDto? rate)
+    {
+        line.TaxRateId = rate?.Id;
+        line.TaxRate   = rate?.Rate ?? 0m;
+    }
+
     private class BillLineModel
     {
-        public Guid Id { get; set; } = Guid.NewGuid();
-        public string Description { get; set; } = "";
-        public decimal Quantity { get; set; } = 1m;
-        public decimal UnitPrice { get; set; }
-        public decimal TaxRate { get; set; }
-        public Guid ExpenseAccountId { get; set; }
+        public Guid    Id               { get; set; } = Guid.NewGuid();
+        public string  Description      { get; set; } = "";
+        public decimal Quantity         { get; set; } = 1m;
+        public decimal UnitPrice        { get; set; }
+        public decimal TaxRate          { get; set; }
+        public Guid?   TaxRateId        { get; set; }
+        public Guid    ExpenseAccountId { get; set; }
 
         public decimal NetAmount => Quantity * UnitPrice;
         public decimal TaxAmount => NetAmount * TaxRate / 100m;

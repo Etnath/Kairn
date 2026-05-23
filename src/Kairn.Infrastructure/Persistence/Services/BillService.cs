@@ -124,7 +124,8 @@ public class BillService(AppDbContext db) : IBillService
                 Description = l.Description,
                 Quantity = l.Quantity,
                 UnitPrice = l.UnitPrice,
-                TaxRate = l.TaxRate,
+                TaxRate          = l.TaxRate,
+                TaxRateId        = l.TaxRateId,
                 ExpenseAccountId = l.ExpenseAccountId,
                 SortOrder = l.SortOrder == 0 ? i : l.SortOrder,
             });
@@ -191,7 +192,8 @@ public class BillService(AppDbContext db) : IBillService
                 Description = l.Description,
                 Quantity = l.Quantity,
                 UnitPrice = l.UnitPrice,
-                TaxRate = l.TaxRate,
+                TaxRate          = l.TaxRate,
+                TaxRateId        = l.TaxRateId,
                 ExpenseAccountId = l.ExpenseAccountId,
                 SortOrder = l.SortOrder == 0 ? i : l.SortOrder,
             });
@@ -520,7 +522,7 @@ public class BillService(AppDbContext db) : IBillService
             .OrderBy(l => l.SortOrder)
             .Select(l => new BillLineDto(
                 l.Id, l.Description, l.Quantity, l.UnitPrice, l.TaxRate,
-                l.ExpenseAccountId, l.ExpenseAccount?.Name ?? "", l.SortOrder))
+                l.ExpenseAccountId, l.ExpenseAccount?.Name ?? "", l.SortOrder, l.TaxRateId))
             .ToList();
 
         var subtotal = b.Lines.Sum(l => l.NetAmount);

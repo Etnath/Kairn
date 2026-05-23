@@ -45,4 +45,8 @@
   <data name="Customize_Save" xml:space="preserve"><value>Save</value></data>
   <data name="Customize_Cancel" xml:space="preserve"><value>Cancel</value></data>
   <data name="Customize_AtLeastOne" xml:space="preserve"><value>At least one widget must remain visible.</value></data>
+  <data name="Alert_MarginBelow_Title" xml:space="preserve"><value>Gross margin below threshold</value></data>
+  <data name="Alert_MarginBelow_Body" xml:space="preserve"><value>{0} gross margin is {1}% — below your threshold of {2}%</value></data>
+  <data name="Alert_MarginBelow_Link" xml:space="preserve"><value>View Margin Analysis</value></data>
+  <data name="Alert_CheckNow" xml:space="preserve"><value>Check now</value></data>
 </root>

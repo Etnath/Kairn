@@ -1,0 +1,35 @@
+<?xml version="1.0" encoding="utf-8"?>
+<root>
+  <resheader name="resmimetype"><value>text/microsoft-resx</value></resheader>
+  <resheader name="version"><value>2.0</value></resheader>
+  <data name="Title" xml:space="preserve"><value>Product Lines</value></data>
+  <data name="CreateTitle" xml:space="preserve"><value>New Product Line</value></data>
+  <data name="EditTitle" xml:space="preserve"><value>Edit Product Line</value></data>
+  <data name="NewProductLine" xml:space="preserve"><value>New Product Line</value></data>
+  <data name="Search" xml:space="preserve"><value>Search product lines…</value></data>
+  <data name="Col_Name" xml:space="preserve"><value>Name</value></data>
+  <data name="Col_Description" xml:space="preserve"><value>Description</value></data>
+  <data name="Col_RevenueAccounts" xml:space="preserve"><value>Revenue Accounts</value></data>
+  <data name="Col_CogsAccounts" xml:space="preserve"><value>COGS Accounts</value></data>
+  <data name="Col_MarginThreshold" xml:space="preserve"><value>Alert Threshold (%)</value></data>
+  <data name="Col_Active" xml:space="preserve"><value>Active</value></data>
+  <data name="Col_Actions" xml:space="preserve"><value>Actions</value></data>
+  <data name="Field_Name" xml:space="preserve"><value>Name</value></data>
+  <data name="Field_Description" xml:space="preserve"><value>Description</value></data>
+  <data name="Field_RevenueAccounts" xml:space="preserve"><value>Revenue Accounts</value></data>
+  <data name="Field_CogsAccounts" xml:space="preserve"><value>COGS Accounts</value></data>
+  <data name="Field_MarginThreshold" xml:space="preserve"><value>Margin Alert Threshold (%)</value></data>
+  <data name="Field_MarginThresholdHint" xml:space="preserve"><value>An alert fires when the gross margin falls below this percentage. Leave blank to disable.</value></data>
+  <data name="Field_OpExAllocationPct" xml:space="preserve"><value>OpEx Allocation (%)</value></data>
+  <data name="Field_OpExAllocationPctHint" xml:space="preserve"><value>Percentage of unallocated operating expenses assigned to this line (e.g. 40 = 40%). Leave blank for none.</value></data>
+  <data name="Col_OpExAllocationPct" xml:space="preserve"><value>OpEx Alloc. (%)</value></data>
+  <data name="Field_IsActive" xml:space="preserve"><value>Active</value></data>
+  <data name="InactiveNote" xml:space="preserve"><value>Inactive product lines are hidden from margin reports but their history is preserved.</value></data>
+  <data name="Err_DuplicateName" xml:space="preserve"><value>A product line with this name already exists.</value></data>
+  <data name="Err_Save" xml:space="preserve"><value>An error occurred. Please try again.</value></data>
+  <data name="Save" xml:space="preserve"><value>Save</value></data>
+  <data name="Cancel" xml:space="preserve"><value>Cancel</value></data>
+  <data name="Edit" xml:space="preserve"><value>Edit</value></data>
+  <data name="Empty_Title" xml:space="preserve"><value>No product lines defined yet.</value></data>
+  <data name="Empty_Body" xml:space="preserve"><value>Create your first product line to enable margin analysis reports.</value></data>
+</root>
