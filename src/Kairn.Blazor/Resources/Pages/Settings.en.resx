@@ -19,6 +19,8 @@
   <data name="TaxRates.Description" xml:space="preserve"><value>Configure VAT rates by category with effective date ranges</value></data>
   <data name="CompanyProfile.Title" xml:space="preserve"><value>Company Profile</value></data>
   <data name="CompanyProfile.Description" xml:space="preserve"><value>Legal identity, business status, and VAT franchise thresholds</value></data>
+  <data name="Team.Title" xml:space="preserve"><value>Team</value></data>
+  <data name="Team.Description" xml:space="preserve"><value>Manage members and their roles in this company</value></data>
   <data name="Banner_Status" xml:space="preserve"><value>Business status: </value></data>
   <data name="Banner_Standard" xml:space="preserve"><value>Standard (VAT registered)</value></data>
   <data name="Banner_AutoEntrepreneur" xml:space="preserve"><value>Auto-entrepreneur (franchise en base de TVA)</value></data>

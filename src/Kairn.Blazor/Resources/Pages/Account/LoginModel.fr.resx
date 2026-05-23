@@ -9,4 +9,5 @@
   <data name="Login.Submit" xml:space="preserve"><value>Se connecter</value></data>
   <data name="Login.InvalidCredentials" xml:space="preserve"><value>E-mail ou mot de passe incorrect.</value></data>
   <data name="Login.LockedOut" xml:space="preserve"><value>Votre compte a été verrouillé. Veuillez réessayer plus tard.</value></data>
+  <data name="Login.ForgotPassword" xml:space="preserve"><value>Mot de passe oublié ?</value></data>
 </root>

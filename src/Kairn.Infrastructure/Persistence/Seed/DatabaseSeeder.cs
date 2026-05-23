@@ -16,7 +16,10 @@ public static class DatabaseSeeder
         await SeedTaxRatesAsync(context);
 
         if (isDevelopment)
-            await SeedDevAdminAsync(userManager);
+        {
+            await SeedDevTenantAsync(context);
+            await SeedDevAdminAsync(context, userManager);
+        }
     }
 
     private static async Task SeedRolesAsync(RoleManager<IdentityRole> roleManager)
@@ -28,27 +31,63 @@ public static class DatabaseSeeder
         }
     }
 
-    private static async Task SeedDevAdminAsync(UserManager<ApplicationUser> userManager)
+    private static async Task SeedDevTenantAsync(AppDbContext context)
+    {
+        if (await context.Tenants.AnyAsync(t => t.Id == Guid.Empty))
+            return;
+
+        context.Tenants.Add(new Tenant
+        {
+            Id        = Guid.Empty,
+            Name      = "Kairn Demo",
+            CreatedAt = DateTimeOffset.UtcNow,
+        });
+        await context.SaveChangesAsync();
+    }
+
+    private static async Task SeedDevAdminAsync(AppDbContext context, UserManager<ApplicationUser> userManager)
     {
         const string email = "admin@kairn.local";
         const string password = "Admin1234!";
 
-        if (await userManager.FindByEmailAsync(email) is not null)
-            return;
-
-        var user = new ApplicationUser
+        var user = await userManager.FindByEmailAsync(email);
+        if (user is null)
         {
-            UserName = email,
-            Email = email,
-            EmailConfirmed = true,
-            DisplayName = "Admin",
-            TenantId = Guid.Empty,
-            PreferredLanguage = "fr",
-        };
+            user = new ApplicationUser
+            {
+                UserName         = email,
+                Email            = email,
+                EmailConfirmed   = true,
+                DisplayName      = "Admin",
+                ActiveTenantId   = Guid.Empty,
+                PreferredLanguage = "fr",
+            };
+            var result = await userManager.CreateAsync(user, password);
+            if (result.Succeeded)
+                await userManager.AddToRoleAsync(user, "Admin");
+        }
+        else if (user.ActiveTenantId is null)
+        {
+            // Back-fill for users created before F11-US1
+            user.ActiveTenantId = Guid.Empty;
+            await userManager.UpdateAsync(user);
+        }
 
-        var result = await userManager.CreateAsync(user, password);
-        if (result.Succeeded)
-            await userManager.AddToRoleAsync(user, "Admin");
+        // Ensure the admin is a member of the dev tenant
+        if (!await context.TenantMemberships.AnyAsync(m => m.UserId == user.Id && m.TenantId == Guid.Empty))
+        {
+            // Load the Tenant so EF can resolve the FK correctly
+            var devTenant = await context.Tenants.FindAsync(Guid.Empty)
+                            ?? throw new InvalidOperationException("Dev tenant not found.");
+            context.TenantMemberships.Add(new TenantMembership
+            {
+                Tenant   = devTenant,
+                UserId   = user.Id,
+                Role     = TenantRole.Owner,
+                JoinedAt = DateTimeOffset.UtcNow,
+            });
+            await context.SaveChangesAsync();
+        }
     }
 
     private static async Task SeedChartOfAccountsAsync(AppDbContext context)

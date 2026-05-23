@@ -16,8 +16,10 @@ public class TenantProfileConfiguration : IEntityTypeConfiguration<TenantProfile
         builder.Property(p => p.City).HasMaxLength(100);
         builder.Property(p => p.Country).HasMaxLength(100);
         builder.Property(p => p.LogoPath).HasMaxLength(500);
+        builder.Property(p => p.LegalForm).HasMaxLength(50);
         builder.Property(p => p.BusinessStatus).HasConversion<string>();
         builder.Property(p => p.ActivityType).HasConversion<string>();
+        builder.Property(p => p.VatFilingFrequency).HasConversion<string>();
         builder.ToTable("TenantProfiles");
     }
 }

@@ -63,9 +63,9 @@ public class LocalisationE2ETest : IAsyncLifetime
         await page.WaitForURLAsync(url => !url.Contains("/account/login"));
         await page.WaitForLoadStateAsync(LoadState.NetworkIdle);
 
-        // Blazor Server renders the nav via SignalR — wait for the nav link to appear
-        await page.WaitForSelectorAsync("text=Grand livre");
-        var navText = await page.Locator("nav").InnerTextAsync();
-        navText.Should().Contain("Grand livre");
+        // Blazor Server renders the nav via SignalR — wait for the ledger link in French
+        await page.WaitForSelectorAsync("a[href='/ledger']");
+        var linkText = await page.Locator("a[href='/ledger']").InnerTextAsync();
+        linkText.Trim().Should().Contain("Grand livre");
     }
 }

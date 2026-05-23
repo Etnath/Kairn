@@ -51,6 +51,11 @@
             <label for="password">@(L?["Login.Password"] ?? "Password")</label>
             <input id="password" name="Input.Password" type="password" autocomplete="current-password"
                    placeholder="••••••••" required />
+            <div style="text-align:right;margin-top:-0.5rem;margin-bottom:1rem;">
+                <a href="/account/forgot-password" style="font-size:0.8125rem;color:#4D7A9E;text-decoration:none;">
+                    @(L?["Login.ForgotPassword"] ?? "Forgot password?")
+                </a>
+            </div>
 
             <input type="hidden" name="ReturnUrl" value="@Model.ReturnUrl" />
             <button class="btn" type="submit">@(L?["Login.Submit"] ?? "Sign in")</button>

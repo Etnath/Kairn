@@ -2,6 +2,8 @@
 @implements IDisposable
 @inject ThemeService ThemeService
 @inject TenantProfileState ProfileState
+@inject ITenantMembershipService MembershipService
+@inject NavigationManager Navigation
 @inject IStringLocalizer<MainLayout> L
 
 <MudThemeProvider Theme="KairnTheme.Instance" IsDarkMode="ThemeService.IsDarkMode" />
@@ -14,7 +16,9 @@
         <MudAppBar Elevation="0" Dense="true">
             <MudIconButton Icon="@Icons.Material.Filled.Menu" Color="Color.Inherit"
                            Edge="Edge.Start" OnClick="ToggleDrawer" />
-            <MudText Typo="Typo.h6" Class="ml-3">Kairn</MudText>
+            <MudText Typo="Typo.h6" Class="ml-3 mr-2">Kairn</MudText>
+            <MudDivider Vertical="true" FlexItem="true" Style="height:24px;align-self:center;opacity:0.3;" />
+            <CompanySwitcher />
             <MudSpacer />
             <Kairn.Blazor.Shared.LanguageSwitcher />
             <MudIconButton Icon="@(ThemeService.IsDarkMode ? Icons.Material.Filled.LightMode : Icons.Material.Filled.DarkMode)"
@@ -42,13 +46,73 @@
 </CascadingValue>
 
 @code {
+    [CascadingParameter] private Task<AuthenticationState> AuthStateTask { get; set; } = null!;
+
     private bool _drawerOpen = true;
 
     protected override async Task OnInitializedAsync()
     {
-        ThemeService.OnChange  += StateHasChanged;
-        ProfileState.OnChange  += StateHasChanged;
-        try { await ProfileState.EnsureLoadedAsync(); } catch { /* unauthenticated */ }
+        ThemeService.OnChange += StateHasChanged;
+        ProfileState.OnChange += StateHasChanged;
+
+        try
+        {
+            var proceed = await RunTenantGuardAsync();
+            if (!proceed) return;
+            try { await ProfileState.EnsureLoadedAsync(); } catch { /* unauthenticated circuit */ }
+        }
+        catch (NavigationException)
+        {
+            throw; // NavigationException is Blazor's internal redirect signal — must propagate
+        }
+        catch
+        {
+            // Any other unexpected error (DB unavailable during restart, stale EF context, etc.)
+            // — redirect to login rather than crashing the circuit.
+            Navigation.NavigateTo("/account/login", forceLoad: true);
+        }
+    }
+
+    private async Task<bool> RunTenantGuardAsync()
+    {
+        var authState = await AuthStateTask;
+        var principal = authState.User;
+
+        if (principal.Identity?.IsAuthenticated != true)
+            return true; // RedirectToLogin handles unauthenticated users
+
+        var userId = principal.FindFirst(System.Security.Claims.ClaimTypes.NameIdentifier)?.Value;
+        if (string.IsNullOrEmpty(userId))
+            return true;
+
+        var memberships = await MembershipService.GetUserMembershipsAsync(userId);
+
+        if (memberships.Count == 0)
+        {
+            Navigation.NavigateTo("/onboarding");
+            return false;
+        }
+
+        var currentTenantId = Guid.TryParse(
+            principal.FindFirst("tenant_id")?.Value, out var tid) ? tid : Guid.Empty;
+
+        var isValidTenant = memberships.Any(m => m.TenantId == currentTenantId);
+
+        if (isValidTenant)
+            return true;
+
+        if (memberships.Count == 1)
+        {
+            // Auto-select the sole membership via Razor Page (needs HTTP round-trip to update cookie)
+            var returnUrl = Uri.EscapeDataString(Navigation.Uri);
+            Navigation.NavigateTo(
+                $"/account/select-tenant?tenantId={memberships[0].TenantId}&returnUrl={returnUrl}",
+                forceLoad: true);
+            return false;
+        }
+
+        Navigation.NavigateTo("/select-company");
+        return false;
     }
 
     private void ToggleDrawer() => _drawerOpen = !_drawerOpen;

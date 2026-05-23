@@ -13,6 +13,7 @@ using Kairn.Application.Features.MarginAnalysis;
 using Kairn.Application.Features.Tax;
 using Kairn.Application.Features.CompanyProfile;
 using Kairn.Application.Features.Nav;
+using Kairn.Application.Features.Tenants;
 using Kairn.Application.Features.GL;
 using Kairn.Infrastructure.Email;
 using Kairn.Infrastructure.Jobs;
@@ -88,6 +89,7 @@ try
         options.Lockout.DefaultLockoutTimeSpan = TimeSpan.FromMinutes(15);
     })
     .AddEntityFrameworkStores<AppDbContext>()
+    .AddClaimsPrincipalFactory<KairnUserClaimsPrincipalFactory>()
     .AddDefaultTokenProviders();
 
     builder.Services.ConfigureApplicationCookie(options =>
@@ -100,6 +102,12 @@ try
         options.Cookie.SameSite = SameSiteMode.Strict;
         options.Cookie.SecurePolicy = CookieSecurePolicy.Always;
     });
+
+    // Validate the security stamp on every request so stale cookies (e.g. after
+    // a DB reset in development) are rejected immediately rather than after the
+    // default 30-minute grace period.
+    builder.Services.Configure<SecurityStampValidatorOptions>(options =>
+        options.ValidationInterval = TimeSpan.Zero);
 
     // ── Razor components + pages (for auth) ──────────────────────────────────
     builder.Services.AddRazorComponents()
@@ -135,6 +143,9 @@ try
     builder.Services.AddScoped<ITenantProfileService, TenantProfileService>();
     builder.Services.AddScoped<IVatThresholdService, VatThresholdService>();
     builder.Services.AddScoped<IUserNavPreferencesService, UserNavPreferencesService>();
+    builder.Services.AddScoped<ITenantMembershipService, TenantMembershipService>();
+    builder.Services.AddScoped<ICompanySetupService, CompanySetupService>();
+    builder.Services.AddScoped<ITeamManagementService, TeamManagementService>();
     builder.Services.AddScoped<IExpenseReportService, ExpenseReportService>();
     builder.Services.AddScoped<IApAgingService, ApAgingService>();
     builder.Services.AddSingleton<IApAgingExporter, ApAgingExporter>();

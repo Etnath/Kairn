@@ -1,0 +1,57 @@
+@page "/select-company"
+@layout OnboardingLayout
+@attribute [Authorize]
+@inject IStringLocalizer<SelectCompany> L
+@inject ITenantMembershipService MembershipService
+@inject ICurrentUserContext CurrentUser
+@inject NavigationManager Navigation
+
+<PageTitle>@L["Title"] – Kairn</PageTitle>
+
+<MudText Typo="Typo.h5" Align="Align.Center" GutterBottom="true">@L["Title"]</MudText>
+<MudText Typo="Typo.body2" Align="Align.Center" Class="mb-6" Style="color:#8C8980;">@L["Subtitle"]</MudText>
+
+<MudGrid Justify="Justify.Center" Style="max-width:720px;">
+    @foreach (var m in _memberships)
+    {
+        var membership = m;
+        <MudItem xs="12" sm="6">
+            <MudCard Outlined="true">
+                <MudCardContent>
+                    <MudText Typo="Typo.h6" GutterBottom="true">@membership.TenantName</MudText>
+                    <MudChip T="string" Size="Size.Small" Color="@RoleColor(membership.Role)" Label="true">
+                        @membership.Role.ToString()
+                    </MudChip>
+                </MudCardContent>
+                <MudCardActions>
+                    <MudButton Variant="Variant.Filled" Color="Color.Primary" FullWidth="true"
+                               OnClick="@(() => SelectTenant(membership.TenantId))">
+                        @L["Open"]
+                    </MudButton>
+                </MudCardActions>
+            </MudCard>
+        </MudItem>
+    }
+</MudGrid>
+
+@code {
+    private IReadOnlyList<TenantMembershipDto> _memberships = [];
+
+    protected override async Task OnInitializedAsync()
+    {
+        _memberships = await MembershipService.GetUserMembershipsAsync(CurrentUser.UserId);
+    }
+
+    private void SelectTenant(Guid tenantId)
+    {
+        var returnUrl = Uri.EscapeDataString("/");
+        Navigation.NavigateTo($"/account/select-tenant?tenantId={tenantId}&returnUrl={returnUrl}", forceLoad: true);
+    }
+
+    private static Color RoleColor(TenantRole role) => role switch
+    {
+        TenantRole.Owner => Color.Primary,
+        TenantRole.Admin => Color.Secondary,
+        _               => Color.Default,
+    };
+}

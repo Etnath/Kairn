@@ -32,7 +32,7 @@ public static class InvoicePdfGenerator
                     {
                         row.RelativeItem().Column(c =>
                         {
-                            c.Item().Text("INVOICE").FontSize(22).Bold().FontColor("#1565C0");
+                            c.Item().Text(invoice.IsCreditNote ? "AVOIR" : "FACTURE").FontSize(22).Bold().FontColor("#1565C0");
                             c.Item().PaddingTop(4).Text($"# {invoice.Reference}").FontSize(12).FontColor(Colors.Grey.Darken1);
                         });
 
@@ -45,10 +45,11 @@ public static class InvoicePdfGenerator
                                 c.Item().AlignRight().Text(options.CompanyAddress).FontSize(9).FontColor(Colors.Grey.Darken1);
                             c.Item().AlignRight().Text($"Date: {invoice.Date:dd/MM/yyyy}");
                             c.Item().AlignRight().Text($"Due: {invoice.DueDate:dd/MM/yyyy}");
+                            if (StatusLabel(invoice.Status) is { } label)
                             c.Item().PaddingTop(4).AlignRight()
-                                .Text(StatusLabel(invoice.Status))
-                                .Bold()
-                                .FontColor(StatusColor(invoice.Status));
+                                    .Text(label)
+                                    .Bold()
+                                    .FontColor(StatusColor(invoice.Status));
                         });
                     });
 
@@ -183,15 +184,15 @@ public static class InvoicePdfGenerator
         }).GeneratePdf();
     }
 
-    private static string StatusLabel(InvoiceStatus status) => status switch
+    private static string? StatusLabel(InvoiceStatus status) => status switch
     {
-        InvoiceStatus.Draft        => "DRAFT",
-        InvoiceStatus.Sent         => "SENT",
-        InvoiceStatus.PartiallyPaid => "PARTLY PAID",
-        InvoiceStatus.Paid         => "PAID",
-        InvoiceStatus.Overdue      => "OVERDUE",
-        InvoiceStatus.Void         => "VOID",
-        _                          => status.ToString().ToUpper(),
+        InvoiceStatus.Draft        => "BROUILLON",
+        InvoiceStatus.Sent         => null,
+        InvoiceStatus.PartiallyPaid => "ACOMPTE REÇU",
+        InvoiceStatus.Paid         => "PAYÉE",
+        InvoiceStatus.Overdue      => "EN RETARD",
+        InvoiceStatus.Void         => "ANNULÉE",
+        _                          => null,
     };
 
     private static string StatusColor(InvoiceStatus status) => status switch

@@ -1,0 +1,300 @@
+@page "/onboarding"
+@layout OnboardingLayout
+@attribute [Authorize]
+@inject IStringLocalizer<Onboarding> L
+@inject ICompanySetupService CompanySetup
+@inject NavigationManager Navigation
+@inject AuthenticationStateProvider AuthStateProvider
+
+<PageTitle>@L["Title"] – Kairn</PageTitle>
+
+<MudPaper Outlined="true" Style="max-width:560px;width:100%;padding:2rem 2.5rem;border-radius:8px;background:#fff;">
+
+    @* Step indicator *@
+    <div style="display:flex;align-items:center;margin-bottom:2rem;">
+        @for (int i = 1; i <= TotalSteps; i++)
+        {
+            var stepNum = i;
+            bool active  = stepNum == IndicatorStep;
+            bool done    = stepNum < IndicatorStep;
+            string bg    = done ? "#5A6B4C" : (active ? "#8BA07A" : "#E8E6E0");
+            string color = (done || active) ? "#fff" : "#8C8980";
+            <div style="display:flex;align-items:center;flex:1;">
+                <div style="width:28px;height:28px;border-radius:50%;background:@bg;color:@color;display:flex;align-items:center;justify-content:center;font-size:0.8rem;font-weight:600;flex-shrink:0;">
+                    @if (done) { <span>✓</span> } else { <span>@stepNum</span> }
+                </div>
+                @if (stepNum < TotalSteps)
+                {
+                    <div style="flex:1;height:2px;background:@(done ? "#5A6B4C" : "#E8E6E0");margin:0 4px;"></div>
+                }
+            </div>
+        }
+    </div>
+
+    @* ── Step 1: Company identity ── *@
+    @if (_step == 1)
+    {
+        <MudText Typo="Typo.h6" GutterBottom="true">@L["Step1Title"]</MudText>
+
+        <MudTextField @bind-Value="_companyName" Label="@L["CompanyName"]" Required="true"
+                      Variant="Variant.Outlined" Margin="@MudBlazor.Margin.Dense" Class="mb-3"
+                      Error="@(_showErrors && string.IsNullOrWhiteSpace(_companyName))"
+                      ErrorText="@L["Required"]" />
+
+        <MudSelect @bind-Value="_legalForm" Label="@L["LegalForm"]"
+                   Variant="Variant.Outlined" Margin="@MudBlazor.Margin.Dense" Class="mb-3" Clearable="true">
+            @foreach (var lf in LegalForms)
+            {
+                <MudSelectItem Value="@lf">@lf</MudSelectItem>
+            }
+        </MudSelect>
+
+        <MudTextField @bind-Value="_siren" Label="@L["Siren"]" Placeholder="123456789"
+                      Variant="Variant.Outlined" Margin="@MudBlazor.Margin.Dense" Class="mb-3"
+                      Error="@(_showErrors && !string.IsNullOrWhiteSpace(_siren) && !IsValidSiren(_siren))"
+                      ErrorText="@L["SirenInvalid"]" />
+
+        <MudTextField @bind-Value="_addressLine" Label="@L["Address"]"
+                      Variant="Variant.Outlined" Margin="@MudBlazor.Margin.Dense" Class="mb-3" />
+
+        <div style="display:flex;gap:0.75rem;">
+            <MudTextField @bind-Value="_postalCode" Label="@L["PostalCode"]"
+                          Variant="Variant.Outlined" Margin="@MudBlazor.Margin.Dense" Style="flex:0 0 120px;" />
+            <MudTextField @bind-Value="_city" Label="@L["City"]"
+                          Variant="Variant.Outlined" Margin="@MudBlazor.Margin.Dense" Style="flex:1;" />
+        </div>
+    }
+
+    @* ── Step 2: Activity type (Auto-Entrepreneurs only) ── *@
+    @if (_step == 2)
+    {
+        <MudText Typo="Typo.h6" GutterBottom="true">@L["Step2Title"]</MudText>
+
+        <MudText Typo="Typo.body2" Style="color:#8C8980;margin-bottom:1rem;">@L["Step2Subtitle"]</MudText>
+
+        <MudRadioGroup @bind-Value="_activityType" Class="mb-3">
+            <MudRadio Value="ActivityType.Services" Color="Color.Primary">@L["Activity_Services"]</MudRadio>
+            <MudRadio Value="ActivityType.Commercial" Color="Color.Primary">@L["Activity_Commercial"]</MudRadio>
+        </MudRadioGroup>
+
+        @if (_activityType == ActivityType.Commercial)
+        {
+            <MudAlert Severity="Severity.Info" Dense="true">@L["AeCommercialNote"]</MudAlert>
+        }
+    }
+
+    @* ── Step 3: Fiscal settings ── *@
+    @if (_step == 3)
+    {
+        <MudText Typo="Typo.h6" GutterBottom="true">@L["Step3Title"]</MudText>
+
+        <MudSelect @bind-Value="_fiscalYearStartMonth" Label="@L["FiscalYearStart"]"
+                   Variant="Variant.Outlined" Margin="@MudBlazor.Margin.Dense" Class="mb-3">
+            @for (int m = 1; m <= 12; m++)
+            {
+                var month = m;
+                <MudSelectItem Value="@month">@(new DateTime(2000, month, 1).ToString("MMMM"))</MudSelectItem>
+            }
+        </MudSelect>
+
+        @if (_businessStatus != BusinessStatus.AutoEntrepreneur)
+        {
+            <MudSelect @bind-Value="_vatFilingFrequency" Label="@L["VatFrequency"]"
+                       Variant="Variant.Outlined" Margin="@MudBlazor.Margin.Dense" Class="mb-3">
+                @foreach (var freq in Enum.GetValues<VatFilingFrequency>())
+                {
+                    var f = freq;
+                    <MudSelectItem Value="@f">@L[$"VatFreq_{f}"]</MudSelectItem>
+                }
+            </MudSelect>
+        }
+        else
+        {
+            <MudAlert Severity="Severity.Info" Dense="true" Class="mb-3">@L["AeNoVat"]</MudAlert>
+        }
+    }
+
+    @* ── Step 4: Review ── *@
+    @if (_step == 4)
+    {
+        <MudText Typo="Typo.h6" GutterBottom="true">@L["Step4Title"]</MudText>
+
+        <MudSimpleTable Dense="true" Style="margin-bottom:1.5rem;">
+            <tbody>
+                <tr><td style="color:#8C8980;width:160px;">@L["CompanyName"]</td><td><strong>@_companyName</strong></td></tr>
+                @if (!string.IsNullOrWhiteSpace(_legalForm))
+                {
+                    <tr><td style="color:#8C8980;">@L["LegalForm"]</td><td>@_legalForm</td></tr>
+                }
+                @if (!string.IsNullOrWhiteSpace(_siren))
+                {
+                    <tr><td style="color:#8C8980;">@L["Siren"]</td><td>@_siren</td></tr>
+                }
+                @if (!string.IsNullOrWhiteSpace(_city))
+                {
+                    <tr><td style="color:#8C8980;">@L["City"]</td><td>@_postalCode @_city</td></tr>
+                }
+                <tr><td style="color:#8C8980;">@L["Status"]</td><td>@L[$"Status_{_businessStatus}"]</td></tr>
+                <tr><td style="color:#8C8980;">@L["ActivityType"]</td><td>@L[$"Activity_{_activityType}"]</td></tr>
+                <tr><td style="color:#8C8980;">@L["FiscalYearStart"]</td><td>@(new DateTime(2000, _fiscalYearStartMonth, 1).ToString("MMMM"))</td></tr>
+                @if (_businessStatus != BusinessStatus.AutoEntrepreneur)
+                {
+                    <tr><td style="color:#8C8980;">@L["VatFrequency"]</td><td>@L[$"VatFreq_{_vatFilingFrequency}"]</td></tr>
+                }
+            </tbody>
+        </MudSimpleTable>
+
+        @if (_errorMessage is not null)
+        {
+            <MudAlert Severity="Severity.Error" Dense="true" Class="mb-3">@_errorMessage</MudAlert>
+        }
+    }
+
+    @* Navigation buttons *@
+    <div style="display:flex;justify-content:space-between;margin-top:1.5rem;">
+        @if (_step > 1)
+        {
+            <MudButton OnClick="PrevStep" Variant="Variant.Text" Color="Color.Default"
+                       Disabled="_busy">@L["Back"]</MudButton>
+        }
+        else
+        {
+            <span></span>
+        }
+
+        @if (_step < TotalSteps)
+        {
+            <MudButton OnClick="NextStep" Variant="Variant.Filled" Color="Color.Primary"
+                       Style="background:#8BA07A;">@L["Next"]</MudButton>
+        }
+        else
+        {
+            <MudButton OnClick="CreateCompanyAsync" Variant="Variant.Filled" Color="Color.Primary"
+                       Style="background:#8BA07A;" Disabled="_busy">
+                @if (_busy)
+                {
+                    <MudProgressCircular Size="Size.Small" Indeterminate="true" Style="margin-right:8px;" />
+                }
+                @L["Create"]
+            </MudButton>
+        }
+    </div>
+</MudPaper>
+
+@code {
+    static readonly string[] LegalForms =
+        ["EURL", "SARL", "SAS", "SASU", "SA", "EI", "Micro-entreprise", "Association"];
+
+    int     _step        = 1;
+    bool    _showErrors  = false;
+    bool    _busy        = false;
+    string? _errorMessage;
+
+    // Step 1
+    string  _companyName  = "";
+    string? _legalForm;
+    string? _siren;
+    string? _addressLine;
+    string? _postalCode;
+    string? _city;
+
+    // Step 2 (AE only)
+    ActivityType _activityType = ActivityType.Services;
+
+    // Step 3
+    int                _fiscalYearStartMonth = 1;
+    VatFilingFrequency _vatFilingFrequency   = VatFilingFrequency.Quarterly;
+
+    // Derived from legal form — "Micro-entreprise" is the AutoEntrepreneur regime
+    BusinessStatus _businessStatus =>
+        _legalForm == "Micro-entreprise"
+            ? BusinessStatus.AutoEntrepreneur
+            : BusinessStatus.Standard;
+
+    bool _isAe => _businessStatus == BusinessStatus.AutoEntrepreneur;
+
+    // AE users go through 4 steps (step 2 = activity type); others skip step 2 → 3 steps
+    int TotalSteps => _isAe ? 4 : 3;
+
+    // Maps internal _step (1-4) to the indicator position (1-TotalSteps)
+    int IndicatorStep => (!_isAe && _step >= 3) ? _step - 1 : _step;
+
+    void NextStep()
+    {
+        if (_step == 1 && !ValidateStep1()) return;
+        _showErrors = false;
+        _step++;
+        // Skip step 2 for non-AE users
+        if (_step == 2 && !_isAe) _step++;
+    }
+
+    void PrevStep()
+    {
+        _showErrors = false;
+        _step--;
+        // Skip step 2 backwards for non-AE users
+        if (_step == 2 && !_isAe) _step--;
+    }
+
+    bool ValidateStep1()
+    {
+        if (string.IsNullOrWhiteSpace(_companyName))            { _showErrors = true; return false; }
+        if (!string.IsNullOrWhiteSpace(_siren) && !IsValidSiren(_siren)) { _showErrors = true; return false; }
+        return true;
+    }
+
+    static bool IsValidSiren(string siren)
+    {
+        siren = siren.Trim().Replace(" ", "");
+        if (siren.Length != 9 || !siren.All(char.IsDigit)) return false;
+        int sum = 0;
+        for (int i = 0; i < 9; i++)
+        {
+            int d = siren[i] - '0';
+            if (i % 2 == 1) { d *= 2; if (d > 9) d -= 9; }
+            sum += d;
+        }
+        return sum % 10 == 0;
+    }
+
+    async Task CreateCompanyAsync()
+    {
+        _busy = true;
+        _errorMessage = null;
+        try
+        {
+            var authState = await AuthStateProvider.GetAuthenticationStateAsync();
+            var userId    = authState.User.FindFirst(System.Security.Claims.ClaimTypes.NameIdentifier)?.Value;
+            if (string.IsNullOrEmpty(userId))
+            {
+                _errorMessage = L["ErrorNotAuthenticated"];
+                return;
+            }
+
+            var cmd = new CreateCompanyCommand(
+                UserId:               userId,
+                CompanyName:          _companyName.Trim(),
+                LegalForm:            _legalForm,
+                Siren:                string.IsNullOrWhiteSpace(_siren) ? null : _siren.Trim().Replace(" ", ""),
+                AddressLine:          _addressLine?.Trim(),
+                PostalCode:           _postalCode?.Trim(),
+                City:                 _city?.Trim(),
+                BusinessStatus:       _businessStatus,
+                ActivityType:         _activityType,
+                FiscalYearStartMonth: _fiscalYearStartMonth,
+                VatFilingFrequency:   _vatFilingFrequency
+            );
+
+            var tenantId = await CompanySetup.CreateAsync(cmd);
+            Navigation.NavigateTo($"/account/select-tenant?tenantId={tenantId}&returnUrl=/", forceLoad: true);
+        }
+        catch (Exception)
+        {
+            _errorMessage = L["ErrorGeneric"];
+        }
+        finally
+        {
+            _busy = false;
+        }
+    }
+}

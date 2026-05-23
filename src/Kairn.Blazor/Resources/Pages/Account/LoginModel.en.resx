@@ -9,4 +9,5 @@
   <data name="Login.Submit" xml:space="preserve"><value>Sign in</value></data>
   <data name="Login.InvalidCredentials" xml:space="preserve"><value>Invalid email or password.</value></data>
   <data name="Login.LockedOut" xml:space="preserve"><value>Your account has been locked. Please try again later.</value></data>
+  <data name="Login.ForgotPassword" xml:space="preserve"><value>Forgot password?</value></data>
 </root>

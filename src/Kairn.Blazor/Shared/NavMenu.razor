@@ -53,9 +53,18 @@
     <MudNavGroup Title="@L["Group.Accounting"]" Icon="@Icons.Material.Filled.MenuBook"
                  Expanded="@IsExpanded("Accounting")"
                  ExpandedChanged="@(v => ToggleGroup("Accounting", v))">
-        <MudNavLink Href="/ledger" Icon="@Icons.Material.Filled.MenuBook">
-            @L["Nav.GeneralLedger"]
-        </MudNavLink>
+        @if (ProfileState?.IsAutoEntrepreneur == true)
+        {
+            <MudNavLink Href="/livre-des-comptes" Icon="@Icons.Material.Filled.MenuBook">
+                @L["Nav.LivreDesComptes"]
+            </MudNavLink>
+        }
+        else
+        {
+            <MudNavLink Href="/ledger" Icon="@Icons.Material.Filled.MenuBook">
+                @L["Nav.GeneralLedger"]
+            </MudNavLink>
+        }
         <MudNavLink Href="/reports" Icon="@Icons.Material.Filled.BarChart">
             @L["Nav.Reports"]
         </MudNavLink>
@@ -100,7 +109,7 @@
         ["Overview"]   = ["/"],
         ["Sales"]      = ["/customers", "/invoicing", "/ar-aging"],
         ["Purchases"]  = ["/vendors", "/bills", "/ap-payment-schedule", "/ap-aging", "/expense-reports"],
-        ["Accounting"] = ["/ledger", "/reports", "/budgets", "/fixed-assets"],
+        ["Accounting"] = ["/ledger", "/livre-des-comptes", "/reports", "/budgets", "/fixed-assets"],
         ["Tax"]        = ["/tax", "/margin"],
     };
 

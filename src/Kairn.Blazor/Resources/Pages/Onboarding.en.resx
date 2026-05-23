@@ -1,0 +1,39 @@
+<?xml version="1.0" encoding="utf-8"?>
+<root>
+  <resheader name="resmimetype"><value>text/microsoft-resx</value></resheader>
+  <resheader name="version"><value>2.0</value></resheader>
+  <data name="Title" xml:space="preserve"><value>Create your company</value></data>
+  <data name="Step1Title" xml:space="preserve"><value>Company identity</value></data>
+  <data name="Step2Title" xml:space="preserve"><value>Business status</value></data>
+  <data name="Step2Subtitle" xml:space="preserve"><value>Choose the legal structure that best describes your business.</value></data>
+  <data name="Step3Title" xml:space="preserve"><value>Fiscal settings</value></data>
+  <data name="Step4Title" xml:space="preserve"><value>Review &amp; create</value></data>
+  <data name="CompanyName" xml:space="preserve"><value>Company name</value></data>
+  <data name="LegalForm" xml:space="preserve"><value>Legal form</value></data>
+  <data name="Siren" xml:space="preserve"><value>SIREN (optional)</value></data>
+  <data name="SirenInvalid" xml:space="preserve"><value>Invalid SIREN – please check the 9-digit number.</value></data>
+  <data name="Address" xml:space="preserve"><value>Address</value></data>
+  <data name="PostalCode" xml:space="preserve"><value>Postal code</value></data>
+  <data name="City" xml:space="preserve"><value>City</value></data>
+  <data name="Status" xml:space="preserve"><value>Status</value></data>
+  <data name="Status_Standard" xml:space="preserve"><value>Standard</value></data>
+  <data name="Status_Standard_Desc" xml:space="preserve"><value>SAS, SARL, EI, etc.</value></data>
+  <data name="Status_AutoEntrepreneur" xml:space="preserve"><value>Auto-entrepreneur</value></data>
+  <data name="Status_AutoEntrepreneur_Desc" xml:space="preserve"><value>Micro-entreprise regime</value></data>
+  <data name="ActivityType" xml:space="preserve"><value>Activity type</value></data>
+  <data name="Activity_Services" xml:space="preserve"><value>Services</value></data>
+  <data name="Activity_Commercial" xml:space="preserve"><value>Commercial / Sales</value></data>
+  <data name="AeCommercialNote" xml:space="preserve"><value>Auto-entrepreneurs in commercial activity benefit from a higher revenue threshold (188 700 €).</value></data>
+  <data name="AeNoVat" xml:space="preserve"><value>Auto-entrepreneurs are not subject to VAT (franchise en base de TVA). No VAT filing required.</value></data>
+  <data name="FiscalYearStart" xml:space="preserve"><value>Fiscal year start month</value></data>
+  <data name="VatFrequency" xml:space="preserve"><value>VAT filing frequency</value></data>
+  <data name="VatFreq_Monthly" xml:space="preserve"><value>Monthly</value></data>
+  <data name="VatFreq_Quarterly" xml:space="preserve"><value>Quarterly</value></data>
+  <data name="VatFreq_Annual" xml:space="preserve"><value>Annual</value></data>
+  <data name="Back" xml:space="preserve"><value>Back</value></data>
+  <data name="Next" xml:space="preserve"><value>Next</value></data>
+  <data name="Create" xml:space="preserve"><value>Create company</value></data>
+  <data name="Required" xml:space="preserve"><value>This field is required.</value></data>
+  <data name="ErrorNotAuthenticated" xml:space="preserve"><value>Session expired. Please sign in again.</value></data>
+  <data name="ErrorGeneric" xml:space="preserve"><value>An error occurred while creating your company. Please try again.</value></data>
+</root>

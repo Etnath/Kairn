@@ -21,6 +21,26 @@ public class BillPaymentService(AppDbContext db, ITaxPeriodChecker taxPeriods) :
         return payments.Select(ToDto).ToList();
     }
 
+    public async Task<IReadOnlyList<AchatEntryDto>> GetAchatsAsync(
+        Guid tenantId, int year, CancellationToken ct = default)
+    {
+        var from = new DateOnly(year, 1, 1);
+        var to   = new DateOnly(year, 12, 31);
+
+        return await db.BillPayments
+            .Where(p => p.TenantId == tenantId && p.Date >= from && p.Date <= to)
+            .Join(db.Bills,   p => p.BillId,     b => b.Id,  (p, b) => new { p, b })
+            .Join(db.Vendors, x => x.b.VendorId, v => v.Id,  (x, v) => new AchatEntryDto(
+                x.p.Date,
+                x.b.Reference,
+                v.Name,
+                x.p.Amount,
+                x.p.Method,
+                x.p.Reference))
+            .OrderBy(a => a.Date)
+            .ToListAsync(ct);
+    }
+
     public async Task<Result<BillPaymentDto>> RecordAsync(
         RecordBillPaymentCommand cmd, CancellationToken ct = default)
     {

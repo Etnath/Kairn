@@ -132,6 +132,22 @@
             </MudCard>
         </MudItem>
     </AuthorizeView>
+    <MudItem xs="12" sm="6" md="4">
+        <MudCard>
+            <MudCardContent>
+                <MudStack Row="true" AlignItems="AlignItems.Center" Spacing="2" Class="mb-2">
+                    <MudIcon Icon="@Icons.Material.Filled.Group" Color="Color.Primary" />
+                    <MudText Typo="Typo.h6">@L["Team.Title"]</MudText>
+                </MudStack>
+                <MudText Typo="Typo.body2" Color="Color.Secondary">@L["Team.Description"]</MudText>
+            </MudCardContent>
+            <MudCardActions>
+                <MudButton Href="/settings/team" Variant="Variant.Text" Color="Color.Primary">
+                    @L["Open"]
+                </MudButton>
+            </MudCardActions>
+        </MudCard>
+    </MudItem>
     @if (ProfileState?.IsAutoEntrepreneur != true)
     {
         <AuthorizeView Roles="Admin">

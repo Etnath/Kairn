@@ -19,6 +19,8 @@
   <data name="TaxRates.Description" xml:space="preserve"><value>Configurer les taux de TVA par catégorie avec dates d'effet</value></data>
   <data name="CompanyProfile.Title" xml:space="preserve"><value>Profil de l'entreprise</value></data>
   <data name="CompanyProfile.Description" xml:space="preserve"><value>Identité légale, statut juridique et seuils de franchise TVA</value></data>
+  <data name="Team.Title" xml:space="preserve"><value>Équipe</value></data>
+  <data name="Team.Description" xml:space="preserve"><value>Gérer les membres et leurs rôles dans cette entreprise</value></data>
   <data name="Banner_Status" xml:space="preserve"><value>Statut de l'entreprise : </value></data>
   <data name="Banner_Standard" xml:space="preserve"><value>Standard (assujetti à la TVA)</value></data>
   <data name="Banner_AutoEntrepreneur" xml:space="preserve"><value>Auto-entrepreneur (franchise en base de TVA)</value></data>

@@ -23,9 +23,18 @@ public record RecordBillPaymentCommand(
     string PostedByUserId,
     string PostedByName);
 
+public record AchatEntryDto(
+    DateOnly Date,
+    string BillReference,
+    string VendorName,
+    decimal Amount,
+    PaymentMethod Method,
+    string? PaymentReference);
+
 public interface IBillPaymentService
 {
     Task<IReadOnlyList<BillPaymentDto>> GetByBillAsync(Guid billId, Guid tenantId, CancellationToken ct = default);
+    Task<IReadOnlyList<AchatEntryDto>> GetAchatsAsync(Guid tenantId, int year, CancellationToken ct = default);
     Task<Result<BillPaymentDto>> RecordAsync(RecordBillPaymentCommand cmd, CancellationToken ct = default);
     Task<Result> DeleteAsync(Guid paymentId, Guid tenantId, string deletedByUserId, string deletedByName, CancellationToken ct = default);
 }

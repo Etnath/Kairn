@@ -1,0 +1,22 @@
+<?xml version="1.0" encoding="utf-8"?>
+<root>
+  <resheader name="resmimetype"><value>text/microsoft-resx</value></resheader>
+  <resheader name="version"><value>2.0</value></resheader>
+  <data name="Title" xml:space="preserve"><value>Livre de comptes</value></data>
+  <data name="Recettes_Title" xml:space="preserve"><value>Livre des recettes</value></data>
+  <data name="Recettes_Empty" xml:space="preserve"><value>Aucun encaissement enregistré pour cette année.</value></data>
+  <data name="Achats_Title" xml:space="preserve"><value>Registre des achats</value></data>
+  <data name="Achats_Empty" xml:space="preserve"><value>Aucun achat enregistré pour cette année.</value></data>
+  <data name="Total" xml:space="preserve"><value>Total</value></data>
+  <data name="Col_Date" xml:space="preserve"><value>Date</value></data>
+  <data name="Col_Reference" xml:space="preserve"><value>N° facture</value></data>
+  <data name="Col_Client" xml:space="preserve"><value>Client</value></data>
+  <data name="Col_Fournisseur" xml:space="preserve"><value>Fournisseur</value></data>
+  <data name="Col_Mode" xml:space="preserve"><value>Mode de règlement</value></data>
+  <data name="Col_Montant" xml:space="preserve"><value>Montant encaissé</value></data>
+  <data name="Method_Cash" xml:space="preserve"><value>Espèces</value></data>
+  <data name="Method_BankTransfer" xml:space="preserve"><value>Virement</value></data>
+  <data name="Method_Check" xml:space="preserve"><value>Chèque</value></data>
+  <data name="Method_CreditCard" xml:space="preserve"><value>Carte bancaire</value></data>
+  <data name="Method_Other" xml:space="preserve"><value>Autre</value></data>
+</root>

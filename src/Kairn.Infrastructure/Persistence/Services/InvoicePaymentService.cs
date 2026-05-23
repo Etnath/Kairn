@@ -21,6 +21,34 @@ public class InvoicePaymentService(AppDbContext db, ITaxPeriodChecker taxPeriods
         return payments.Select(ToDto).ToList();
     }
 
+    public async Task<IReadOnlyList<RecetteEntryDto>> GetRecettesAsync(
+        Guid tenantId, int year, CancellationToken ct = default)
+    {
+        var from = new DateOnly(year, 1, 1);
+        var to   = new DateOnly(year, 12, 31);
+
+        return await db.InvoicePayments
+            .Where(p => p.TenantId == tenantId && p.Date >= from && p.Date <= to)
+            .Join(db.Invoices,  p => p.InvoiceId,   i => i.Id,  (p, i) => new { p, i })
+            .Join(db.Customers, x => x.i.CustomerId, c => c.Id, (x, c) => new RecetteEntryDto(
+                x.p.Date,
+                x.i.Reference,
+                c.Name,
+                x.p.Amount,
+                x.p.Method,
+                x.p.Reference))
+            .OrderBy(r => r.Date)
+            .ToListAsync(ct);
+    }
+
+    public async Task<int?> GetEarliestPaymentYearAsync(Guid tenantId, CancellationToken ct = default)
+    {
+        var earliest = await db.InvoicePayments
+            .Where(p => p.TenantId == tenantId)
+            .MinAsync(p => (DateOnly?)p.Date, ct);
+        return earliest?.Year;
+    }
+
     public async Task<Result<InvoicePaymentDto>> RecordAsync(
         RecordPaymentCommand cmd, CancellationToken ct = default)
     {

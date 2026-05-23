@@ -8,6 +8,7 @@ public class TenantProfileState(ITenantProfileService profileService, ICurrentUs
 {
     public BusinessStatus BusinessStatus    { get; private set; } = BusinessStatus.Standard;
     public bool           IsAutoEntrepreneur => BusinessStatus == BusinessStatus.AutoEntrepreneur;
+    public string         CompanyName        { get; private set; } = "";
 
     private bool _loaded;
 
@@ -23,13 +24,15 @@ public class TenantProfileState(ITenantProfileService profileService, ICurrentUs
     {
         var profile  = await profileService.GetAsync(currentUser.TenantId, ct);
         BusinessStatus = profile.BusinessStatus;
+        CompanyName  = profile.LegalName;
         _loaded      = true;
         OnChange?.Invoke();
     }
 
-    public void Notify(BusinessStatus newStatus)
+    public void Notify(BusinessStatus newStatus, string? companyName = null)
     {
         BusinessStatus = newStatus;
+        if (companyName is not null) CompanyName = companyName;
         _loaded        = true;
         OnChange?.Invoke();
     }

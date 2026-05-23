@@ -1,0 +1,146 @@
+@page "/livre-des-comptes"
+@attribute [Authorize]
+@inject IStringLocalizer<LivreDesComptes> L
+@inject IInvoicePaymentService InvoicePaymentService
+@inject IBillPaymentService BillPaymentService
+@inject ITenantProfileService ProfileService
+@inject ICurrentUserContext CurrentUser
+
+<PageTitle>@L["Title"] – Kairn</PageTitle>
+
+<MudStack Row="true" AlignItems="AlignItems.Center" Class="mb-4" Wrap="Wrap.Wrap">
+    <MudText Typo="Typo.h5" Style="flex:1">@L["Title"]</MudText>
+    <MudSelect T="int" Value="_year" Style="width:120px"
+               ValueChanged="LoadAsync">
+        @for (int y = DateTime.Today.Year; y >= _firstYear; y--)
+        {
+            var yr = y;
+            <MudSelectItem T="int" Value="@yr">@yr</MudSelectItem>
+        }
+    </MudSelect>
+</MudStack>
+
+@if (_loading)
+{
+    <MudProgressCircular Indeterminate="true" />
+}
+else
+{
+    @* ── Livre des recettes ── *@
+    <MudPaper Outlined="true" Class="pa-4 mb-6">
+        <MudStack Row="true" AlignItems="AlignItems.Center" Class="mb-3">
+            <MudIcon Icon="@Icons.Material.Filled.ArrowCircleDown" Color="Color.Success" />
+            <MudText Typo="Typo.h6" Style="flex:1">@L["Recettes_Title"]</MudText>
+            <MudText Typo="Typo.subtitle1" Color="Color.Success">
+                @L["Total"]: <b>@_recettes.Sum(r => r.Amount).ToString("N2") €</b>
+            </MudText>
+        </MudStack>
+
+        @if (_recettes.Count == 0)
+        {
+            <MudText Color="Color.Secondary">@L["Recettes_Empty"]</MudText>
+        }
+        else
+        {
+            <MudTable Items="_recettes" Dense="true" Hover="true" Elevation="0"
+                      Style="border:1px solid var(--mud-palette-lines-default)">
+                <HeaderContent>
+                    <MudTh Style="width:110px">@L["Col_Date"]</MudTh>
+                    <MudTh Style="width:140px">@L["Col_Reference"]</MudTh>
+                    <MudTh>@L["Col_Client"]</MudTh>
+                    <MudTh Style="width:120px">@L["Col_Mode"]</MudTh>
+                    <MudTh Style="width:120px" Class="text-right">@L["Col_Montant"]</MudTh>
+                </HeaderContent>
+                <RowTemplate>
+                    <MudTd>@context.Date.ToString("dd/MM/yyyy")</MudTd>
+                    <MudTd>@context.InvoiceReference</MudTd>
+                    <MudTd>@context.CustomerName</MudTd>
+                    <MudTd>@L[$"Method_{context.Method}"]</MudTd>
+                    <MudTd Class="text-right">@context.Amount.ToString("N2") €</MudTd>
+                </RowTemplate>
+                <FooterContent>
+                    <MudTd colspan="4"><b>@L["Total"]</b></MudTd>
+                    <MudTd Class="text-right"><b>@_recettes.Sum(r => r.Amount).ToString("N2") €</b></MudTd>
+                </FooterContent>
+            </MudTable>
+        }
+    </MudPaper>
+
+    @* ── Registre des achats (commercial AE only) ── *@
+    @if (_isCommercial)
+    {
+        <MudPaper Outlined="true" Class="pa-4">
+            <MudStack Row="true" AlignItems="AlignItems.Center" Class="mb-3">
+                <MudIcon Icon="@Icons.Material.Filled.ArrowCircleUp" Color="Color.Error" />
+                <MudText Typo="Typo.h6" Style="flex:1">@L["Achats_Title"]</MudText>
+                <MudText Typo="Typo.subtitle1" Color="Color.Error">
+                    @L["Total"]: <b>@_achats.Sum(a => a.Amount).ToString("N2") €</b>
+                </MudText>
+            </MudStack>
+
+            @if (_achats.Count == 0)
+            {
+                <MudText Color="Color.Secondary">@L["Achats_Empty"]</MudText>
+            }
+            else
+            {
+                <MudTable Items="_achats" Dense="true" Hover="true" Elevation="0"
+                          Style="border:1px solid var(--mud-palette-lines-default)">
+                    <HeaderContent>
+                        <MudTh Style="width:110px">@L["Col_Date"]</MudTh>
+                        <MudTh Style="width:140px">@L["Col_Reference"]</MudTh>
+                        <MudTh>@L["Col_Fournisseur"]</MudTh>
+                        <MudTh Style="width:120px">@L["Col_Mode"]</MudTh>
+                        <MudTh Style="width:120px" Class="text-right">@L["Col_Montant"]</MudTh>
+                    </HeaderContent>
+                    <RowTemplate>
+                        <MudTd>@context.Date.ToString("dd/MM/yyyy")</MudTd>
+                        <MudTd>@context.BillReference</MudTd>
+                        <MudTd>@context.VendorName</MudTd>
+                        <MudTd>@L[$"Method_{context.Method}"]</MudTd>
+                        <MudTd Class="text-right">@context.Amount.ToString("N2") €</MudTd>
+                    </RowTemplate>
+                    <FooterContent>
+                        <MudTd colspan="4"><b>@L["Total"]</b></MudTd>
+                        <MudTd Class="text-right"><b>@_achats.Sum(a => a.Amount).ToString("N2") €</b></MudTd>
+                    </FooterContent>
+                </MudTable>
+            }
+        </MudPaper>
+    }
+}
+
+@code {
+    private int _year      = DateTime.Today.Year;
+    private int _firstYear = DateTime.Today.Year;
+    private bool _loading  = true;
+    private bool _isCommercial;
+
+    private IReadOnlyList<RecetteEntryDto> _recettes = [];
+    private IReadOnlyList<AchatEntryDto>   _achats   = [];
+
+    protected override async Task OnInitializedAsync()
+    {
+        var profile     = await ProfileService.GetAsync(CurrentUser.TenantId);
+        _isCommercial   = profile.ActivityType == Kairn.Domain.Entities.ActivityType.Commercial;
+        _firstYear      = (await InvoicePaymentService.GetEarliestPaymentYearAsync(CurrentUser.TenantId)) ?? DateTime.Today.Year;
+        await LoadAsync(_year);
+    }
+
+    private async Task LoadAsync(int year)
+    {
+        _year    = year;
+        _loading = true;
+        StateHasChanged();
+
+        var t1 = InvoicePaymentService.GetRecettesAsync(CurrentUser.TenantId, year);
+        var t2 = _isCommercial
+            ? BillPaymentService.GetAchatsAsync(CurrentUser.TenantId, year)
+            : Task.FromResult<IReadOnlyList<AchatEntryDto>>([]);
+        await Task.WhenAll(t1, t2);
+
+        _recettes = t1.Result;
+        _achats   = t2.Result;
+        _loading  = false;
+    }
+}

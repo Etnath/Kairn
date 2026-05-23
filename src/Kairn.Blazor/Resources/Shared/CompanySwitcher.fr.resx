@@ -1,0 +1,10 @@
+<?xml version="1.0" encoding="utf-8"?>
+<root>
+  <resheader name="resmimetype"><value>text/microsoft-resx</value></resheader>
+  <resheader name="version"><value>2.0</value></resheader>
+  <data name="NewCompany" xml:space="preserve"><value>Nouvelle entreprise…</value></data>
+  <data name="Role_Owner" xml:space="preserve"><value>Propriétaire</value></data>
+  <data name="Role_Admin" xml:space="preserve"><value>Administrateur</value></data>
+  <data name="Role_Member" xml:space="preserve"><value>Membre</value></data>
+  <data name="Role_ReadOnly" xml:space="preserve"><value>Lecture seule</value></data>
+</root>

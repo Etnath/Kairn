@@ -1579,6 +1579,24 @@ namespace Kairn.Infrastructure.Migrations
                     b.ToTable("TaxRates", (string)null);
                 });
 
+            modelBuilder.Entity("Kairn.Domain.Entities.Tenant", b =>
+                {
+                    b.Property<Guid>("Id")
+                        .HasColumnType("TEXT");
+
+                    b.Property<DateTimeOffset>("CreatedAt")
+                        .HasColumnType("TEXT");
+
+                    b.Property<string>("Name")
+                        .IsRequired()
+                        .HasMaxLength(200)
+                        .HasColumnType("TEXT");
+
+                    b.HasKey("Id");
+
+                    b.ToTable("Tenants", (string)null);
+                });
+
             modelBuilder.Entity("Kairn.Domain.Entities.TenantApSettings", b =>
                 {
                     b.Property<Guid>("TenantId")
@@ -1617,6 +1635,27 @@ namespace Kairn.Infrastructure.Migrations
                     b.ToTable("TenantDashboardSettings", (string)null);
                 });
 
+            modelBuilder.Entity("Kairn.Domain.Entities.TenantMembership", b =>
+                {
+                    b.Property<Guid>("TenantId")
+                        .HasColumnType("TEXT");
+
+                    b.Property<string>("UserId")
+                        .HasMaxLength(450)
+                        .HasColumnType("TEXT");
+
+                    b.Property<DateTimeOffset>("JoinedAt")
+                        .HasColumnType("TEXT");
+
+                    b.Property<string>("Role")
+                        .IsRequired()
+                        .HasColumnType("TEXT");
+
+                    b.HasKey("TenantId", "UserId");
+
+                    b.ToTable("TenantMemberships", (string)null);
+                });
+
             modelBuilder.Entity("Kairn.Domain.Entities.TenantProfile", b =>
                 {
                     b.Property<Guid>("TenantId")
@@ -1646,6 +1685,13 @@ namespace Kairn.Infrastructure.Migrations
                         .HasMaxLength(100)
                         .HasColumnType("TEXT");
 
+                    b.Property<int>("FiscalYearStartMonth")
+                        .HasColumnType("INTEGER");
+
+                    b.Property<string>("LegalForm")
+                        .HasMaxLength(50)
+                        .HasColumnType("TEXT");
+
                     b.Property<string>("LegalName")
                         .IsRequired()
                         .HasMaxLength(200)
@@ -1663,6 +1709,10 @@ namespace Kairn.Infrastructure.Migrations
                     b.Property<string>("Siret")
                         .IsRequired()
                         .HasMaxLength(14)
+                        .HasColumnType("TEXT");
+
+                    b.Property<string>("VatFilingFrequency")
+                        .IsRequired()
                         .HasColumnType("TEXT");
 
                     b.Property<decimal?>("VatThresholdCommercial")
@@ -1838,6 +1888,9 @@ namespace Kairn.Infrastructure.Migrations
                     b.Property<int>("AccessFailedCount")
                         .HasColumnType("INTEGER");
 
+                    b.Property<Guid?>("ActiveTenantId")
+                        .HasColumnType("TEXT");
+
                     b.Property<string>("ConcurrencyStamp")
                         .IsConcurrencyToken()
                         .HasColumnType("TEXT");
@@ -1883,9 +1936,6 @@ namespace Kairn.Infrastructure.Migrations
                         .HasColumnType("TEXT");
 
                     b.Property<string>("SecurityStamp")
-                        .HasColumnType("TEXT");
-
-                    b.Property<Guid>("TenantId")
                         .HasColumnType("TEXT");
 
                     b.Property<bool>("TwoFactorEnabled")
@@ -2311,6 +2361,17 @@ namespace Kairn.Infrastructure.Migrations
                     b.Navigation("Account");
 
                     b.Navigation("RecurringEntry");
+                });
+
+            modelBuilder.Entity("Kairn.Domain.Entities.TenantMembership", b =>
+                {
+                    b.HasOne("Kairn.Domain.Entities.Tenant", "Tenant")
+                        .WithMany()
+                        .HasForeignKey("TenantId")
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired();
+
+                    b.Navigation("Tenant");
                 });
 
             modelBuilder.Entity("Kairn.Domain.Entities.Vendor", b =>

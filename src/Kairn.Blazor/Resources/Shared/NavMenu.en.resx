@@ -9,6 +9,7 @@
   <data name="Group.Tax" xml:space="preserve"><value>Tax &amp; Margins</value></data>
   <data name="Nav.Dashboard" xml:space="preserve"><value>Dashboard</value></data>
   <data name="Nav.GeneralLedger" xml:space="preserve"><value>General Ledger</value></data>
+  <data name="Nav.LivreDesComptes" xml:space="preserve"><value>Accounting Book</value></data>
   <data name="Nav.Customers" xml:space="preserve"><value>Customers</value></data>
   <data name="Nav.Invoicing" xml:space="preserve"><value>Invoicing</value></data>
   <data name="Nav.ArAging" xml:space="preserve"><value>AR Aging</value></data>

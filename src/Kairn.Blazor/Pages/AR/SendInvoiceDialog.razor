@@ -2,6 +2,7 @@
 @inject IInvoiceService InvoiceService
 @inject ICurrentUserContext CurrentUser
 @inject IAccountService AccountService
+@inject ITenantProfileService ProfileService
 
 <MudDialog>
     <DialogContent>
@@ -23,15 +24,18 @@
                 </MudItem>
             </MudGrid>
 
-            <MudSelect T="Guid?" @bind-Value="_revenueAccountId"
-                       Label="@L["Send_RevenueAccount"]"
-                       Required="true"
-                       HelperText="@L["Send_RevenueAccountHint"]">
-                @foreach (var acc in _revenueAccounts)
-                {
-                    <MudSelectItem T="Guid?" Value="@((Guid?)acc.Id)">@acc.Code – @acc.Name</MudSelectItem>
-                }
-            </MudSelect>
+            @if (!_isAutoEntrepreneur)
+            {
+                <MudSelect T="Guid?" @bind-Value="_revenueAccountId"
+                           Label="@L["Send_RevenueAccount"]"
+                           Required="true"
+                           HelperText="@L["Send_RevenueAccountHint"]">
+                    @foreach (var acc in _revenueAccounts)
+                    {
+                        <MudSelectItem T="Guid?" Value="@((Guid?)acc.Id)">@acc.Code – @acc.Name</MudSelectItem>
+                    }
+                </MudSelect>
+            }
 
             @if (_errorMessage is not null)
             {
@@ -58,20 +62,38 @@
 
     private List<Kairn.Domain.Entities.Account> _revenueAccounts = [];
     private Guid? _revenueAccountId;
+    private bool _isAutoEntrepreneur;
     private bool _saving;
     private string? _errorMessage;
 
     protected override async Task OnInitializedAsync()
     {
-        var all = await AccountService.GetAllAsync(CurrentUser.TenantId);
-        _revenueAccounts = all
+        var accountsTask = AccountService.GetAllAsync(CurrentUser.TenantId);
+        var profileTask  = ProfileService.GetAsync(CurrentUser.TenantId);
+        await Task.WhenAll(accountsTask, profileTask);
+
+        var profile = profileTask.Result;
+        _isAutoEntrepreneur = profile.BusinessStatus == Kairn.Domain.Entities.BusinessStatus.AutoEntrepreneur;
+
+        _revenueAccounts = accountsTask.Result
             .Where(a => a.Type == Kairn.Domain.Entities.AccountType.Revenue && a.IsActive)
             .OrderBy(a => a.Code)
             .ToList();
 
         _revenueAccountId = Invoice?.RevenueAccountId;
-        if (_revenueAccountId is null && _revenueAccounts.Count == 1)
+
+        if (_isAutoEntrepreneur && _revenueAccountId is null)
+        {
+            // Auto-select: Services → 706000, Commercial → 707000
+            var preferredCode = profile.ActivityType == Kairn.Domain.Entities.ActivityType.Commercial
+                ? "707000" : "706000";
+            _revenueAccountId = (_revenueAccounts.FirstOrDefault(a => a.Code == preferredCode)
+                              ?? _revenueAccounts.FirstOrDefault())?.Id;
+        }
+        else if (_revenueAccountId is null && _revenueAccounts.Count == 1)
+        {
             _revenueAccountId = _revenueAccounts[0].Id;
+        }
     }
 
     private void Cancel() => MudDialog.Cancel();

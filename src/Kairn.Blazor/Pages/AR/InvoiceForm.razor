@@ -63,19 +63,22 @@ else
                             <MudTextField @bind-Value="_currency" Label="@L["Field_Currency"]"
                                           Required="true" MaxLength="3" Immediate="true" />
                         </MudItem>
-                        <MudItem xs="12" sm="3">
-                            <MudSelect T="Guid?" @bind-Value="_revenueAccountId"
-                                       Label="@L["Field_RevenueAccount"]"
-                                       HelperText="@L["Field_RevenueAccountHint"]"
-                                       Clearable="true">
-                                @foreach (var acc in _revenueAccounts)
-                                {
-                                    <MudSelectItem T="Guid?" Value="@((Guid?)acc.Id)">
-                                        @acc.Code – @acc.Name
-                                    </MudSelectItem>
-                                }
-                            </MudSelect>
-                        </MudItem>
+                        @if (!_isAutoEntrepreneur)
+                        {
+                            <MudItem xs="12" sm="3">
+                                <MudSelect T="Guid?" @bind-Value="_revenueAccountId"
+                                           Label="@L["Field_RevenueAccount"]"
+                                           HelperText="@L["Field_RevenueAccountHint"]"
+                                           Clearable="true">
+                                    @foreach (var acc in _revenueAccounts)
+                                    {
+                                        <MudSelectItem T="Guid?" Value="@((Guid?)acc.Id)">
+                                            @acc.Code – @acc.Name
+                                        </MudSelectItem>
+                                    }
+                                </MudSelect>
+                            </MudItem>
+                        }
                         <MudItem xs="12">
                             <MudTextField @bind-Value="_notes" Label="@L["Field_Notes"]"
                                           Lines="2" Immediate="true" />
@@ -187,7 +190,9 @@ else
                                 </MudTd>
                             }
                             <MudTd Class="text-right">
-                                <MudText Typo="Typo.body2">@context.LineTotal.ToString("N2")</MudText>
+                                <MudText Typo="Typo.body2">
+                                    @((_isAutoEntrepreneur ? context.NetAmount : context.LineTotal).ToString("N2"))
+                                </MudText>
                             </MudTd>
                             <MudTd>
                                 <MudIconButton Icon="@Icons.Material.Filled.Delete"
@@ -302,8 +307,8 @@ else
                 Quantity = l.Quantity,
                 UnitPrice = l.UnitPrice,
                 DiscountPct = l.DiscountPct,
-                TaxRate = l.TaxRate,
-                TaxRateId = l.TaxRateId,
+                TaxRate    = _isAutoEntrepreneur ? 0m : l.TaxRate,
+                TaxRateId  = _isAutoEntrepreneur ? null : l.TaxRateId,
             }).ToList();
         }
         else
@@ -339,16 +344,20 @@ else
     private void OnDateChanged(DateTime? date)
     {
         _date = date;
-        if (date.HasValue && _selectedCustomer is not null)
-            _dueDate = date.Value.AddDays(_selectedCustomer.PaymentTermsDays);
+        if (!date.HasValue) return;
+        var days = _selectedCustomer?.PaymentTermsDays ?? 30;
+        _dueDate = date.Value.AddDays(days);
     }
 
     private void AddLine()
     {
         var line = new LineItemModel();
-        var defaultRate = _taxRates.FirstOrDefault(r => r.IsDefault && r.Category == TaxCategory.Standard);
-        if (defaultRate is not null)
-            SetRate(line, defaultRate);
+        if (!_isAutoEntrepreneur)
+        {
+            var defaultRate = _taxRates.FirstOrDefault(r => r.IsDefault && r.Category == TaxCategory.Standard);
+            if (defaultRate is not null)
+                SetRate(line, defaultRate);
+        }
         _lines.Add(line);
     }
     private void RemoveLine(LineItemModel line) => _lines.Remove(line);

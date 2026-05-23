@@ -1,0 +1,73 @@
+@inject IStringLocalizer<CompanySwitcher> L
+@inject ITenantMembershipService MembershipService
+@inject NavigationManager Navigation
+@inject AuthenticationStateProvider AuthStateProvider
+
+@if (_memberships.Count > 0)
+{
+    <MudMenu AnchorOrigin="Origin.BottomLeft" TransformOrigin="Origin.TopLeft" Dense="true">
+        <ActivatorContent>
+            <MudButton Color="Color.Inherit" EndIcon="@Icons.Material.Filled.ExpandMore"
+                       Style="text-transform:none;font-weight:500;max-width:220px;">
+                <span style="overflow:hidden;text-overflow:ellipsis;white-space:nowrap;">
+                    @ProfileState.CompanyName
+                </span>
+            </MudButton>
+        </ActivatorContent>
+        <ChildContent>
+            @foreach (var m in _memberships)
+            {
+                var membership = m;
+                bool active = membership.TenantId == _currentTenantId;
+                <MudMenuItem OnClick="@(() => SwitchTo(membership.TenantId))"
+                             Style="@(active ? "background:#F4F7F1;" : "")">
+                    <div style="display:flex;align-items:center;gap:0.5rem;">
+                        @if (active)
+                        {
+                            <MudIcon Icon="@Icons.Material.Filled.Check" Size="Size.Small" Style="color:#8BA07A;" />
+                        }
+                        else
+                        {
+                            <div style="width:20px;"></div>
+                        }
+                        <div>
+                            <MudText Typo="Typo.body2" Style="@(active ? "font-weight:600;" : "")">@membership.TenantName</MudText>
+                            <MudText Typo="Typo.caption" Style="color:#8C8980;">@L[$"Role_{membership.Role}"]</MudText>
+                        </div>
+                    </div>
+                </MudMenuItem>
+            }
+            <MudDivider />
+            <MudMenuItem OnClick="CreateCompany" Icon="@Icons.Material.Filled.AddBusiness">
+                @L["NewCompany"]
+            </MudMenuItem>
+        </ChildContent>
+    </MudMenu>
+}
+
+@code {
+    [CascadingParameter] private TenantProfileState ProfileState { get; set; } = null!;
+
+    private IReadOnlyList<TenantMembershipDto> _memberships = [];
+    private Guid _currentTenantId;
+
+    protected override async Task OnInitializedAsync()
+    {
+        var authState = await AuthStateProvider.GetAuthenticationStateAsync();
+        var userId    = authState.User.FindFirst(System.Security.Claims.ClaimTypes.NameIdentifier)?.Value;
+
+        Guid.TryParse(authState.User.FindFirst("tenant_id")?.Value, out _currentTenantId);
+
+        if (!string.IsNullOrEmpty(userId))
+            _memberships = await MembershipService.GetUserMembershipsAsync(userId);
+    }
+
+    private void SwitchTo(Guid tenantId)
+    {
+        if (tenantId == _currentTenantId) return;
+        var returnUrl = Uri.EscapeDataString("/");
+        Navigation.NavigateTo($"/account/select-tenant?tenantId={tenantId}&returnUrl={returnUrl}", forceLoad: true);
+    }
+
+    private void CreateCompany() => Navigation.NavigateTo("/onboarding");
+}

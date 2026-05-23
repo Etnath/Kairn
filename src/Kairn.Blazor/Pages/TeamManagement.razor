@@ -1,0 +1,245 @@
+@page "/settings/team"
+@attribute [Authorize]
+@inject IStringLocalizer<TeamManagement> L
+@inject ITeamManagementService TeamService
+@inject ICurrentUserContext CurrentUser
+@inject ISnackbar Snackbar
+@inject IDialogService DialogService
+@inject NavigationManager Nav
+
+<PageTitle>@L["Title"] – Kairn</PageTitle>
+
+<MudStack Row="true" AlignItems="AlignItems.Center" Class="mb-4">
+    <MudIconButton Icon="@Icons.Material.Filled.ArrowBack" OnClick='@(() => Nav.NavigateTo("/settings"))' />
+    <MudText Typo="Typo.h5">@L["Title"]</MudText>
+</MudStack>
+
+@if (_loading)
+{
+    <MudProgressCircular Indeterminate="true" />
+}
+else
+{
+    @* ── Members table ── *@
+    <MudPaper Outlined="true" Class="mb-4">
+        <MudTable Items="_members" Dense="true" Hover="true" Breakpoint="Breakpoint.Sm"
+                  Elevation="0" Style="border-radius:8px;">
+            <HeaderContent>
+                <MudTh>@L["Col.Name"]</MudTh>
+                <MudTh>@L["Col.Email"]</MudTh>
+                <MudTh>@L["Col.Role"]</MudTh>
+                <MudTh>@L["Col.Joined"]</MudTh>
+                <MudTh></MudTh>
+            </HeaderContent>
+            <RowTemplate>
+                <MudTd DataLabel="@L["Col.Name"]">
+                    <MudText Typo="Typo.body2">@context.DisplayName</MudText>
+                    @if (context.UserId == CurrentUser.UserId)
+                    {
+                        <MudChip T="string" Size="Size.Small" Color="Color.Default" Label="true"
+                                 Style="height:18px;font-size:0.65rem;margin-left:4px;">
+                            @L["You"]
+                        </MudChip>
+                    }
+                </MudTd>
+                <MudTd DataLabel="@L["Col.Email"]">
+                    <MudText Typo="Typo.body2">@context.Email</MudText>
+                </MudTd>
+                <MudTd DataLabel="@L["Col.Role"]">
+                    @if (CanEditRole(context))
+                    {
+                        <MudSelect T="TenantRole" Value="context.Role"
+                                   ValueChanged="@(r => ChangeRoleAsync(context, r))"
+                                   Dense="true" Variant="Variant.Text"
+                                   Style="min-width:120px;">
+                            @foreach (var role in AllowedNewRoles(_myRole, context.Role))
+                            {
+                                var r = role;
+                                <MudSelectItem Value="@r">@L[$"Role_{r}"]</MudSelectItem>
+                            }
+                        </MudSelect>
+                    }
+                    else
+                    {
+                        <MudChip T="string" Size="Size.Small" Label="true"
+                                 Color="@RoleColor(context.Role)">
+                            @L[$"Role_{context.Role}"]
+                        </MudChip>
+                    }
+                </MudTd>
+                <MudTd DataLabel="@L["Col.Joined"]">
+                    <MudText Typo="Typo.body2">@context.JoinedAt.ToLocalTime().ToString("d MMM yyyy")</MudText>
+                </MudTd>
+                <MudTd>
+                    @if (CanRemoveMember(context))
+                    {
+                        <MudIconButton Icon="@Icons.Material.Filled.PersonRemove"
+                                       Size="Size.Small" Color="Color.Error"
+                                       Title="@L["Remove"]"
+                                       OnClick="@(() => ConfirmRemoveAsync(context))" />
+                    }
+                </MudTd>
+            </RowTemplate>
+        </MudTable>
+    </MudPaper>
+
+    @* ── Invite section ── *@
+    @if (_myRole is TenantRole.Owner or TenantRole.Admin)
+    {
+        <MudPaper Outlined="true" Class="pa-4">
+            <MudText Typo="Typo.subtitle1" GutterBottom="true">@L["Invite.Title"]</MudText>
+            <MudStack Row="true" AlignItems="AlignItems.Center" Spacing="2" Wrap="Wrap.Wrap">
+                <MudTextField @bind-Value="_inviteEmail"
+                              Label="@L["Invite.Email"]"
+                              Variant="Variant.Outlined"
+                              Margin="@MudBlazor.Margin.Dense"
+                              Style="min-width:260px;"
+                              InputType="InputType.Email"
+                              Error="@(_inviteError is not null)"
+                              ErrorText="@_inviteError" />
+                <MudSelect @bind-Value="_inviteRole"
+                           Label="@L["Invite.Role"]"
+                           Variant="Variant.Outlined"
+                           Margin="@MudBlazor.Margin.Dense"
+                           Style="min-width:140px;">
+                    @foreach (var role in InvitableRoles(_myRole))
+                    {
+                        var r = role;
+                        <MudSelectItem Value="@r">@L[$"Role_{r}"]</MudSelectItem>
+                    }
+                </MudSelect>
+                <MudButton Variant="Variant.Filled" Color="Color.Primary"
+                           Style="background:#8BA07A;"
+                           OnClick="InviteAsync" Disabled="_inviting">
+                    @if (_inviting)
+                    {
+                        <MudProgressCircular Size="Size.Small" Indeterminate="true" Style="margin-right:6px;" />
+                    }
+                    @L["Invite.Send"]
+                </MudButton>
+            </MudStack>
+        </MudPaper>
+    }
+}
+
+@code {
+    bool                         _loading  = true;
+    bool                         _inviting = false;
+    TenantRole                   _myRole   = TenantRole.ReadOnly;
+    IReadOnlyList<TeamMemberDto> _members  = [];
+
+    string     _inviteEmail = "";
+    TenantRole _inviteRole  = TenantRole.Member;
+    string?    _inviteError;
+
+    protected override async Task OnInitializedAsync()
+    {
+        await RefreshAsync();
+        _loading = false;
+    }
+
+    async Task RefreshAsync()
+    {
+        _members = await TeamService.GetMembersAsync(CurrentUser.TenantId);
+        var me   = _members.FirstOrDefault(m => m.UserId == CurrentUser.UserId);
+        _myRole  = me?.Role ?? TenantRole.ReadOnly;
+    }
+
+    bool CanEditRole(TeamMemberDto m) =>
+        TeamPermissions.CanChangeRole(_myRole, m.Role, m.Role, m.UserId == CurrentUser.UserId);
+
+    bool CanRemoveMember(TeamMemberDto m) =>
+        TeamPermissions.CanRemove(_myRole, m.Role, m.UserId == CurrentUser.UserId);
+
+    static IEnumerable<TenantRole> AllowedNewRoles(TenantRole actor, TenantRole current)
+    {
+        if (actor == TenantRole.Owner)
+            return [TenantRole.Admin, TenantRole.Member, TenantRole.ReadOnly];
+        return [TenantRole.Member, TenantRole.ReadOnly];
+    }
+
+    static IEnumerable<TenantRole> InvitableRoles(TenantRole actor) =>
+        actor == TenantRole.Owner
+            ? [TenantRole.Admin, TenantRole.Member, TenantRole.ReadOnly]
+            : [TenantRole.Member, TenantRole.ReadOnly];
+
+    async Task ChangeRoleAsync(TeamMemberDto member, TenantRole newRole)
+    {
+        if (newRole == member.Role) return;
+        var result = await TeamService.ChangeRoleAsync(
+            CurrentUser.TenantId, member.UserId, newRole, _myRole);
+        if (result.IsSuccess)
+        {
+            Snackbar.Add(L["RoleChanged"], Severity.Success);
+            await RefreshAsync();
+        }
+        else
+        {
+            Snackbar.Add(result.Error ?? L["ErrorGeneric"], Severity.Error);
+        }
+    }
+
+    async Task ConfirmRemoveAsync(TeamMemberDto member)
+    {
+        var confirmed = await DialogService.ShowMessageBox(
+            L["Remove.Confirm.Title"],
+            (MarkupString)string.Format(L["Remove.Confirm.Body"].Value, member.DisplayName),
+            yesText: L["Remove"], cancelText: L["Cancel"]);
+
+        if (confirmed != true) return;
+
+        var result = await TeamService.RemoveAsync(CurrentUser.TenantId, member.UserId, _myRole);
+        if (result.IsSuccess)
+        {
+            Snackbar.Add(L["Removed"], Severity.Success);
+            await RefreshAsync();
+        }
+        else
+        {
+            Snackbar.Add(result.Error ?? L["ErrorGeneric"], Severity.Error);
+        }
+    }
+
+    async Task InviteAsync()
+    {
+        _inviteError = null;
+        if (string.IsNullOrWhiteSpace(_inviteEmail))
+        {
+            _inviteError = L["Invite.EmailRequired"];
+            return;
+        }
+
+        _inviting = true;
+        try
+        {
+            var result = await TeamService.InviteAsync(
+                CurrentUser.TenantId, _inviteEmail.Trim(), _inviteRole,
+                _myRole, CurrentUser.UserName);
+
+            if (result.IsSuccess)
+            {
+                Snackbar.Add(L["Invite.Success"], Severity.Success);
+                _inviteEmail = "";
+                _inviteRole  = TenantRole.Member;
+                await RefreshAsync();
+            }
+            else
+            {
+                _inviteError = result.Error;
+            }
+        }
+        finally
+        {
+            _inviting = false;
+        }
+    }
+
+    static Color RoleColor(TenantRole role) => role switch
+    {
+        TenantRole.Owner    => Color.Primary,
+        TenantRole.Admin    => Color.Secondary,
+        TenantRole.Member   => Color.Default,
+        TenantRole.ReadOnly => Color.Default,
+        _                   => Color.Default,
+    };
+}
