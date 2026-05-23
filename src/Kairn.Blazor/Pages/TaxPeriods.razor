@@ -1,0 +1,227 @@
+@page "/tax/periods"
+@attribute [Authorize(Roles = "Admin")]
+@inject IStringLocalizer<TaxPeriods> L
+@inject ITaxPeriodService TaxPeriodService
+@inject ICurrentUserContext CurrentUser
+@inject ISnackbar Snackbar
+@inject IDialogService DialogService
+@inject NavigationManager Nav
+
+<PageTitle>@L["Title"] – Kairn</PageTitle>
+
+<MudStack Row="true" AlignItems="AlignItems.Center" Class="mb-4">
+    <MudIconButton Icon="@Icons.Material.Filled.ArrowBack" Size="Size.Small"
+                   title="@L["Cancel"]"
+                   OnClick="@(() => Nav.NavigateTo("/tax"))" />
+    <MudText Typo="Typo.h5">@L["Title"]</MudText>
+    <MudSpacer />
+    <MudButton Variant="Variant.Outlined" Color="Color.Secondary"
+               StartIcon="@Icons.Material.Filled.CalendarMonth"
+               OnClick="OpenGenerateQuartersDialogAsync" Class="mr-2">
+        @L["GenerateQuarters"]
+    </MudButton>
+    <MudButton Variant="Variant.Filled" Color="Color.Primary"
+               StartIcon="@Icons.Material.Filled.Add"
+               OnClick="OpenCreateDialogAsync">
+        @L["NewPeriod"]
+    </MudButton>
+</MudStack>
+
+@if (_loading)
+{
+    <MudProgressLinear Indeterminate="true" Color="Color.Primary" />
+}
+else if (_periods.Count == 0)
+{
+    <MudText Color="Color.Secondary">@L["NoData"]</MudText>
+}
+else
+{
+    <MudTable T="TaxPeriodDto" Items="_periods" Dense="true" Hover="true" Breakpoint="Breakpoint.Sm">
+        <HeaderContent>
+            <MudTh>@L["Col_Name"]</MudTh>
+            <MudTh Style="width:110px">@L["Col_Start"]</MudTh>
+            <MudTh Style="width:110px">@L["Col_End"]</MudTh>
+            <MudTh Style="width:100px">@L["Col_Status"]</MudTh>
+            <MudTh>@L["Col_LockedBy"]</MudTh>
+            <MudTh Style="width:160px">@L["Col_LockedAt"]</MudTh>
+            <MudTh Style="width:160px"></MudTh>
+        </HeaderContent>
+        <RowTemplate>
+            <MudTd>@context.Name</MudTd>
+            <MudTd>@context.StartDate.ToString("dd/MM/yyyy")</MudTd>
+            <MudTd>@context.EndDate.ToString("dd/MM/yyyy")</MudTd>
+            <MudTd>
+                @if (context.IsLocked)
+                {
+                    <MudChip T="string" Icon="@Icons.Material.Filled.Lock"
+                             Color="Color.Warning" Size="Size.Small" Variant="Variant.Filled">
+                        @L["Status_Locked"]
+                    </MudChip>
+                }
+                else
+                {
+                    <MudChip T="string" Icon="@Icons.Material.Filled.LockOpen"
+                             Color="Color.Success" Size="Size.Small" Variant="Variant.Outlined">
+                        @L["Status_Open"]
+                    </MudChip>
+                }
+            </MudTd>
+            <MudTd>@context.LockedByUserName</MudTd>
+            <MudTd>@(context.LockedAt?.ToLocalTime().ToString("dd/MM/yyyy HH:mm"))</MudTd>
+            <MudTd>
+                <MudStack Row="true" Spacing="1" Justify="Justify.FlexEnd">
+                    @if (context.IsLocked)
+                    {
+                        <MudButton Size="Size.Small" Variant="Variant.Outlined" Color="Color.Warning"
+                                   StartIcon="@Icons.Material.Filled.LockOpen"
+                                   OnClick="@(() => OpenUnlockDialogAsync(context))">
+                            @L["Unlock"]
+                        </MudButton>
+                    }
+                    else
+                    {
+                        <MudButton Size="Size.Small" Variant="Variant.Outlined" Color="Color.Secondary"
+                                   StartIcon="@Icons.Material.Filled.Lock"
+                                   OnClick="@(() => OpenLockDialogAsync(context))">
+                            @L["Lock"]
+                        </MudButton>
+                        <MudIconButton Size="Size.Small" Icon="@Icons.Material.Filled.Delete"
+                                       Color="Color.Error"
+                                       OnClick="@(() => DeleteAsync(context))" />
+                    }
+                </MudStack>
+            </MudTd>
+        </RowTemplate>
+    </MudTable>
+}
+
+@code {
+    private bool _loading = true;
+    private List<TaxPeriodDto> _periods = [];
+
+    protected override async Task OnInitializedAsync()
+    {
+        await LoadAsync();
+    }
+
+    private async Task LoadAsync()
+    {
+        _loading = true;
+        _periods = [.. await TaxPeriodService.GetAllAsync(CurrentUser.TenantId)];
+        _loading = false;
+    }
+
+    private async Task OpenCreateDialogAsync()
+    {
+        var dialog = await DialogService.ShowAsync<TaxPeriodCreateDialog>(L["Create_Title"],
+            new DialogParameters<TaxPeriodCreateDialog>
+            {
+                { d => d.L, L },
+            });
+        var result = await dialog.Result;
+        if (result is { Canceled: false, Data: CreateTaxPeriodCommand cmd })
+        {
+            var r = await TaxPeriodService.CreateAsync(cmd);
+            if (r.IsSuccess)
+            {
+                Snackbar.Add(r.Value!.Name + " created", Severity.Success);
+                await LoadAsync();
+            }
+            else
+            {
+                Snackbar.Add(r.Error, Severity.Error);
+            }
+        }
+    }
+
+    private async Task OpenLockDialogAsync(TaxPeriodDto period)
+    {
+        var dialog = await DialogService.ShowAsync<TaxPeriodLockDialog>(L["Lock_Title"],
+            new DialogParameters<TaxPeriodLockDialog>
+            {
+                { d => d.Period, period },
+                { d => d.L, L },
+            });
+        var result = await dialog.Result;
+        if (result is { Canceled: false })
+        {
+            var r = await TaxPeriodService.LockAsync(period.Id, CurrentUser.TenantId,
+                CurrentUser.UserId, CurrentUser.UserName);
+            if (r.IsSuccess)
+            {
+                Snackbar.Add(period.Name + " locked", Severity.Warning);
+                await LoadAsync();
+            }
+            else
+            {
+                Snackbar.Add(r.Error, Severity.Error);
+            }
+        }
+    }
+
+    private async Task OpenUnlockDialogAsync(TaxPeriodDto period)
+    {
+        var dialog = await DialogService.ShowAsync<TaxPeriodUnlockDialog>(L["Unlock_Title"],
+            new DialogParameters<TaxPeriodUnlockDialog>
+            {
+                { d => d.Period, period },
+                { d => d.L, L },
+            });
+        var result = await dialog.Result;
+        if (result is { Canceled: false, Data: string reason })
+        {
+            var r = await TaxPeriodService.UnlockAsync(period.Id, CurrentUser.TenantId,
+                CurrentUser.UserId, CurrentUser.UserName, reason);
+            if (r.IsSuccess)
+            {
+                Snackbar.Add(period.Name + " unlocked", Severity.Success);
+                await LoadAsync();
+            }
+            else
+            {
+                Snackbar.Add(r.Error, Severity.Error);
+            }
+        }
+    }
+
+    private async Task DeleteAsync(TaxPeriodDto period)
+    {
+        var dialog = await DialogService.ShowAsync<TaxPeriodDeleteDialog>(L["Delete_Title"],
+            new DialogParameters<TaxPeriodDeleteDialog>
+            {
+                { d => d.Period, period },
+                { d => d.L, L },
+            });
+        var result = await dialog.Result;
+        if (result is { Canceled: false })
+        {
+            var r = await TaxPeriodService.DeleteAsync(period.Id, CurrentUser.TenantId);
+            if (r.IsSuccess)
+            {
+                Snackbar.Add(period.Name + " deleted", Severity.Success);
+                await LoadAsync();
+            }
+            else
+            {
+                Snackbar.Add(r.Error, Severity.Error);
+            }
+        }
+    }
+
+    private async Task OpenGenerateQuartersDialogAsync()
+    {
+        var dialog = await DialogService.ShowAsync<TaxPeriodGenerateDialog>(L["GenerateQuarters_Title"],
+            new DialogParameters<TaxPeriodGenerateDialog>
+            {
+                { d => d.L, L },
+            });
+        var result = await dialog.Result;
+        if (result is { Canceled: false, Data: int year })
+        {
+            var created = await TaxPeriodService.GenerateQuartersAsync(CurrentUser.TenantId, year);
+            Snackbar.Add($"{created.Count} quarter(s) generated for {year}", Severity.Success);
+            await LoadAsync();
+        }
+    }
+}

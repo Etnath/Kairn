@@ -49,4 +49,11 @@
   <data name="Alert_MarginBelow_Body" xml:space="preserve"><value>{0} gross margin is {1}% — below your threshold of {2}%</value></data>
   <data name="Alert_MarginBelow_Link" xml:space="preserve"><value>View Margin Analysis</value></data>
   <data name="Alert_CheckNow" xml:space="preserve"><value>Check now</value></data>
+  <data name="Kpi_VatThreshold" xml:space="preserve"><value>TVA Franchise Threshold</value></data>
+  <data name="Kpi_VatThreshold_Of" xml:space="preserve"><value>of {0} € threshold ({1}%)</value></data>
+  <data name="Alert_VatWarning_Title" xml:space="preserve"><value>TVA Franchise — 80% Warning</value></data>
+  <data name="Alert_VatWarning_Body" xml:space="preserve"><value>Annual revenue {0} € has reached {1}% of the TVA franchise threshold ({2} €). You must register for VAT before exceeding this limit.</value></data>
+  <data name="Alert_VatExceeded_Title" xml:space="preserve"><value>TVA Franchise Threshold Exceeded</value></data>
+  <data name="Alert_VatExceeded_Body" xml:space="preserve"><value>You have exceeded the TVA franchise threshold of {0} €. You are required to charge VAT on invoices from the 1st of next month. Update your business status in Settings.</value></data>
+  <data name="Alert_VatExceeded_Link" xml:space="preserve"><value>Update Business Status</value></data>
 </root>

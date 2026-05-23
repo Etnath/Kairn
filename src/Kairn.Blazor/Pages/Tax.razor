@@ -3,5 +3,71 @@
 @inject IStringLocalizer<Tax> L
 
 <PageTitle>@L["Title"] – Kairn</PageTitle>
-<MudText Typo="Typo.h5" Class="mb-4">@L["Title"]</MudText>
-<MudText Color="Color.Secondary">@L["ComingSoon"]</MudText>
+<MudText Typo="Typo.h5" Class="mb-6">@L["Title"]</MudText>
+
+<MudGrid Spacing="3">
+    <MudItem xs="12" sm="6" md="4">
+        <MudCard Elevation="1" Style="height:100%">
+            <MudCardContent>
+                <MudStack Spacing="2">
+                    <MudIcon Icon="@Icons.Material.Filled.Receipt" Color="Color.Primary" Size="Size.Large" />
+                    <MudText Typo="Typo.h6">@L["VatReturn_Title"]</MudText>
+                    <MudText Typo="Typo.body2" Color="Color.Secondary">@L["VatReturn_Description"]</MudText>
+                </MudStack>
+            </MudCardContent>
+            <MudCardActions>
+                <MudButton Href="/tax/vat-return" Variant="Variant.Text" Color="Color.Primary">
+                    @L["Open"] →
+                </MudButton>
+            </MudCardActions>
+        </MudCard>
+    </MudItem>
+    <MudItem xs="12" sm="6" md="4">
+        <MudCard Elevation="1" Style="height:100%">
+            <MudCardContent>
+                <MudStack Spacing="2">
+                    <MudIcon Icon="@Icons.Material.Filled.Tune" Color="Color.Secondary" Size="Size.Large" />
+                    <MudText Typo="Typo.h6">@L["TaxRates_Title"]</MudText>
+                    <MudText Typo="Typo.body2" Color="Color.Secondary">@L["TaxRates_Description"]</MudText>
+                </MudStack>
+            </MudCardContent>
+            <MudCardActions>
+                <MudButton Href="/settings/tax-rates" Variant="Variant.Text" Color="Color.Secondary">
+                    @L["Open"] →
+                </MudButton>
+            </MudCardActions>
+        </MudCard>
+    </MudItem>
+    <MudItem xs="12" sm="6" md="4">
+        <MudCard Elevation="1" Style="height:100%">
+            <MudCardContent>
+                <MudStack Spacing="2">
+                    <MudIcon Icon="@Icons.Material.Filled.Lock" Color="Color.Warning" Size="Size.Large" />
+                    <MudText Typo="Typo.h6">@L["TaxPeriods_Title"]</MudText>
+                    <MudText Typo="Typo.body2" Color="Color.Secondary">@L["TaxPeriods_Description"]</MudText>
+                </MudStack>
+            </MudCardContent>
+            <MudCardActions>
+                <MudButton Href="/tax/periods" Variant="Variant.Text" Color="Color.Warning">
+                    @L["Open"] →
+                </MudButton>
+            </MudCardActions>
+        </MudCard>
+    </MudItem>
+    <MudItem xs="12" sm="6" md="4">
+        <MudCard Elevation="1" Style="height:100%">
+            <MudCardContent>
+                <MudStack Spacing="2">
+                    <MudIcon Icon="@Icons.Material.Filled.FolderZip" Color="Color.Info" Size="Size.Large" />
+                    <MudText Typo="Typo.h6">@L["Export_Title"]</MudText>
+                    <MudText Typo="Typo.body2" Color="Color.Secondary">@L["Export_Description"]</MudText>
+                </MudStack>
+            </MudCardContent>
+            <MudCardActions>
+                <MudButton Href="/tax/export" Variant="Variant.Text" Color="Color.Info">
+                    @L["Open"] →
+                </MudButton>
+            </MudCardActions>
+        </MudCard>
+    </MudItem>
+</MudGrid>

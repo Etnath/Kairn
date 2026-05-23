@@ -31,3 +31,7 @@ src/Kairn.Blazor/wwwroot/app.min.css
 ## OS
 .DS_Store
 Thumbs.db
+
+## local setting files
+*.local.json
+

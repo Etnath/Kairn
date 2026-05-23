@@ -1,0 +1,28 @@
+@using Kairn.Application.Features.Tax
+
+<MudDialog>
+    <DialogContent>
+        <MudStack Spacing="2">
+            <MudText>@L["Delete_Warning"]</MudText>
+            <MudText Typo="Typo.body2" Color="Color.Secondary">
+                <b>@Period.Name</b>:
+                @Period.StartDate.ToString("dd/MM/yyyy") – @Period.EndDate.ToString("dd/MM/yyyy")
+            </MudText>
+        </MudStack>
+    </DialogContent>
+    <DialogActions>
+        <MudButton OnClick="@(() => MudDialog.Cancel())">@L["Cancel"]</MudButton>
+        <MudButton Variant="Variant.Filled" Color="Color.Error"
+                   StartIcon="@Icons.Material.Filled.Delete"
+                   OnClick="@(() => MudDialog.Close(DialogResult.Ok(true)))">
+            @L["Delete_Confirm"]
+        </MudButton>
+    </DialogActions>
+</MudDialog>
+
+@code {
+    [CascadingParameter] IMudDialogInstance MudDialog { get; set; } = null!;
+
+    [Parameter] public TaxPeriodDto Period { get; set; } = null!;
+    [Parameter] public IStringLocalizer<TaxPeriods> L { get; set; } = null!;
+}

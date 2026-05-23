@@ -11,6 +11,8 @@ using Kairn.Application.Features.Budgets;
 using Kairn.Application.Features.Dashboard;
 using Kairn.Application.Features.MarginAnalysis;
 using Kairn.Application.Features.Tax;
+using Kairn.Application.Features.CompanyProfile;
+using Kairn.Application.Features.Nav;
 using Kairn.Application.Features.GL;
 using Kairn.Infrastructure.Email;
 using Kairn.Infrastructure.Jobs;
@@ -57,6 +59,7 @@ try
     // ── Database ─────────────────────────────────────────────────────────────
     builder.Services.AddScoped<AuditLogInterceptor>();
     builder.Services.AddScoped<ICurrentUserContext, CurrentUserContext>();
+    builder.Services.AddScoped<TenantProfileState>();
     builder.Services.AddHttpContextAccessor();
 
     if (builder.Environment.IsDevelopment())
@@ -129,6 +132,9 @@ try
     builder.Services.AddScoped<IBillService, BillService>();
     builder.Services.AddScoped<IBillPaymentService, BillPaymentService>();
     builder.Services.AddScoped<IApSettingsService, ApSettingsService>();
+    builder.Services.AddScoped<ITenantProfileService, TenantProfileService>();
+    builder.Services.AddScoped<IVatThresholdService, VatThresholdService>();
+    builder.Services.AddScoped<IUserNavPreferencesService, UserNavPreferencesService>();
     builder.Services.AddScoped<IExpenseReportService, ExpenseReportService>();
     builder.Services.AddScoped<IApAgingService, ApAgingService>();
     builder.Services.AddSingleton<IApAgingExporter, ApAgingExporter>();
@@ -161,6 +167,12 @@ try
     builder.Services.AddScoped<IMarginTrendService, MarginTrendService>();
     builder.Services.AddScoped<IMarginAlertService, MarginAlertService>();
     builder.Services.AddScoped<ITaxRateService, TaxRateService>();
+    builder.Services.AddScoped<TaxPeriodService>();
+    builder.Services.AddScoped<ITaxPeriodService>(sp => sp.GetRequiredService<TaxPeriodService>());
+    builder.Services.AddScoped<ITaxPeriodChecker>(sp => sp.GetRequiredService<TaxPeriodService>());
+    builder.Services.AddScoped<IVatReturnService, VatReturnService>();
+    builder.Services.AddScoped<IAccountantExportService, AccountantExportService>();
+    builder.Services.AddSingleton<IVatReturnExporter, VatReturnExporter>();
     builder.Services.AddSingleton<IGrossMarginExporter, GrossMarginExporter>();
     builder.Services.AddScoped<IFiscalYearCloseService, FiscalYearCloseService>();
     builder.Services.AddScoped<IRecurringEntryService, RecurringEntryService>();

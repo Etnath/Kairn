@@ -1,11 +1,12 @@
 using Kairn.Application.Common;
 using Kairn.Application.Features.AR;
+using Kairn.Application.Features.Tax;
 using Kairn.Domain.Entities;
 using Microsoft.EntityFrameworkCore;
 
 namespace Kairn.Infrastructure.Persistence.Services;
 
-public class InvoicePaymentService(AppDbContext db) : IInvoicePaymentService
+public class InvoicePaymentService(AppDbContext db, ITaxPeriodChecker taxPeriods) : IInvoicePaymentService
 {
     private const string ArAccountCode = "411000";
 
@@ -42,6 +43,9 @@ public class InvoicePaymentService(AppDbContext db) : IInvoicePaymentService
             return Result<InvoicePaymentDto>.Fail("Payment amount must be greater than zero.");
         if (cmd.Amount > outstanding)
             return Result<InvoicePaymentDto>.Fail($"Payment amount ({cmd.Amount:N2}) exceeds the outstanding balance ({outstanding:N2}).");
+
+        if (await taxPeriods.IsDateLockedAsync(cmd.TenantId, cmd.Date, ct))
+            return Result<InvoicePaymentDto>.Fail("This transaction falls within a locked tax period.");
 
         var arAccount = await db.Accounts
             .FirstOrDefaultAsync(a => a.TenantId == cmd.TenantId && a.Code == ArAccountCode, ct);
@@ -128,6 +132,9 @@ public class InvoicePaymentService(AppDbContext db) : IInvoicePaymentService
 
         if (payment is null)
             return Result.Fail("Payment not found.");
+
+        if (await taxPeriods.IsDateLockedAsync(tenantId, payment.Date, ct))
+            return Result.Fail("This transaction falls within a locked tax period.");
 
         // Post reversing journal entry
         if (payment.JournalEntryId.HasValue)

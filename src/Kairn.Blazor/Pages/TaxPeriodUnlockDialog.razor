@@ -1,0 +1,37 @@
+@using Kairn.Application.Features.Tax
+
+<MudDialog>
+    <DialogContent>
+        <MudStack Spacing="3">
+            <MudAlert Severity="Severity.Info" Dense="true">@L["Unlock_Warning"]</MudAlert>
+            <MudText Typo="Typo.body2">
+                <b>@Period.Name</b>:
+                @Period.StartDate.ToString("dd/MM/yyyy") – @Period.EndDate.ToString("dd/MM/yyyy")
+            </MudText>
+            <MudTextField @bind-Value="_reason"
+                          Label="@L["Unlock_Reason"]"
+                          Lines="3"
+                          Required="true" />
+        </MudStack>
+    </DialogContent>
+    <DialogActions>
+        <MudButton OnClick="@(() => MudDialog.Cancel())">@L["Cancel"]</MudButton>
+        <MudButton Variant="Variant.Filled" Color="Color.Primary"
+                   StartIcon="@Icons.Material.Filled.LockOpen"
+                   Disabled="@string.IsNullOrWhiteSpace(_reason)"
+                   OnClick="Submit">
+            @L["Unlock_Confirm"]
+        </MudButton>
+    </DialogActions>
+</MudDialog>
+
+@code {
+    [CascadingParameter] IMudDialogInstance MudDialog { get; set; } = null!;
+
+    [Parameter] public TaxPeriodDto Period { get; set; } = null!;
+    [Parameter] public IStringLocalizer<TaxPeriods> L { get; set; } = null!;
+
+    private string _reason = "";
+
+    private void Submit() => MudDialog.Close(DialogResult.Ok(_reason.Trim()));
+}

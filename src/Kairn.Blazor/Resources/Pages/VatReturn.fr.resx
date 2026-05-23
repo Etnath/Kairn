@@ -1,0 +1,35 @@
+<?xml version="1.0" encoding="utf-8"?>
+<root>
+  <resheader name="resmimetype"><value>text/microsoft-resx</value></resheader>
+  <resheader name="version"><value>2.0</value></resheader>
+  <data name="Title" xml:space="preserve"><value>Déclaration de TVA</value></data>
+  <data name="Preset_ThisQuarter" xml:space="preserve"><value>Ce trimestre</value></data>
+  <data name="Preset_LastQuarter" xml:space="preserve"><value>Trimestre précédent</value></data>
+  <data name="Preset_ThisYear" xml:space="preserve"><value>Cette année</value></data>
+  <data name="Preset_LastYear" xml:space="preserve"><value>Année précédente</value></data>
+  <data name="From" xml:space="preserve"><value>Du</value></data>
+  <data name="To" xml:space="preserve"><value>Au</value></data>
+  <data name="Generate" xml:space="preserve"><value>Générer</value></data>
+  <data name="ExportPdf" xml:space="preserve"><value>PDF</value></data>
+  <data name="ExportCsv" xml:space="preserve"><value>CSV</value></data>
+  <data name="ReportTitle" xml:space="preserve"><value>Période : {0} – {1}</value></data>
+  <data name="NoData" xml:space="preserve"><value>Aucune transaction TVA trouvée pour la période sélectionnée.</value></data>
+  <data name="Col_Category" xml:space="preserve"><value>Catégorie TVA</value></data>
+  <data name="Col_OutputBase" xml:space="preserve"><value>Base sortante</value></data>
+  <data name="Col_OutputTax" xml:space="preserve"><value>TVA collectée</value></data>
+  <data name="Col_InputBase" xml:space="preserve"><value>Base entrante</value></data>
+  <data name="Col_InputTax" xml:space="preserve"><value>TVA déductible</value></data>
+  <data name="Col_NetTax" xml:space="preserve"><value>TVA nette</value></data>
+  <data name="Total" xml:space="preserve"><value>Total</value></data>
+  <data name="NetPayable" xml:space="preserve"><value>TVA nette à payer</value></data>
+  <data name="NetRefund" xml:space="preserve"><value>TVA à récupérer</value></data>
+  <data name="Drill_OutputTitle" xml:space="preserve"><value>Factures de vente</value></data>
+  <data name="Drill_InputTitle" xml:space="preserve"><value>Factures fournisseur</value></data>
+  <data name="Drill_NoItems" xml:space="preserve"><value>Aucune transaction trouvée.</value></data>
+  <data name="Drill_Reference" xml:space="preserve"><value>Référence</value></data>
+  <data name="Drill_Date" xml:space="preserve"><value>Date</value></data>
+  <data name="Drill_Counterparty" xml:space="preserve"><value>Contrepartie</value></data>
+  <data name="Drill_Base" xml:space="preserve"><value>Base imposable</value></data>
+  <data name="Drill_TaxAmount" xml:space="preserve"><value>Montant TVA</value></data>
+  <data name="Drill_Close" xml:space="preserve"><value>Fermer</value></data>
+</root>

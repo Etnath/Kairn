@@ -49,4 +49,11 @@
   <data name="Alert_MarginBelow_Body" xml:space="preserve"><value>{0} : marge brute de {1}% — en dessous de votre seuil de {2}%</value></data>
   <data name="Alert_MarginBelow_Link" xml:space="preserve"><value>Voir l'analyse des marges</value></data>
   <data name="Alert_CheckNow" xml:space="preserve"><value>Vérifier maintenant</value></data>
+  <data name="Kpi_VatThreshold" xml:space="preserve"><value>Seuil de franchise TVA</value></data>
+  <data name="Kpi_VatThreshold_Of" xml:space="preserve"><value>sur {0} € de seuil ({1} %)</value></data>
+  <data name="Alert_VatWarning_Title" xml:space="preserve"><value>Franchise TVA — Alerte 80 %</value></data>
+  <data name="Alert_VatWarning_Body" xml:space="preserve"><value>Votre chiffre d'affaires annuel ({0} €) atteint {1} % du seuil de franchise TVA ({2} €). Vous devez vous immatriculer à la TVA avant de dépasser ce seuil.</value></data>
+  <data name="Alert_VatExceeded_Title" xml:space="preserve"><value>Seuil de franchise TVA dépassé</value></data>
+  <data name="Alert_VatExceeded_Body" xml:space="preserve"><value>Vous avez dépassé le seuil de franchise TVA de {0} €. Vous êtes tenu de facturer la TVA dès le 1er du mois prochain. Mettez à jour votre statut dans les paramètres.</value></data>
+  <data name="Alert_VatExceeded_Link" xml:space="preserve"><value>Mettre à jour le statut</value></data>
 </root>

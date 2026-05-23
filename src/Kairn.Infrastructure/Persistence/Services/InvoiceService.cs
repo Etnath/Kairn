@@ -1,12 +1,14 @@
 using Kairn.Application.Common;
 using Kairn.Application.Features.AR;
+using Kairn.Application.Features.CompanyProfile;
+using Kairn.Application.Features.Tax;
 using Kairn.Domain.Entities;
 using Kairn.Infrastructure.Reports;
 using Microsoft.EntityFrameworkCore;
 
 namespace Kairn.Infrastructure.Persistence.Services;
 
-public class InvoiceService(AppDbContext db) : IInvoiceService
+public class InvoiceService(AppDbContext db, ITaxPeriodChecker taxPeriods, ITenantProfileService profileService) : IInvoiceService
 {
     // Well-known account codes for GL posting
     private const string ArAccountCode = "411000";
@@ -60,6 +62,9 @@ public class InvoiceService(AppDbContext db) : IInvoiceService
 
     public async Task<Result<InvoiceDto>> CreateAsync(CreateInvoiceCommand cmd, CancellationToken ct = default)
     {
+        if (await taxPeriods.IsDateLockedAsync(cmd.TenantId, cmd.Date, ct))
+            return Result<InvoiceDto>.Fail("This transaction falls within a locked tax period.");
+
         var now = DateTimeOffset.UtcNow;
         var invoice = new Invoice
         {
@@ -112,6 +117,9 @@ public class InvoiceService(AppDbContext db) : IInvoiceService
         if (invoice.Status != InvoiceStatus.Draft)
             return Result<InvoiceDto>.Fail("Only draft invoices can be edited.");
 
+        if (await taxPeriods.IsDateLockedAsync(cmd.TenantId, cmd.Date, ct))
+            return Result<InvoiceDto>.Fail("This transaction falls within a locked tax period.");
+
         invoice.CustomerId = cmd.CustomerId;
         invoice.Reference = cmd.Reference;
         invoice.Date = cmd.Date;
@@ -160,6 +168,9 @@ public class InvoiceService(AppDbContext db) : IInvoiceService
             return Result<InvoiceDto>.Fail("Only draft invoices can be sent.");
         if (!invoice.Lines.Any())
             return Result<InvoiceDto>.Fail("Cannot send an invoice with no lines.");
+
+        if (await taxPeriods.IsDateLockedAsync(cmd.TenantId, invoice.Date, ct))
+            return Result<InvoiceDto>.Fail("This transaction falls within a locked tax period.");
 
         var arAccount = await db.Accounts
             .FirstOrDefaultAsync(a => a.TenantId == cmd.TenantId && a.Code == ArAccountCode, ct);
@@ -255,6 +266,9 @@ public class InvoiceService(AppDbContext db) : IInvoiceService
         if (invoice.Status == InvoiceStatus.Paid)
             return Result.Fail("Paid invoices cannot be voided.");
 
+        if (await taxPeriods.IsDateLockedAsync(cmd.TenantId, invoice.Date, ct))
+            return Result.Fail("This transaction falls within a locked tax period.");
+
         var now = DateTimeOffset.UtcNow;
 
         // Post reversing journal entry if one exists
@@ -314,7 +328,23 @@ public class InvoiceService(AppDbContext db) : IInvoiceService
             .FirstOrDefaultAsync(i => i.Id == id && i.TenantId == tenantId, ct);
 
         if (invoice is null) return null;
-        return InvoicePdfGenerator.Generate(ToDto(invoice));
+
+        var profile = await profileService.GetAsync(tenantId, ct);
+        var pdfOptions = new InvoicePdfOptions(
+            IsAutoEntrepreneur: profile.BusinessStatus == Domain.Entities.BusinessStatus.AutoEntrepreneur,
+            CompanyName: string.IsNullOrWhiteSpace(profile.LegalName) ? "Kairn" : profile.LegalName,
+            Siret: profile.Siret,
+            CompanyAddress: BuildAddress(profile));
+
+        return InvoicePdfGenerator.Generate(ToDto(invoice), pdfOptions);
+    }
+
+    private static string? BuildAddress(TenantProfileDto p)
+    {
+        var parts = new[] { p.AddressLine, p.PostalCode, p.City, p.Country }
+            .Where(s => !string.IsNullOrWhiteSpace(s));
+        var addr = string.Join(", ", parts);
+        return string.IsNullOrEmpty(addr) ? null : addr;
     }
 
     public async Task<string> GenerateReferenceAsync(Guid tenantId, DateOnly date, CancellationToken ct = default)
@@ -397,6 +427,9 @@ public class InvoiceService(AppDbContext db) : IInvoiceService
         if (original.Status is not (InvoiceStatus.Sent or InvoiceStatus.PartiallyPaid
                                     or InvoiceStatus.Paid or InvoiceStatus.Overdue))
             return Result<InvoiceDto>.Fail("Credit notes can only be issued for Sent, Partially Paid, Paid, or Overdue invoices.");
+
+        if (await taxPeriods.IsDateLockedAsync(cmd.TenantId, cmd.Date, ct))
+            return Result<InvoiceDto>.Fail("This transaction falls within a locked tax period.");
 
         var originalGrandTotal = original.Lines.Sum(l => l.LineTotal);
 

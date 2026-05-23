@@ -1,0 +1,82 @@
+@using Kairn.Application.Features.Tax
+@inject IVatReturnService VatReturnService
+
+<MudDialog>
+    <TitleContent>
+        <MudText Typo="Typo.h6">
+            @(_isOutput ? L["Drill_OutputTitle"] : L["Drill_InputTitle"]) — @TaxRateName
+        </MudText>
+        <MudText Typo="Typo.caption" Color="Color.Secondary">
+            @From.ToString("dd/MM/yyyy") – @To.ToString("dd/MM/yyyy")
+        </MudText>
+    </TitleContent>
+    <DialogContent>
+        @if (_loading)
+        {
+            <MudProgressLinear Indeterminate="true" Color="Color.Primary" />
+        }
+        else if (_items.Count == 0)
+        {
+            <MudText Color="Color.Secondary">@L["Drill_NoItems"]</MudText>
+        }
+        else
+        {
+            <MudTable Items="_items" Dense="true" Hover="true" FixedHeader="true" Height="420px">
+                <HeaderContent>
+                    <MudTh>@L["Drill_Reference"]</MudTh>
+                    <MudTh>@L["Drill_Date"]</MudTh>
+                    <MudTh>@L["Drill_Counterparty"]</MudTh>
+                    <MudTh Style="text-align:right">@L["Drill_Base"]</MudTh>
+                    <MudTh Style="text-align:right">@L["Drill_TaxAmount"]</MudTh>
+                </HeaderContent>
+                <RowTemplate>
+                    <MudTd>
+                        <MudStack Row="true" AlignItems="AlignItems.Center" Spacing="1">
+                            @if (context.IsCreditNote)
+                            {
+                                <MudChip T="string" Size="Size.Small" Color="Color.Warning" Variant="Variant.Text">CN</MudChip>
+                            }
+                            @context.Reference
+                        </MudStack>
+                    </MudTd>
+                    <MudTd>@context.Date.ToString("dd/MM/yyyy")</MudTd>
+                    <MudTd>@context.CounterpartyName</MudTd>
+                    <MudTd Style="text-align:right;font-variant-numeric:tabular-nums">@context.Base.ToString("N2")</MudTd>
+                    <MudTd Style="text-align:right;font-variant-numeric:tabular-nums">@context.TaxAmount.ToString("N2")</MudTd>
+                </RowTemplate>
+                <FooterContent>
+                    <MudTd colspan="3"><b>Total</b></MudTd>
+                    <MudTd Style="text-align:right;font-variant-numeric:tabular-nums"><b>@_items.Sum(i => i.Base).ToString("N2")</b></MudTd>
+                    <MudTd Style="text-align:right;font-variant-numeric:tabular-nums"><b>@_items.Sum(i => i.TaxAmount).ToString("N2")</b></MudTd>
+                </FooterContent>
+            </MudTable>
+        }
+    </DialogContent>
+    <DialogActions>
+        <MudButton OnClick="@(() => MudDialog.Close())">@L["Drill_Close"]</MudButton>
+    </DialogActions>
+</MudDialog>
+
+@code {
+    [CascadingParameter] IMudDialogInstance MudDialog { get; set; } = null!;
+
+    [Parameter] public Guid       TenantId    { get; set; }
+    [Parameter] public DateOnly   From        { get; set; }
+    [Parameter] public DateOnly   To          { get; set; }
+    [Parameter] public Guid?      TaxRateId   { get; set; }
+    [Parameter] public string     TaxRateName { get; set; } = "";
+    [Parameter] public bool       IsOutput    { get; set; }
+    [Parameter] public IStringLocalizer<VatReturn> L { get; set; } = null!;
+
+    private bool _loading = true;
+    private bool _isOutput;
+    private List<VatDrillDownItem> _items = [];
+
+    protected override async Task OnInitializedAsync()
+    {
+        _isOutput = IsOutput;
+        var result = await VatReturnService.GetDrillDownAsync(TenantId, From, To, TaxRateId, IsOutput);
+        _items = [.. result];
+        _loading = false;
+    }
+}

@@ -1,0 +1,24 @@
+<?xml version="1.0" encoding="utf-8"?>
+<root>
+  <resheader name="resmimetype"><value>text/microsoft-resx</value></resheader>
+  <resheader name="version"><value>2.0</value></resheader>
+  <data name="Title" xml:space="preserve"><value>Export comptable</value></data>
+  <data name="Description" xml:space="preserve"><value>Générez un package financier complet pour votre comptable externe — Balance, Compte de résultat, Bilan, écritures complètes et récapitulatif de TVA, dans une seule archive ZIP.</value></data>
+  <data name="Preset_ThisYear" xml:space="preserve"><value>Cette année</value></data>
+  <data name="Preset_LastYear" xml:space="preserve"><value>Année dernière</value></data>
+  <data name="Preset_Q1" xml:space="preserve"><value>T1</value></data>
+  <data name="Preset_Q2" xml:space="preserve"><value>T2</value></data>
+  <data name="Preset_Q3" xml:space="preserve"><value>T3</value></data>
+  <data name="Preset_Q4" xml:space="preserve"><value>T4</value></data>
+  <data name="From" xml:space="preserve"><value>Du</value></data>
+  <data name="To" xml:space="preserve"><value>Au</value></data>
+  <data name="Generate" xml:space="preserve"><value>Générer et télécharger</value></data>
+  <data name="Generating" xml:space="preserve"><value>Génération du package…</value></data>
+  <data name="Contents_Title" xml:space="preserve"><value>Le package contiendra :</value></data>
+  <data name="Contents_TB" xml:space="preserve"><value>Balance générale (PDF + CSV)</value></data>
+  <data name="Contents_PnL" xml:space="preserve"><value>Compte de résultat (PDF + CSV)</value></data>
+  <data name="Contents_BS" xml:space="preserve"><value>Bilan (PDF + CSV)</value></data>
+  <data name="Contents_JE" xml:space="preserve"><value>Écritures comptables (Excel)</value></data>
+  <data name="Contents_VAT" xml:space="preserve"><value>Récapitulatif TVA (PDF + CSV)</value></data>
+  <data name="Contents_LR" xml:space="preserve"><value>Livre des recettes (CSV)</value></data>
+</root>

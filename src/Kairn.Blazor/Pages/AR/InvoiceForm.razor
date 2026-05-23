@@ -6,6 +6,7 @@
 @inject ICustomerService CustomerService
 @inject IAccountService AccountService
 @inject ITaxRateService TaxRateService
+@inject ITenantProfileService ProfileService
 @inject ICurrentUserContext CurrentUser
 @inject NavigationManager Navigation
 
@@ -99,12 +100,18 @@ else
                                 <MudText Color="Color.Success">- @_currency @TotalDiscount.ToString("N2")</MudText>
                             </MudStack>
                         }
-                        @if (TotalTax > 0)
+                        @if (!_isAutoEntrepreneur && TotalTax > 0)
                         {
                             <MudStack Row="true" Spacing="0">
                                 <MudText Style="flex:1" Color="Color.Secondary">@L["Totals_Tax"]</MudText>
                                 <MudText>@_currency @TotalTax.ToString("N2")</MudText>
                             </MudStack>
+                        }
+                        @if (_isAutoEntrepreneur)
+                        {
+                            <MudText Typo="Typo.caption" Color="Color.Secondary" Class="mt-1">
+                                TVA non applicable — art. 293 B du CGI
+                            </MudText>
                         }
                         <MudDivider Class="my-2" />
                         <MudStack Row="true" Spacing="0">
@@ -135,7 +142,10 @@ else
                             <MudTh Style="width:90px">@L["Col_Qty"]</MudTh>
                             <MudTh Style="width:110px">@L["Col_UnitPrice"]</MudTh>
                             <MudTh Style="width:80px">@L["Col_Disc"]</MudTh>
-                            <MudTh Style="width:100px">@L["Col_TaxRate"]</MudTh>
+                            @if (!_isAutoEntrepreneur)
+                            {
+                                <MudTh Style="width:100px">@L["Col_TaxRate"]</MudTh>
+                            }
                             <MudTh Style="width:110px" Class="text-right">@L["Col_LineTotal"]</MudTh>
                             <MudTh Style="width:50px"></MudTh>
                         </HeaderContent>
@@ -160,19 +170,22 @@ else
                                                  Min="0" Max="100" Format="N1"
                                                  HideSpinButtons="true" Margin="Margin.Dense" />
                             </MudTd>
-                            <MudTd>
-                                <MudSelect T="TaxRateDto?" Value="@GetSelectedRate(context)"
-                                           ValueChanged="@(r => SetRate(context, r))"
-                                           Dense="true" Margin="Margin.Dense"
-                                           ToStringFunc="@(r => r is null ? "" : $"{r.Name} ({r.Rate:N1}%)")">
-                                    @foreach (var r in _taxRates)
-                                    {
-                                        <MudSelectItem T="TaxRateDto?" Value="@((TaxRateDto?)r)">
-                                            @r.Name (@r.Rate.ToString("N1")%)
-                                        </MudSelectItem>
-                                    }
-                                </MudSelect>
-                            </MudTd>
+                            @if (!_isAutoEntrepreneur)
+                            {
+                                <MudTd>
+                                    <MudSelect T="TaxRateDto?" Value="@GetSelectedRate(context)"
+                                               ValueChanged="@(r => SetRate(context, r))"
+                                               Dense="true" Margin="Margin.Dense"
+                                               ToStringFunc="@(r => r is null ? "" : $"{r.Name} ({r.Rate:N1}%)")">
+                                        @foreach (var r in _taxRates)
+                                        {
+                                            <MudSelectItem T="TaxRateDto?" Value="@((TaxRateDto?)r)">
+                                                @r.Name (@r.Rate.ToString("N1")%)
+                                            </MudSelectItem>
+                                        }
+                                    </MudSelect>
+                                </MudTd>
+                            }
                             <MudTd Class="text-right">
                                 <MudText Typo="Typo.body2">@context.LineTotal.ToString("N2")</MudText>
                             </MudTd>
@@ -221,6 +234,7 @@ else
     [Parameter] public Guid? Id { get; set; }
 
     private IReadOnlyList<TaxRateDto> _taxRates = [];
+    private bool _isAutoEntrepreneur;
 
     private MudForm _form = null!;
     private bool _isValid;
@@ -245,16 +259,18 @@ else
     private decimal Subtotal => _lines.Sum(l => l.NetAmount);
     private decimal TotalDiscount => _lines.Sum(l => l.DiscountAmount);
     private decimal TotalTax => _lines.Sum(l => l.TaxAmount);
-    private decimal GrandTotal => Subtotal + TotalTax;
+    private decimal GrandTotal => _isAutoEntrepreneur ? Subtotal : Subtotal + TotalTax;
 
     protected override async Task OnInitializedAsync()
     {
         var t1 = CustomerService.GetAllAsync(CurrentUser.TenantId);
         var t2 = AccountService.GetAllAsync(CurrentUser.TenantId);
         var t3 = TaxRateService.GetActiveAsync(CurrentUser.TenantId);
-        await Task.WhenAll(t1, t2, t3);
+        var t4 = ProfileService.GetAsync(CurrentUser.TenantId);
+        await Task.WhenAll(t1, t2, t3, t4);
         _customers = t1.Result;
         _taxRates  = t3.Result;
+        _isAutoEntrepreneur = t4.Result.BusinessStatus == Kairn.Domain.Entities.BusinessStatus.AutoEntrepreneur;
         var accounts = t2.Result;
         _revenueAccounts = accounts
             .Where(a => a.Type == Kairn.Domain.Entities.AccountType.Revenue && a.IsActive)

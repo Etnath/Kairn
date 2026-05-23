@@ -1,0 +1,264 @@
+@page "/tax/vat-return"
+@attribute [Authorize]
+@using System.Globalization
+@inject IStringLocalizer<VatReturn> L
+@inject IVatReturnService VatReturnService
+@inject IVatReturnExporter VatReturnExporter
+@inject IJSRuntime JS
+@inject ICurrentUserContext CurrentUser
+@inject IDialogService DialogService
+
+<style>
+    .vat-row-clickable { cursor: pointer; }
+    .vat-row-clickable:hover { background-color: rgba(0,0,0,0.04); }
+</style>
+
+<PageTitle>@L["Title"] – Kairn</PageTitle>
+
+<MudStack Row="true" AlignItems="AlignItems.Center" Class="mb-6" Spacing="2">
+    <MudIconButton Icon="@Icons.Material.Filled.ArrowBack" Href="/tax" />
+    <MudText Typo="Typo.h5">@L["Title"]</MudText>
+</MudStack>
+
+<MudPaper Class="pa-4 mb-4" Elevation="1">
+    <MudStack Row="true" Spacing="1" Wrap="Wrap.Wrap" Class="mb-3">
+        <MudButton Variant="@PresetVariant("ThisQuarter")"   Color="Color.Primary" Size="Size.Small" OnClick="@(() => ApplyPreset("ThisQuarter"))">@L["Preset_ThisQuarter"]</MudButton>
+        <MudButton Variant="@PresetVariant("LastQuarter")"   Color="Color.Primary" Size="Size.Small" OnClick="@(() => ApplyPreset("LastQuarter"))">@L["Preset_LastQuarter"]</MudButton>
+        <MudButton Variant="@PresetVariant("ThisYear")"      Color="Color.Primary" Size="Size.Small" OnClick="@(() => ApplyPreset("ThisYear"))">@L["Preset_ThisYear"]</MudButton>
+        <MudButton Variant="@PresetVariant("LastYear")"      Color="Color.Primary" Size="Size.Small" OnClick="@(() => ApplyPreset("LastYear"))">@L["Preset_LastYear"]</MudButton>
+    </MudStack>
+    <MudStack Row="true" AlignItems="AlignItems.End" Spacing="3" Wrap="Wrap.Wrap">
+        <MudDatePicker Label="@L["From"]"
+                       Date="_from" DateChanged="@(d => { _from = d; _activePreset = null; })"
+                       DateFormat="dd/MM/yyyy" MaxDate="DateTime.Today"
+                       Style="max-width:180px" />
+        <MudDatePicker Label="@L["To"]"
+                       Date="_to" DateChanged="@(d => { _to = d; _activePreset = null; })"
+                       DateFormat="dd/MM/yyyy" MaxDate="DateTime.Today"
+                       Style="max-width:180px" />
+        <MudSpacer />
+        <MudButton Variant="Variant.Filled" Color="Color.Primary"
+                   StartIcon="@Icons.Material.Filled.Refresh"
+                   OnClick="GenerateAsync" Disabled="_loading">
+            @L["Generate"]
+        </MudButton>
+        @if (_report is not null)
+        {
+            <MudButton Variant="Variant.Outlined" Color="Color.Primary"
+                       StartIcon="@Icons.Material.Filled.PictureAsPdf"
+                       OnClick="ExportPdfAsync" Disabled="_loading">
+                @L["ExportPdf"]
+            </MudButton>
+            <MudButton Variant="Variant.Outlined" Color="Color.Primary"
+                       StartIcon="@Icons.Material.Filled.TableChart"
+                       OnClick="ExportCsvAsync" Disabled="_loading">
+                @L["ExportCsv"]
+            </MudButton>
+        }
+    </MudStack>
+</MudPaper>
+
+@if (_loading)
+{
+    <MudProgressLinear Indeterminate="true" Color="Color.Primary" Class="mb-4" />
+}
+
+@if (_report is null && !_loading)
+{
+    <MudPaper Class="pa-4" Elevation="1">
+        @for (var i = 0; i < 5; i++)
+        {
+            <MudSkeleton SkeletonType="SkeletonType.Text" Height="24px" Class="my-3" />
+        }
+    </MudPaper>
+}
+
+@if (_report is not null)
+{
+    <MudText Typo="Typo.subtitle1" Color="Color.Secondary" Class="mb-4" Style="font-style:italic">
+        @string.Format(L["ReportTitle"].Value,
+            _report.From.ToString("d MMMM yyyy", CultureInfo.CurrentCulture),
+            _report.To.ToString("d MMMM yyyy", CultureInfo.CurrentCulture))
+    </MudText>
+
+    @if (_report.Rows.Count == 0)
+    {
+        <MudAlert Severity="Severity.Info">@L["NoData"]</MudAlert>
+    }
+    else
+    {
+        <MudPaper Elevation="1" Class="mb-4">
+            @* Column headers *@
+            <div style="display:grid;grid-template-columns:2fr 1fr 1fr 1fr 1fr 1fr;padding:8px 16px;background:#F5F5F0;border-bottom:2px solid #DDD;font-size:0.75rem;font-weight:700;color:#555">
+                <span>@L["Col_Category"]</span>
+                <span style="text-align:right">@L["Col_OutputBase"]</span>
+                <span style="text-align:right">@L["Col_OutputTax"]</span>
+                <span style="text-align:right">@L["Col_InputBase"]</span>
+                <span style="text-align:right">@L["Col_InputTax"]</span>
+                <span style="text-align:right">@L["Col_NetTax"]</span>
+            </div>
+
+            @foreach (var row in _report.Rows)
+            {
+                <div class="vat-row-clickable"
+                     style="display:grid;grid-template-columns:2fr 1fr 1fr 1fr 1fr 1fr;padding:6px 16px;border-bottom:1px solid #F0F0F0;font-size:0.8125rem">
+                    <span style="align-self:center">@row.TaxRateName</span>
+                    <span style="text-align:right;font-variant-numeric:tabular-nums;cursor:pointer;color:#4D7A9E"
+                          @onclick="@(() => OpenDrillDownAsync(row, isOutput: true))">
+                        @row.OutputBase.ToString("N2")
+                    </span>
+                    <span style="text-align:right;font-variant-numeric:tabular-nums;cursor:pointer;color:#4D7A9E"
+                          @onclick="@(() => OpenDrillDownAsync(row, isOutput: true))">
+                        @row.OutputTax.ToString("N2")
+                    </span>
+                    <span style="text-align:right;font-variant-numeric:tabular-nums;cursor:pointer;color:#4D7A9E"
+                          @onclick="@(() => OpenDrillDownAsync(row, isOutput: false))">
+                        @row.InputBase.ToString("N2")
+                    </span>
+                    <span style="text-align:right;font-variant-numeric:tabular-nums;cursor:pointer;color:#4D7A9E"
+                          @onclick="@(() => OpenDrillDownAsync(row, isOutput: false))">
+                        @row.InputTax.ToString("N2")
+                    </span>
+                    <span style="text-align:right;font-variant-numeric:tabular-nums;font-weight:600;color:@NetColor(row.NetTax)">
+                        @row.NetTax.ToString("N2")
+                    </span>
+                </div>
+            }
+
+            @* Totals *@
+            <div style="display:grid;grid-template-columns:2fr 1fr 1fr 1fr 1fr 1fr;padding:8px 16px;border-top:2px solid #DDD;background:#F9F9F6;font-size:0.8125rem;font-weight:700">
+                <span>@L["Total"]</span>
+                <span style="text-align:right;font-variant-numeric:tabular-nums">@_report.TotalOutputBase.ToString("N2")</span>
+                <span style="text-align:right;font-variant-numeric:tabular-nums">@_report.TotalOutputTax.ToString("N2")</span>
+                <span style="text-align:right;font-variant-numeric:tabular-nums">@_report.TotalInputBase.ToString("N2")</span>
+                <span style="text-align:right;font-variant-numeric:tabular-nums">@_report.TotalInputTax.ToString("N2")</span>
+                <span style="text-align:right;font-variant-numeric:tabular-nums;color:@NetColor(_report.NetVatPayable)">@_report.NetVatPayable.ToString("N2")</span>
+            </div>
+        </MudPaper>
+
+        @* Net VAT summary card *@
+        <MudPaper Elevation="2" Class="pa-4"
+                  Style="@($"border-left:6px solid {NetSummaryColor(_report.NetVatPayable)};background:{(_report.NetVatPayable < 0 ? "#E8F4ED" : "#FAECE8")}")">
+            <MudStack Row="true" AlignItems="AlignItems.Center">
+                <MudIcon Icon="@(_report.NetVatPayable < 0 ? Icons.Material.Filled.ArrowDownward : Icons.Material.Filled.ArrowUpward)"
+                         Style="@($"color:{NetSummaryColor(_report.NetVatPayable)}")" />
+                <MudText Typo="Typo.h6" Style="@($"color:{NetSummaryColor(_report.NetVatPayable)};font-weight:700")">
+                    @(_report.NetVatPayable < 0 ? L["NetRefund"] : L["NetPayable"])
+                </MudText>
+                <MudSpacer />
+                <MudText Typo="Typo.h5" Style="@($"color:{NetSummaryColor(_report.NetVatPayable)};font-weight:700;font-variant-numeric:tabular-nums")">
+                    @Math.Abs(_report.NetVatPayable).ToString("N2") €
+                </MudText>
+            </MudStack>
+        </MudPaper>
+    }
+}
+
+@code {
+    private DateTime? _from        = new DateTime(DateTime.Today.Year, ((DateTime.Today.Month - 1) / 3) * 3 + 1, 1);
+    private DateTime? _to          = DateTime.Today;
+    private string?   _activePreset = "ThisQuarter";
+    private bool      _loading;
+    private VatReturnReport? _report;
+
+    protected override async Task OnInitializedAsync() => await GenerateAsync();
+
+    private Variant PresetVariant(string key) =>
+        _activePreset == key ? Variant.Filled : Variant.Outlined;
+
+    private void ApplyPreset(string key)
+    {
+        var today = DateTime.Today;
+        var q = (today.Month - 1) / 3;
+        (_from, _to) = key switch
+        {
+            "ThisQuarter" => (new DateTime(today.Year, q * 3 + 1, 1), today),
+            "LastQuarter" => LastQuarter(today),
+            "ThisYear"    => (new DateTime(today.Year, 1, 1), today),
+            "LastYear"    => (new DateTime(today.Year - 1, 1, 1), new DateTime(today.Year - 1, 12, 31)),
+            _             => (_from, _to),
+        };
+        _activePreset = key;
+    }
+
+    private static (DateTime from, DateTime to) LastQuarter(DateTime today)
+    {
+        var q = (today.Month - 1) / 3;
+        var year = q == 0 ? today.Year - 1 : today.Year;
+        var startMonth = q == 0 ? 10 : (q - 1) * 3 + 1;
+        var from = new DateTime(year, startMonth, 1);
+        var to   = from.AddMonths(3).AddDays(-1);
+        return (from, to);
+    }
+
+    private async Task GenerateAsync()
+    {
+        if (_from is null || _to is null) return;
+        _loading = true;
+        try
+        {
+            _report = await VatReturnService.GenerateAsync(
+                CurrentUser.TenantId,
+                DateOnly.FromDateTime(_from.Value),
+                DateOnly.FromDateTime(_to.Value));
+        }
+        finally { _loading = false; }
+    }
+
+    private async Task ExportPdfAsync()
+    {
+        if (_report is null) return;
+        _loading = true;
+        try
+        {
+            var bytes    = VatReturnExporter.ToPdf(_report);
+            var filename = $"TVA_{_report.From:yyyy-MM}_{_report.To:yyyy-MM}.pdf";
+            await JS.InvokeVoidAsync("kairn.downloadFile", filename, "application/pdf", bytes);
+        }
+        finally { _loading = false; }
+    }
+
+    private async Task ExportCsvAsync()
+    {
+        if (_report is null) return;
+        _loading = true;
+        try
+        {
+            var csv      = VatReturnExporter.ToCsv(_report);
+            var filename = $"TVA_{_report.From:yyyy-MM}_{_report.To:yyyy-MM}.csv";
+            await JS.InvokeVoidAsync("kairn.downloadFile", filename, "text/csv",
+                System.Text.Encoding.UTF8.GetBytes(csv));
+        }
+        finally { _loading = false; }
+    }
+
+    private async Task OpenDrillDownAsync(VatCategoryRow row, bool isOutput)
+    {
+        if (_report is null) return;
+        var parameters = new DialogParameters<VatReturnDrillDownDialog>
+        {
+            { d => d.TenantId,    CurrentUser.TenantId },
+            { d => d.From,        _report.From },
+            { d => d.To,          _report.To },
+            { d => d.TaxRateId,   row.TaxRateId },
+            { d => d.TaxRateName, row.TaxRateName },
+            { d => d.IsOutput,    isOutput },
+            { d => d.L,           L },
+        };
+        await DialogService.ShowAsync<VatReturnDrillDownDialog>(
+            string.Empty, parameters,
+            new DialogOptions
+            {
+                MaxWidth         = MaxWidth.Large,
+                FullWidth        = true,
+                CloseButton      = true,
+                CloseOnEscapeKey = true,
+            });
+    }
+
+    private static string NetColor(decimal val) =>
+        val > 0 ? "#7E2A14" : val < 0 ? "#1F6040" : "#8C8980";
+
+    private static string NetSummaryColor(decimal val) =>
+        val < 0 ? "#1F6040" : val > 0 ? "#7E2A14" : "#8C8980";
+}

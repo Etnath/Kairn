@@ -2,6 +2,11 @@
 <root>
   <resheader name="resmimetype"><value>text/microsoft-resx</value></resheader>
   <resheader name="version"><value>2.0</value></resheader>
+  <data name="Group.Overview" xml:space="preserve"><value>Vue d'ensemble</value></data>
+  <data name="Group.Sales" xml:space="preserve"><value>Ventes</value></data>
+  <data name="Group.Purchases" xml:space="preserve"><value>Achats</value></data>
+  <data name="Group.Accounting" xml:space="preserve"><value>Comptabilité</value></data>
+  <data name="Group.Tax" xml:space="preserve"><value>Fiscalité &amp; Marges</value></data>
   <data name="Nav.Dashboard" xml:space="preserve"><value>Tableau de bord</value></data>
   <data name="Nav.GeneralLedger" xml:space="preserve"><value>Grand livre</value></data>
   <data name="Nav.Customers" xml:space="preserve"><value>Clients</value></data>

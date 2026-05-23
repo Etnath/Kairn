@@ -1,5 +1,7 @@
 @inherits LayoutComponentBase
+@implements IDisposable
 @inject ThemeService ThemeService
+@inject TenantProfileState ProfileState
 @inject IStringLocalizer<MainLayout> L
 
 <MudThemeProvider Theme="KairnTheme.Instance" IsDarkMode="ThemeService.IsDarkMode" />
@@ -7,45 +9,53 @@
 <MudDialogProvider />
 <MudSnackbarProvider />
 
-<MudLayout>
-    <MudAppBar Elevation="0" Dense="true">
-        <MudIconButton Icon="@Icons.Material.Filled.Menu" Color="Color.Inherit"
-                       Edge="Edge.Start" OnClick="ToggleDrawer" />
-        <MudText Typo="Typo.h6" Class="ml-3">Kairn</MudText>
-        <MudSpacer />
-        <Kairn.Blazor.Shared.LanguageSwitcher />
-        <MudIconButton Icon="@(ThemeService.IsDarkMode ? Icons.Material.Filled.LightMode : Icons.Material.Filled.DarkMode)"
-                       Color="Color.Inherit" OnClick="ThemeService.Toggle" title="@L["ToggleTheme"]" />
-        <form method="post" action="/account/logout">
-            <AntiforgeryToken />
-            <MudIconButton Icon="@Icons.Material.Filled.Logout" Color="Color.Inherit"
-                           ButtonType="ButtonType.Submit" title="@L["SignOut"]" />
-        </form>
-    </MudAppBar>
+<CascadingValue Value="ProfileState">
+    <MudLayout>
+        <MudAppBar Elevation="0" Dense="true">
+            <MudIconButton Icon="@Icons.Material.Filled.Menu" Color="Color.Inherit"
+                           Edge="Edge.Start" OnClick="ToggleDrawer" />
+            <MudText Typo="Typo.h6" Class="ml-3">Kairn</MudText>
+            <MudSpacer />
+            <Kairn.Blazor.Shared.LanguageSwitcher />
+            <MudIconButton Icon="@(ThemeService.IsDarkMode ? Icons.Material.Filled.LightMode : Icons.Material.Filled.DarkMode)"
+                           Color="Color.Inherit" OnClick="ThemeService.Toggle" title="@L["ToggleTheme"]" />
+            <form method="post" action="/account/logout">
+                <AntiforgeryToken />
+                <MudIconButton Icon="@Icons.Material.Filled.Logout" Color="Color.Inherit"
+                               ButtonType="ButtonType.Submit" title="@L["SignOut"]" />
+            </form>
+        </MudAppBar>
 
-    <MudDrawer @bind-Open="_drawerOpen" Elevation="1" Variant="DrawerVariant.Responsive">
-        <MudDrawerHeader>
-            <img src="/Logo.png" alt="Kairn" style="max-height:48px; max-width:100%; object-fit:contain;" />
-        </MudDrawerHeader>
-        <Kairn.Blazor.Shared.NavMenu />
-    </MudDrawer>
+        <MudDrawer @bind-Open="_drawerOpen" Elevation="1" Variant="DrawerVariant.Responsive">
+            <MudDrawerHeader>
+                <img src="/Logo.png" alt="Kairn" style="max-height:48px; max-width:100%; object-fit:contain;" />
+            </MudDrawerHeader>
+            <Kairn.Blazor.Shared.NavMenu />
+        </MudDrawer>
 
-    <MudMainContent>
-        <MudContainer MaxWidth="MaxWidth.False" Class="pa-4">
-            @Body
-        </MudContainer>
-    </MudMainContent>
-</MudLayout>
+        <MudMainContent>
+            <MudContainer MaxWidth="MaxWidth.False" Class="pa-4">
+                @Body
+            </MudContainer>
+        </MudMainContent>
+    </MudLayout>
+</CascadingValue>
 
 @code {
     private bool _drawerOpen = true;
 
-    protected override void OnInitialized()
+    protected override async Task OnInitializedAsync()
     {
-        ThemeService.OnChange += StateHasChanged;
+        ThemeService.OnChange  += StateHasChanged;
+        ProfileState.OnChange  += StateHasChanged;
+        try { await ProfileState.EnsureLoadedAsync(); } catch { /* unauthenticated */ }
     }
 
     private void ToggleDrawer() => _drawerOpen = !_drawerOpen;
 
-    public void Dispose() => ThemeService.OnChange -= StateHasChanged;
+    public void Dispose()
+    {
+        ThemeService.OnChange -= StateHasChanged;
+        ProfileState.OnChange -= StateHasChanged;
+    }
 }

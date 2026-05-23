@@ -6,10 +6,18 @@ using QuestPDF.Infrastructure;
 
 namespace Kairn.Infrastructure.Reports;
 
+public sealed record InvoicePdfOptions(
+    bool IsAutoEntrepreneur,
+    string CompanyName,
+    string? Siret,
+    string? CompanyAddress);
+
 public static class InvoicePdfGenerator
 {
-    public static byte[] Generate(InvoiceDto invoice)
+    public static byte[] Generate(InvoiceDto invoice, InvoicePdfOptions? options = null)
     {
+        bool ae = options?.IsAutoEntrepreneur == true;
+
         return Document.Create(container =>
         {
             container.Page(page =>
@@ -30,7 +38,11 @@ public static class InvoicePdfGenerator
 
                         row.ConstantItem(160).Column(c =>
                         {
-                            c.Item().AlignRight().Text("Kairn").FontSize(13).Bold();
+                            c.Item().AlignRight().Text(options?.CompanyName ?? "Kairn").FontSize(13).Bold();
+                            if (ae && !string.IsNullOrWhiteSpace(options?.Siret))
+                                c.Item().AlignRight().Text($"SIRET: {options.Siret}").FontSize(9).FontColor(Colors.Grey.Darken1);
+                            if (ae && !string.IsNullOrWhiteSpace(options?.CompanyAddress))
+                                c.Item().AlignRight().Text(options.CompanyAddress).FontSize(9).FontColor(Colors.Grey.Darken1);
                             c.Item().AlignRight().Text($"Date: {invoice.Date:dd/MM/yyyy}");
                             c.Item().AlignRight().Text($"Due: {invoice.DueDate:dd/MM/yyyy}");
                             c.Item().PaddingTop(4).AlignRight()
@@ -66,7 +78,7 @@ public static class InvoicePdfGenerator
                             cols.ConstantColumn(55);  // qty
                             cols.ConstantColumn(80);  // unit price
                             cols.ConstantColumn(55);  // discount
-                            cols.ConstantColumn(50);  // tax
+                            if (!ae) cols.ConstantColumn(50);  // tax (hidden for auto-entrepreneur)
                             cols.ConstantColumn(80);  // total
                         });
 
@@ -79,7 +91,7 @@ public static class InvoicePdfGenerator
                             header.Cell().Element(HeaderCell).AlignRight().Text("Qty").FontColor(Colors.White).Bold();
                             header.Cell().Element(HeaderCell).AlignRight().Text("Unit Price").FontColor(Colors.White).Bold();
                             header.Cell().Element(HeaderCell).AlignRight().Text("Disc %").FontColor(Colors.White).Bold();
-                            header.Cell().Element(HeaderCell).AlignRight().Text("Tax %").FontColor(Colors.White).Bold();
+                            if (!ae) header.Cell().Element(HeaderCell).AlignRight().Text("Tax %").FontColor(Colors.White).Bold();
                             header.Cell().Element(HeaderCell).AlignRight().Text("Total").FontColor(Colors.White).Bold();
                         });
 
@@ -94,14 +106,13 @@ public static class InvoicePdfGenerator
                             var gross = line.Quantity * line.UnitPrice;
                             var discount = gross * line.DiscountPct / 100m;
                             var net = gross - discount;
-                            var tax = net * line.TaxRate / 100m;
-                            var lineTotal = net + tax;
+                            var lineTotal = ae ? net : net + net * line.TaxRate / 100m;
 
                             table.Cell().Element(DataCell).Text(line.Description);
                             table.Cell().Element(DataCell).AlignRight().Text($"{line.Quantity:N2}");
                             table.Cell().Element(DataCell).AlignRight().Text($"{invoice.Currency} {line.UnitPrice:N2}");
                             table.Cell().Element(DataCell).AlignRight().Text(line.DiscountPct > 0 ? $"{line.DiscountPct:N1}%" : "—");
-                            table.Cell().Element(DataCell).AlignRight().Text(line.TaxRate > 0 ? $"{line.TaxRate:N1}%" : "0%");
+                            if (!ae) table.Cell().Element(DataCell).AlignRight().Text(line.TaxRate > 0 ? $"{line.TaxRate:N1}%" : "0%");
                             table.Cell().Element(DataCell).AlignRight().Text($"{invoice.Currency} {lineTotal:N2}");
                         }
                     });
@@ -126,7 +137,7 @@ public static class InvoicePdfGenerator
                             });
                         }
 
-                        if (invoice.TotalTax > 0)
+                        if (!ae && invoice.TotalTax > 0)
                         {
                             totals.Item().Row(row =>
                             {
@@ -141,9 +152,15 @@ public static class InvoicePdfGenerator
                         {
                             row.RelativeItem().Text("Grand Total").Bold();
                             row.ConstantItem(100).AlignRight()
-                                .Text($"{invoice.Currency} {invoice.GrandTotal:N2}")
+                                .Text($"{invoice.Currency} {(ae ? invoice.Subtotal - invoice.TotalDiscount : invoice.GrandTotal):N2}")
                                 .Bold().FontColor("#1565C0");
                         });
+
+                        if (ae)
+                        {
+                            totals.Item().PaddingTop(6).Text("TVA non applicable — art. 293 B du CGI")
+                                .FontSize(8).Italic().FontColor(Colors.Grey.Darken1);
+                        }
                     });
 
                     // Notes

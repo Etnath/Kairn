@@ -1,11 +1,12 @@
 using Kairn.Application.Common;
 using Kairn.Application.Features.AP;
+using Kairn.Application.Features.Tax;
 using Kairn.Domain.Entities;
 using Microsoft.EntityFrameworkCore;
 
 namespace Kairn.Infrastructure.Persistence.Services;
 
-public class BillService(AppDbContext db) : IBillService
+public class BillService(AppDbContext db, ITaxPeriodChecker taxPeriods) : IBillService
 {
     private const string ApAccountCode = "401000";
     private const string InputVatAccountCode = "445660";
@@ -102,6 +103,9 @@ public class BillService(AppDbContext db) : IBillService
         if (!cmd.Lines.Any())
             return Result<BillDto>.Fail("A bill must have at least one line.");
 
+        if (await taxPeriods.IsDateLockedAsync(cmd.TenantId, cmd.Date, ct))
+            return Result<BillDto>.Fail("This transaction falls within a locked tax period.");
+
         var now = DateTimeOffset.UtcNow;
         var bill = new Bill
         {
@@ -173,6 +177,9 @@ public class BillService(AppDbContext db) : IBillService
             return Result<BillDto>.Fail("Only draft or rejected bills can be edited.");
         if (!cmd.Lines.Any())
             return Result<BillDto>.Fail("A bill must have at least one line.");
+
+        if (await taxPeriods.IsDateLockedAsync(cmd.TenantId, cmd.Date, ct))
+            return Result<BillDto>.Fail("This transaction falls within a locked tax period.");
 
         bill.VendorId = cmd.VendorId;
         bill.Reference = cmd.Reference;
@@ -250,6 +257,9 @@ public class BillService(AppDbContext db) : IBillService
             return Result<BillDto>.Fail("Only Draft or Pending Approval bills can be approved.");
         if (!bill.Lines.Any())
             return Result<BillDto>.Fail("Cannot approve a bill with no lines.");
+
+        if (await taxPeriods.IsDateLockedAsync(cmd.TenantId, bill.Date, ct))
+            return Result<BillDto>.Fail("This transaction falls within a locked tax period.");
 
         var apAccount = await db.Accounts
             .FirstOrDefaultAsync(a => a.TenantId == cmd.TenantId && a.Code == ApAccountCode, ct);
@@ -373,6 +383,9 @@ public class BillService(AppDbContext db) : IBillService
             return Result.Fail("Paid bills cannot be voided.");
         if (bill.Status == BillStatus.PartiallyPaid)
             return Result.Fail("Partially paid bills cannot be voided.");
+
+        if (await taxPeriods.IsDateLockedAsync(cmd.TenantId, bill.Date, ct))
+            return Result.Fail("This transaction falls within a locked tax period.");
 
         var now = DateTimeOffset.UtcNow;
 
