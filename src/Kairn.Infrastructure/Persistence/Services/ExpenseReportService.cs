@@ -91,7 +91,6 @@ public class ExpenseReportService(AppDbContext db) : IExpenseReportService
             report.RejectionReason = null;
 
         db.ExpenseReportLines.RemoveRange(report.Lines);
-        report.Lines.Clear();
         ApplyLines(report, cmd.Lines);
 
         if (report.Status == ExpenseReportStatus.Rejected)

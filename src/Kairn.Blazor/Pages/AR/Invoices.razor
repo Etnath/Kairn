@@ -108,11 +108,11 @@
         <MudTd DataLabel="@L["Col_Amount"]" Class="text-right">
             @if (context.IsCreditNote)
             {
-                <MudText Color="Color.Warning">– @context.Currency @context.GrandTotal.ToString("N2")</MudText>
+                <MudText Color="Color.Warning">– @MoneyFormatter.Format(context.GrandTotal, context.Currency)</MudText>
             }
             else
             {
-                @context.Currency @context.GrandTotal.ToString("N2")
+                @MoneyFormatter.Format(context.GrandTotal, context.Currency)
             }
         </MudTd>
         <MudTd @onclick:stopPropagation="true">

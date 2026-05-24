@@ -130,7 +130,6 @@ public class InvoiceService(AppDbContext db, ITaxPeriodChecker taxPeriods, ITena
         invoice.UpdatedAt = DateTimeOffset.UtcNow;
 
         db.InvoiceLines.RemoveRange(invoice.Lines);
-        invoice.Lines.Clear();
 
         foreach (var (l, i) in cmd.Lines.Select((l, i) => (l, i)))
         {
@@ -616,6 +615,19 @@ public class InvoiceService(AppDbContext db, ITaxPeriodChecker taxPeriods, ITena
             - i.Payments.Sum(p => p.Amount)
             - i.CreditNotes.Sum(cn => cn.Lines.Sum(l => l.LineTotal)));
         return (invoices.Count, total);
+    }
+
+    public async Task<Result> UpdateDueDateAsync(Guid id, Guid tenantId, DateOnly newDueDate, CancellationToken ct = default)
+    {
+        var invoice = await db.Invoices
+            .FirstOrDefaultAsync(i => i.Id == id && i.TenantId == tenantId, ct);
+        if (invoice is null) return Result.Fail("Invoice not found.");
+        if (invoice.Status == InvoiceStatus.Void) return Result.Fail("Cannot modify a voided invoice.");
+
+        invoice.DueDate = newDueDate;
+        invoice.UpdatedAt = DateTimeOffset.UtcNow;
+        await db.SaveChangesAsync(ct);
+        return Result.Ok();
     }
 
     private async Task MarkOverdueAsync(Guid tenantId, CancellationToken ct)

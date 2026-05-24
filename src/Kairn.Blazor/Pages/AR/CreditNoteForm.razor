@@ -30,7 +30,7 @@ else
     <MudAlert Severity="Severity.Info" Dense="true" Class="mb-4">
         @string.Format(L["CreditNote_Subtitle"].Value, _original.Reference)
         – @_original.CustomerName
-        – @L["Totals_Grand"]: @_original.Currency @_original.GrandTotal.ToString("N2")
+        – @L["Totals_Grand"]: @MoneyFormatter.Format(_original.GrandTotal, _original.Currency)
     </MudAlert>
 
     <MudForm @ref="_form" @bind-IsValid="_isValid">
@@ -83,26 +83,26 @@ else
                     <MudStack Spacing="1">
                         <MudStack Row="true" Spacing="0">
                             <MudText Style="flex:1" Color="Color.Secondary">@L["Totals_Subtotal"]</MudText>
-                            <MudText>@_original.Currency @Subtotal.ToString("N2")</MudText>
+                            <MudText>@MoneyFormatter.Format(Subtotal, _original.Currency)</MudText>
                         </MudStack>
                         @if (!_isAutoEntrepreneur && TotalTax > 0)
                         {
                             <MudStack Row="true" Spacing="0">
                                 <MudText Style="flex:1" Color="Color.Secondary">@L["Totals_Tax"]</MudText>
-                                <MudText>@_original.Currency @TotalTax.ToString("N2")</MudText>
+                                <MudText>@MoneyFormatter.Format(TotalTax, _original.Currency)</MudText>
                             </MudStack>
                         }
                         <MudDivider Class="my-2" />
                         <MudStack Row="true" Spacing="0">
                             <MudText Style="flex:1"><b>@L["Totals_Grand"]</b></MudText>
                             <MudText Typo="Typo.h6" Color="Color.Warning">
-                                – @_original.Currency @GrandTotal.ToString("N2")
+                                – @MoneyFormatter.Format(GrandTotal, _original.Currency)
                             </MudText>
                         </MudStack>
                         @if (_maxExceeded)
                         {
                             <MudText Typo="Typo.caption" Color="Color.Error">
-                                @string.Format(L["CreditNote_MaxExceeded"].Value, _original.Currency, _original.GrandTotal.ToString("N2"))
+                                @string.Format(L["CreditNote_MaxExceeded"].Value, MoneyFormatter.Format(_original.GrandTotal, _original.Currency))
                             </MudText>
                         }
                     </MudStack>
@@ -171,7 +171,7 @@ else
                             }
                             <MudTd Class="text-right">
                                 <MudText Typo="Typo.body2">
-                                    @(_isAutoEntrepreneur ? context.NetAmount : context.LineTotal).ToString("N2")
+                                    @MoneyFormatter.Format(_isAutoEntrepreneur ? context.NetAmount : context.LineTotal, _original.Currency)
                                 </MudText>
                             </MudTd>
                             <MudTd>

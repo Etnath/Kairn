@@ -148,6 +148,136 @@ public class InvoicePaymentService(AppDbContext db, ITaxPeriodChecker taxPeriods
         return Result<InvoicePaymentDto>.Ok(ToDto(payment));
     }
 
+    public async Task<Result<InvoicePaymentDto>> UpdateAsync(
+        Guid paymentId, RecordPaymentCommand cmd, CancellationToken ct = default)
+    {
+        var payment = await db.InvoicePayments
+            .Include(p => p.Invoice)
+                .ThenInclude(i => i.Lines)
+            .Include(p => p.Invoice)
+                .ThenInclude(i => i.Payments)
+            .FirstOrDefaultAsync(p => p.Id == paymentId && p.TenantId == cmd.TenantId, ct);
+
+        if (payment is null)
+            return Result<InvoicePaymentDto>.Fail("Payment not found.");
+
+        if (await taxPeriods.IsDateLockedAsync(cmd.TenantId, payment.Date, ct))
+            return Result<InvoicePaymentDto>.Fail("The original payment date falls within a locked tax period.");
+        if (await taxPeriods.IsDateLockedAsync(cmd.TenantId, cmd.Date, ct))
+            return Result<InvoicePaymentDto>.Fail("The new payment date falls within a locked tax period.");
+
+        var invoice = payment.Invoice;
+        var grandTotal = invoice.Lines.Sum(l => l.LineTotal);
+        var otherPaid = invoice.Payments.Where(p => p.Id != paymentId).Sum(p => p.Amount);
+        var available = grandTotal - otherPaid;
+
+        if (cmd.Amount <= 0)
+            return Result<InvoicePaymentDto>.Fail("Payment amount must be greater than zero.");
+        if (cmd.Amount > available)
+            return Result<InvoicePaymentDto>.Fail($"Payment amount exceeds the outstanding balance ({available:N2}).");
+
+        var arAccount = await db.Accounts
+            .FirstOrDefaultAsync(a => a.TenantId == cmd.TenantId && a.Code == ArAccountCode, ct);
+        if (arAccount is null)
+            return Result<InvoicePaymentDto>.Fail($"AR account ({ArAccountCode}) not found.");
+
+        var bankAccount = await db.Accounts
+            .FirstOrDefaultAsync(a => a.Id == cmd.BankAccountId && a.TenantId == cmd.TenantId, ct);
+        if (bankAccount is null)
+            return Result<InvoicePaymentDto>.Fail("Selected bank/cash account not found.");
+
+        var now = DateTimeOffset.UtcNow;
+
+        // Reverse old journal entry
+        if (payment.JournalEntryId.HasValue)
+        {
+            var original = await db.JournalEntries
+                .Include(e => e.Lines)
+                .FirstOrDefaultAsync(e => e.Id == payment.JournalEntryId.Value, ct);
+
+            if (original is not null)
+            {
+                var reversal = new JournalEntry
+                {
+                    TenantId = cmd.TenantId,
+                    Date = DateOnly.FromDateTime(now.UtcDateTime),
+                    Reference = $"REV-{original.Reference}",
+                    Description = $"Correction of payment for invoice {invoice.Reference}",
+                    CreatedByUserId = cmd.PostedByUserId,
+                    CreatedByName = cmd.PostedByName,
+                    IsLocked = true,
+                    CreatedAt = now,
+                    UpdatedAt = now,
+                };
+
+                foreach (var line in original.Lines)
+                {
+                    reversal.Lines.Add(new JournalLine
+                    {
+                        AccountId = line.AccountId,
+                        Debit = line.Credit,
+                        Credit = line.Debit,
+                        Currency = line.Currency,
+                        ExchangeRate = line.ExchangeRate,
+                        Memo = $"Correction – {line.Memo}",
+                    });
+                }
+
+                db.JournalEntries.Add(reversal);
+            }
+        }
+
+        // Create corrected journal entry
+        var newEntry = new JournalEntry
+        {
+            TenantId = cmd.TenantId,
+            Date = cmd.Date,
+            Reference = cmd.Reference ?? $"PMT-{invoice.Reference}",
+            Description = $"Payment for invoice {invoice.Reference}",
+            CreatedByUserId = cmd.PostedByUserId,
+            CreatedByName = cmd.PostedByName,
+            IsLocked = true,
+            CreatedAt = now,
+            UpdatedAt = now,
+        };
+
+        newEntry.Lines.Add(new JournalLine
+        {
+            AccountId = bankAccount.Id,
+            Debit = cmd.Amount,
+            Credit = 0m,
+            Currency = invoice.Currency,
+            ExchangeRate = 1m,
+            Memo = invoice.Reference,
+        });
+
+        newEntry.Lines.Add(new JournalLine
+        {
+            AccountId = arAccount.Id,
+            Debit = 0m,
+            Credit = cmd.Amount,
+            Currency = invoice.Currency,
+            ExchangeRate = 1m,
+            Memo = invoice.Reference,
+        });
+
+        db.JournalEntries.Add(newEntry);
+
+        payment.Date = cmd.Date;
+        payment.Amount = cmd.Amount;
+        payment.Method = cmd.Method;
+        payment.Reference = cmd.Reference;
+        payment.JournalEntryId = newEntry.Id;
+        payment.UpdatedAt = now;
+
+        var newTotalPaid = otherPaid + cmd.Amount;
+        invoice.Status = newTotalPaid >= grandTotal ? InvoiceStatus.Paid : InvoiceStatus.PartiallyPaid;
+        invoice.UpdatedAt = now;
+
+        await db.SaveChangesAsync(ct);
+        return Result<InvoicePaymentDto>.Ok(ToDto(payment));
+    }
+
     public async Task<Result> DeleteAsync(
         Guid paymentId, Guid tenantId, string deletedByUserId, string deletedByName,
         CancellationToken ct = default)

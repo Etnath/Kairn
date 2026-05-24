@@ -55,11 +55,11 @@
         </MudTd>
         <MudTd DataLabel="@L["Col_PaymentTerms"]">@context.PaymentTermsDays</MudTd>
         <MudTd DataLabel="@L["Col_CreditLimit"]">
-            @(context.CreditLimit.HasValue ? context.CreditLimit.Value.ToString("N2") : "—")
+            @(context.CreditLimit.HasValue ? MoneyFormatter.Format(context.CreditLimit.Value, context.Currency) : "—")
         </MudTd>
         <MudTd DataLabel="@L["Col_OutstandingBalance"]">
             <MudText Color="@(context.OutstandingBalance > 0 ? Color.Warning : Color.Default)">
-                @context.OutstandingBalance.ToString("N2")
+                @MoneyFormatter.Format(context.OutstandingBalance, context.Currency)
             </MudText>
         </MudTd>
         <MudTd DataLabel="@L["Col_Currency"]">@context.Currency</MudTd>

@@ -5,14 +5,14 @@
 
 <MudDialog>
     <TitleContent>
-        <MudText Typo="Typo.h6">@L["Payment_Title"]</MudText>
+        <MudText Typo="Typo.h6">@(ExistingPayment is null ? L["Payment_Title"] : L["Payment_Edit_Title"])</MudText>
     </TitleContent>
     <DialogContent>
         <MudStack Spacing="3">
             <MudStack Row="true" AlignItems="AlignItems.Center">
                 <MudText Color="Color.Secondary">@L["Payment_Outstanding"]:</MudText>
                 <MudText Typo="Typo.subtitle1" Color="Color.Primary">
-                    <b>@Invoice.Currency @_outstanding.ToString("N2")</b>
+                    <b>@MoneyFormatter.Format(_outstanding, Invoice.Currency)</b>
                 </MudText>
             </MudStack>
 
@@ -54,7 +54,7 @@
             {
                 <MudProgressCircular Size="Size.Small" Indeterminate="true" Class="mr-2" />
             }
-            @L["Payment_Save"]
+            @(ExistingPayment is null ? L["Payment_Save"] : L["Payment_Edit_Save"])
         </MudButton>
     </DialogActions>
 </MudDialog>
@@ -62,6 +62,7 @@
 @code {
     [CascadingParameter] IMudDialogInstance MudDialog { get; set; } = null!;
     [Parameter] public InvoiceDto Invoice { get; set; } = null!;
+    [Parameter] public InvoicePaymentDto? ExistingPayment { get; set; }
 
     private decimal _outstanding;
     private DateTime? _date = DateTime.Today;
@@ -75,8 +76,19 @@
 
     protected override async Task OnInitializedAsync()
     {
-        _outstanding = Invoice.Outstanding;
-        _amount = _outstanding;
+        if (ExistingPayment is not null)
+        {
+            _outstanding = Invoice.Outstanding + ExistingPayment.Amount;
+            _date = ExistingPayment.Date.ToDateTime(TimeOnly.MinValue);
+            _amount = ExistingPayment.Amount;
+            _method = ExistingPayment.Method;
+            _reference = ExistingPayment.Reference;
+        }
+        else
+        {
+            _outstanding = Invoice.Outstanding;
+            _amount = _outstanding;
+        }
 
         var allAccounts = await AccountService.GetAllAsync(CurrentUser.TenantId);
         _accounts = allAccounts
@@ -117,7 +129,12 @@
             PostedByUserId: CurrentUser.UserId,
             PostedByName: CurrentUser.UserName);
 
-        var result = await PaymentService.RecordAsync(cmd);
+        Result<InvoicePaymentDto> result;
+        if (ExistingPayment is not null)
+            result = await PaymentService.UpdateAsync(ExistingPayment.Id, cmd);
+        else
+            result = await PaymentService.RecordAsync(cmd);
+
         _saving = false;
 
         if (result.IsSuccess)

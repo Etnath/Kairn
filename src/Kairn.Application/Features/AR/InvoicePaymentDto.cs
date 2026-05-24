@@ -37,5 +37,6 @@ public interface IInvoicePaymentService
     Task<IReadOnlyList<RecetteEntryDto>> GetRecettesAsync(Guid tenantId, int year, CancellationToken ct = default);
     Task<int?> GetEarliestPaymentYearAsync(Guid tenantId, CancellationToken ct = default);
     Task<Result<InvoicePaymentDto>> RecordAsync(RecordPaymentCommand cmd, CancellationToken ct = default);
+    Task<Result<InvoicePaymentDto>> UpdateAsync(Guid paymentId, RecordPaymentCommand cmd, CancellationToken ct = default);
     Task<Result> DeleteAsync(Guid paymentId, Guid tenantId, string deletedByUserId, string deletedByName, CancellationToken ct = default);
 }

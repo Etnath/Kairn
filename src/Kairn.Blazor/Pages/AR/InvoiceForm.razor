@@ -94,20 +94,20 @@ else
                     <MudStack Spacing="1">
                         <MudStack Row="true" Spacing="0">
                             <MudText Style="flex:1" Color="Color.Secondary">@L["Totals_Subtotal"]</MudText>
-                            <MudText>@_currency @Subtotal.ToString("N2")</MudText>
+                            <MudText>@MoneyFormatter.Format(Subtotal, _currency)</MudText>
                         </MudStack>
                         @if (TotalDiscount > 0)
                         {
                             <MudStack Row="true" Spacing="0">
                                 <MudText Style="flex:1" Color="Color.Secondary">@L["Totals_Discount"]</MudText>
-                                <MudText Color="Color.Success">- @_currency @TotalDiscount.ToString("N2")</MudText>
+                                <MudText Color="Color.Success">- @MoneyFormatter.Format(TotalDiscount, _currency)</MudText>
                             </MudStack>
                         }
                         @if (!_isAutoEntrepreneur && TotalTax > 0)
                         {
                             <MudStack Row="true" Spacing="0">
                                 <MudText Style="flex:1" Color="Color.Secondary">@L["Totals_Tax"]</MudText>
-                                <MudText>@_currency @TotalTax.ToString("N2")</MudText>
+                                <MudText>@MoneyFormatter.Format(TotalTax, _currency)</MudText>
                             </MudStack>
                         }
                         @if (_isAutoEntrepreneur)
@@ -119,7 +119,7 @@ else
                         <MudDivider Class="my-2" />
                         <MudStack Row="true" Spacing="0">
                             <MudText Style="flex:1"><b>@L["Totals_Grand"]</b></MudText>
-                            <MudText Typo="Typo.h6" Color="Color.Primary">@_currency @GrandTotal.ToString("N2")</MudText>
+                            <MudText Typo="Typo.h6" Color="Color.Primary">@MoneyFormatter.Format(GrandTotal, _currency)</MudText>
                         </MudStack>
                     </MudStack>
                 </MudPaper>
@@ -191,7 +191,7 @@ else
                             }
                             <MudTd Class="text-right">
                                 <MudText Typo="Typo.body2">
-                                    @((_isAutoEntrepreneur ? context.NetAmount : context.LineTotal).ToString("N2"))
+                                    @MoneyFormatter.Format(_isAutoEntrepreneur ? context.NetAmount : context.LineTotal, _currency)
                                 </MudText>
                             </MudTd>
                             <MudTd>

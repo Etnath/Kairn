@@ -118,7 +118,10 @@
   <data name="Payment_Delete_Title" xml:space="preserve"><value>Supprimer le règlement</value></data>
   <data name="Payment_Delete_Confirm" xml:space="preserve"><value>Cette action supprimera le règlement et passera une écriture de contrepassation. Continuer ?</value></data>
   <data name="Payment_Delete_Yes" xml:space="preserve"><value>Supprimer</value></data>
+  <data name="Payment_Edit_Title" xml:space="preserve"><value>Modifier le règlement</value></data>
+  <data name="Payment_Edit_Save" xml:space="preserve"><value>Enregistrer la modification</value></data>
   <data name="Payment_Paid" xml:space="preserve"><value>Réglé</value></data>
+  <data name="DueDate_Edit" xml:space="preserve"><value>Modifier l'échéance</value></data>
   <data name="Method_BankTransfer" xml:space="preserve"><value>Virement bancaire</value></data>
   <data name="Method_Cash" xml:space="preserve"><value>Espèces</value></data>
   <data name="Method_Card" xml:space="preserve"><value>Carte bancaire</value></data>
@@ -138,6 +141,6 @@
   <data name="CreditNote_Col_Reference" xml:space="preserve"><value>Référence</value></data>
   <data name="CreditNote_Col_Date" xml:space="preserve"><value>Date</value></data>
   <data name="CreditNote_Col_Amount" xml:space="preserve"><value>Montant</value></data>
-  <data name="CreditNote_MaxExceeded" xml:space="preserve"><value>Le montant de l'avoir ne peut pas dépasser le total de la facture d'origine ({0} {1}).</value></data>
-  <data name="CreditNote_Overpayment" xml:space="preserve"><value>Cet avoir génère un solde créditeur client de {0} {1}. Pensez à le rembourser ou à l'imputer sur une future facture.</value></data>
+  <data name="CreditNote_MaxExceeded" xml:space="preserve"><value>Le montant de l'avoir ne peut pas dépasser le total de la facture d'origine ({0}).</value></data>
+  <data name="CreditNote_Overpayment" xml:space="preserve"><value>Cet avoir génère un solde créditeur client de {0}. Pensez à le rembourser ou à l'imputer sur une future facture.</value></data>
 </root>

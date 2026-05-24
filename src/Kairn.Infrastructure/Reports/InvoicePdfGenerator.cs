@@ -1,3 +1,5 @@
+using System.Globalization;
+using Kairn.Application.Common;
 using Kairn.Application.Features.AR;
 using Kairn.Domain.Entities;
 using QuestPDF.Fluent;
@@ -17,6 +19,8 @@ public static class InvoicePdfGenerator
     public static byte[] Generate(InvoiceDto invoice, InvoicePdfOptions? options = null)
     {
         bool ae = options?.IsAutoEntrepreneur == true;
+        var fr = new CultureInfo("fr-FR");
+        string Money(decimal v) => MoneyFormatter.Format(v, invoice.Currency, fr);
 
         return Document.Create(container =>
         {
@@ -110,11 +114,11 @@ public static class InvoicePdfGenerator
                             var lineTotal = ae ? net : net + net * line.TaxRate / 100m;
 
                             table.Cell().Element(DataCell).Text(line.Description);
-                            table.Cell().Element(DataCell).AlignRight().Text($"{line.Quantity:N2}");
-                            table.Cell().Element(DataCell).AlignRight().Text($"{invoice.Currency} {line.UnitPrice:N2}");
-                            table.Cell().Element(DataCell).AlignRight().Text(line.DiscountPct > 0 ? $"{line.DiscountPct:N1}%" : "—");
-                            if (!ae) table.Cell().Element(DataCell).AlignRight().Text(line.TaxRate > 0 ? $"{line.TaxRate:N1}%" : "0%");
-                            table.Cell().Element(DataCell).AlignRight().Text($"{invoice.Currency} {lineTotal:N2}");
+                            table.Cell().Element(DataCell).AlignRight().Text(line.Quantity.ToString("N2", fr));
+                            table.Cell().Element(DataCell).AlignRight().Text(Money(line.UnitPrice));
+                            table.Cell().Element(DataCell).AlignRight().Text(line.DiscountPct > 0 ? $"{line.DiscountPct.ToString("N1", fr)} %" : "—");
+                            if (!ae) table.Cell().Element(DataCell).AlignRight().Text(line.TaxRate > 0 ? $"{line.TaxRate.ToString("N1", fr)} %" : "0 %");
+                            table.Cell().Element(DataCell).AlignRight().Text(Money(lineTotal));
                         }
                     });
 
@@ -124,7 +128,7 @@ public static class InvoicePdfGenerator
                         totals.Item().Row(row =>
                         {
                             row.RelativeItem().Text("Sous-total HT").FontColor(Colors.Grey.Darken1);
-                            row.ConstantItem(100).AlignRight().Text($"{invoice.Currency} {invoice.Subtotal:N2}");
+                            row.ConstantItem(100).AlignRight().Text(Money(invoice.Subtotal));
                         });
 
                         if (invoice.TotalDiscount > 0)
@@ -133,7 +137,7 @@ public static class InvoicePdfGenerator
                             {
                                 row.RelativeItem().Text("Remise").FontColor(Colors.Grey.Darken1);
                                 row.ConstantItem(100).AlignRight()
-                                    .Text($"- {invoice.Currency} {invoice.TotalDiscount:N2}")
+                                    .Text($"- {Money(invoice.TotalDiscount)}")
                                     .FontColor(Colors.Green.Darken2);
                             });
                         }
@@ -143,7 +147,7 @@ public static class InvoicePdfGenerator
                             totals.Item().Row(row =>
                             {
                                 row.RelativeItem().Text("TVA").FontColor(Colors.Grey.Darken1);
-                                row.ConstantItem(100).AlignRight().Text($"{invoice.Currency} {invoice.TotalTax:N2}");
+                                row.ConstantItem(100).AlignRight().Text(Money(invoice.TotalTax));
                             });
                         }
 
@@ -153,7 +157,7 @@ public static class InvoicePdfGenerator
                         {
                             row.RelativeItem().Text("Total TTC").Bold();
                             row.ConstantItem(100).AlignRight()
-                                .Text($"{invoice.Currency} {(ae ? invoice.Subtotal - invoice.TotalDiscount : invoice.GrandTotal):N2}")
+                                .Text(Money(ae ? invoice.Subtotal - invoice.TotalDiscount : invoice.GrandTotal))
                                 .Bold().FontColor("#1565C0");
                         });
 

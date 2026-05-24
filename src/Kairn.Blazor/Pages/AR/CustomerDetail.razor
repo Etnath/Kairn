@@ -78,7 +78,7 @@ else
                     <MudItem xs="6">
                         <MudText Typo="Typo.caption" Color="Color.Secondary">@L["Detail_OutstandingBalance"]</MudText>
                         <MudText Typo="Typo.h6" Color="@(_customer.OutstandingBalance > 0 ? Color.Warning : Color.Default)">
-                            @_customer.Currency @_customer.OutstandingBalance.ToString("N2")
+                            @MoneyFormatter.Format(_customer.OutstandingBalance, _customer.Currency)
                         </MudText>
                     </MudItem>
                     <MudItem xs="6">
@@ -89,7 +89,7 @@ else
                         <MudText Typo="Typo.caption" Color="Color.Secondary">@L["Detail_CreditLimit"]</MudText>
                         <MudText Typo="Typo.h6">
                             @(_customer.CreditLimit.HasValue
-                                ? $"{_customer.Currency} {_customer.CreditLimit.Value:N2}"
+                                ? MoneyFormatter.Format(_customer.CreditLimit.Value, _customer.Currency)
                                 : L["Detail_Unlimited"].Value)
                         </MudText>
                     </MudItem>
@@ -137,7 +137,7 @@ else
                         <MudTd>@context.Date.ToString("dd/MM/yyyy")</MudTd>
                         <MudTd>@context.DueDate.ToString("dd/MM/yyyy")</MudTd>
                         <MudTd><InvoiceStatusChip Status="context.Status" /></MudTd>
-                        <MudTd Class="text-right">@context.Currency @context.GrandTotal.ToString("N2")</MudTd>
+                        <MudTd Class="text-right">@MoneyFormatter.Format(context.GrandTotal, context.Currency)</MudTd>
                     </RowTemplate>
                 </MudTable>
             }

@@ -113,7 +113,7 @@ else
     @if (!_invoice.IsCreditNote && _invoice.Outstanding < 0)
     {
         <MudAlert Severity="Severity.Warning" Dense="true" Class="mb-3">
-            @string.Format(L["CreditNote_Overpayment"].Value, _invoice.Currency, Math.Abs(_invoice.Outstanding).ToString("N2"))
+            @string.Format(L["CreditNote_Overpayment"].Value, MoneyFormatter.Format(Math.Abs(_invoice.Outstanding), _invoice.Currency))
         </MudAlert>
     }
 
@@ -129,9 +129,32 @@ else
                     </MudItem>
                     <MudItem xs="6">
                         <MudText Typo="Typo.caption" Color="Color.Secondary">@L["Field_DueDate"]</MudText>
-                        <MudText Color="@(_invoice.Status == InvoiceStatus.Overdue ? Color.Error : Color.Default)">
-                            @_invoice.DueDate.ToString("dd/MM/yyyy")
-                        </MudText>
+                        @if (_editingDueDate)
+                        {
+                            <MudStack Row="true" AlignItems="AlignItems.Center" Spacing="1">
+                                <MudDatePicker @bind-Date="_dueDateEdit" DateFormat="dd/MM/yyyy" Dense="true" />
+                                <MudIconButton Icon="@Icons.Material.Filled.Check" Size="Size.Small"
+                                               Color="Color.Success" OnClick="SaveDueDate" />
+                                <MudIconButton Icon="@Icons.Material.Filled.Close" Size="Size.Small"
+                                               OnClick="@(() => _editingDueDate = false)" />
+                            </MudStack>
+                        }
+                        else
+                        {
+                            <MudStack Row="true" AlignItems="AlignItems.Center" Spacing="0">
+                                <MudText Color="@(_invoice.Status == InvoiceStatus.Overdue ? Color.Error : Color.Default)">
+                                    @_invoice.DueDate.ToString("dd/MM/yyyy")
+                                </MudText>
+                                <AuthorizeView Roles="Admin,Bookkeeper">
+                                    @if (_invoice.Status != InvoiceStatus.Void)
+                                    {
+                                        <MudIconButton Icon="@Icons.Material.Filled.Edit" Size="Size.Small"
+                                                       title="@L["DueDate_Edit"]"
+                                                       OnClick="StartEditDueDate" />
+                                    }
+                                </AuthorizeView>
+                            </MudStack>
+                        }
                     </MudItem>
                     <MudItem xs="6">
                         <MudText Typo="Typo.caption" Color="Color.Secondary">@L["Field_Currency"]</MudText>
@@ -192,7 +215,7 @@ else
                     <RowTemplate>
                         <MudTd>@context.Description</MudTd>
                         <MudTd>@context.Quantity.ToString("N2")</MudTd>
-                        <MudTd>@_invoice.Currency @context.UnitPrice.ToString("N2")</MudTd>
+                        <MudTd>@MoneyFormatter.Format(context.UnitPrice, _invoice.Currency)</MudTd>
                         <MudTd>@(context.DiscountPct > 0 ? $"{context.DiscountPct:N1}%" : "—")</MudTd>
                         @if (!_isAutoEntrepreneur)
                         {
@@ -204,7 +227,7 @@ else
                                 var net = gross * (1 - context.DiscountPct / 100m);
                                 var total = _isAutoEntrepreneur ? net : net * (1 + context.TaxRate / 100m);
                             }
-                            @_invoice.Currency @total.ToString("N2")
+                            @MoneyFormatter.Format(total, _invoice.Currency)
                         </MudTd>
                     </RowTemplate>
                 </MudTable>
@@ -218,27 +241,27 @@ else
                     <MudStack Spacing="1">
                         <MudStack Row="true">
                             <MudText Style="flex:1" Color="Color.Secondary">@L["Totals_Subtotal"]</MudText>
-                            <MudText>@_invoice.Currency @_invoice.Subtotal.ToString("N2")</MudText>
+                            <MudText>@MoneyFormatter.Format(_invoice.Subtotal, _invoice.Currency)</MudText>
                         </MudStack>
                         @if (_invoice.TotalDiscount > 0)
                         {
                             <MudStack Row="true">
                                 <MudText Style="flex:1" Color="Color.Secondary">@L["Totals_Discount"]</MudText>
-                                <MudText Color="Color.Success">- @_invoice.Currency @_invoice.TotalDiscount.ToString("N2")</MudText>
+                                <MudText Color="Color.Success">- @MoneyFormatter.Format(_invoice.TotalDiscount, _invoice.Currency)</MudText>
                             </MudStack>
                         }
                         @if (_invoice.TotalTax > 0)
                         {
                             <MudStack Row="true">
                                 <MudText Style="flex:1" Color="Color.Secondary">@L["Totals_Tax"]</MudText>
-                                <MudText>@_invoice.Currency @_invoice.TotalTax.ToString("N2")</MudText>
+                                <MudText>@MoneyFormatter.Format(_invoice.TotalTax, _invoice.Currency)</MudText>
                             </MudStack>
                         }
                         <MudDivider />
                         <MudStack Row="true">
                             <MudText Style="flex:1"><b>@L["Totals_Grand"]</b></MudText>
                             <MudText Typo="Typo.h6" Color="Color.Primary">
-                                @_invoice.Currency @_invoice.GrandTotal.ToString("N2")
+                                @MoneyFormatter.Format(_invoice.GrandTotal, _invoice.Currency)
                             </MudText>
                         </MudStack>
                     </MudStack>
@@ -256,7 +279,7 @@ else
                         @if (_invoice.Outstanding > 0)
                         {
                             <MudText Typo="Typo.body2" Color="Color.Secondary">
-                                @L["Payment_Outstanding"]: <b>@_invoice.Currency @_invoice.Outstanding.ToString("N2")</b>
+                                @L["Payment_Outstanding"]: <b>@MoneyFormatter.Format(_invoice.Outstanding, _invoice.Currency)</b>
                             </MudText>
                         }
                         else
@@ -279,16 +302,20 @@ else
                                 <MudTh>@L["Payment_Col_Method"]</MudTh>
                                 <MudTh>@L["Payment_Col_Reference"]</MudTh>
                                 <AuthorizeView Roles="Admin,Bookkeeper" Context="authCtxH">
-                                    <MudTh Style="width:60px" />
+                                    <MudTh Style="width:90px" />
                                 </AuthorizeView>
                             </HeaderContent>
                             <RowTemplate Context="payment">
                                 <MudTd>@payment.Date.ToString("dd/MM/yyyy")</MudTd>
-                                <MudTd>@_invoice.Currency @payment.Amount.ToString("N2")</MudTd>
+                                <MudTd>@MoneyFormatter.Format(payment.Amount, _invoice.Currency)</MudTd>
                                 <MudTd>@L[$"Method_{payment.Method}"]</MudTd>
                                 <MudTd>@(payment.Reference ?? "—")</MudTd>
                                 <AuthorizeView Roles="Admin,Bookkeeper" Context="authCtx">
                                     <MudTd>
+                                        <MudIconButton Icon="@Icons.Material.Filled.Edit"
+                                                       Size="Size.Small"
+                                                       title="@L["Payment_Edit_Title"]"
+                                                       OnClick="@(() => OpenEditPaymentDialog(payment))" />
                                         <MudIconButton Icon="@Icons.Material.Filled.Delete"
                                                        Size="Size.Small" Color="Color.Error"
                                                        OnClick="@(() => DeletePayment(payment))" />
@@ -359,7 +386,7 @@ else
                                 </MudTd>
                                 <MudTd>@cn.Date.ToString("dd/MM/yyyy")</MudTd>
                                 <MudTd Style="text-align:right;font-variant-numeric:tabular-nums;color:var(--mud-palette-warning-text)">
-                                    – @_invoice.Currency @cn.GrandTotal.ToString("N2")
+                                    – @MoneyFormatter.Format(cn.GrandTotal, _invoice.Currency)
                                 </MudTd>
                             </RowTemplate>
                         </MudTable>
@@ -398,6 +425,8 @@ else
     private IReadOnlyList<InvoiceDto> _creditNotes = [];
     private string? _errorMessage;
     private bool _isAutoEntrepreneur;
+    private bool _editingDueDate;
+    private DateTime? _dueDateEdit;
 
     protected override async Task OnInitializedAsync()
     {
@@ -477,6 +506,39 @@ else
             await Reload();
         else
             _errorMessage = result.Error;
+    }
+
+    private void StartEditDueDate()
+    {
+        _dueDateEdit = _invoice!.DueDate.ToDateTime(TimeOnly.MinValue);
+        _editingDueDate = true;
+    }
+
+    private async Task SaveDueDate()
+    {
+        if (_dueDateEdit is null || _invoice is null) return;
+        _errorMessage = null;
+        var result = await InvoiceService.UpdateDueDateAsync(
+            Id, CurrentUser.TenantId, DateOnly.FromDateTime(_dueDateEdit.Value));
+        _editingDueDate = false;
+        if (result.IsSuccess)
+            await Reload();
+        else
+            _errorMessage = result.Error;
+    }
+
+    private async Task OpenEditPaymentDialog(InvoicePaymentDto payment)
+    {
+        if (_invoice is null) return;
+        var parameters = new DialogParameters<RecordPaymentDialog>
+        {
+            { x => x.Invoice, _invoice },
+            { x => x.ExistingPayment, payment }
+        };
+        var dialog = await DialogService.ShowAsync<RecordPaymentDialog>(L["Payment_Edit_Title"], parameters);
+        var result = await dialog.Result;
+        if (result is { Canceled: false })
+            await Reload();
     }
 
     private async Task OpenVoidDialog()

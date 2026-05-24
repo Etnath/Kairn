@@ -118,7 +118,10 @@
   <data name="Payment_Delete_Title" xml:space="preserve"><value>Delete Payment</value></data>
   <data name="Payment_Delete_Confirm" xml:space="preserve"><value>This will delete the payment and post a reversing journal entry. Continue?</value></data>
   <data name="Payment_Delete_Yes" xml:space="preserve"><value>Delete</value></data>
+  <data name="Payment_Edit_Title" xml:space="preserve"><value>Edit Payment</value></data>
+  <data name="Payment_Edit_Save" xml:space="preserve"><value>Save Changes</value></data>
   <data name="Payment_Paid" xml:space="preserve"><value>Paid</value></data>
+  <data name="DueDate_Edit" xml:space="preserve"><value>Edit due date</value></data>
   <data name="Method_BankTransfer" xml:space="preserve"><value>Bank Transfer</value></data>
   <data name="Method_Cash" xml:space="preserve"><value>Cash</value></data>
   <data name="Method_Card" xml:space="preserve"><value>Card</value></data>
@@ -138,6 +141,6 @@
   <data name="CreditNote_Col_Reference" xml:space="preserve"><value>Reference</value></data>
   <data name="CreditNote_Col_Date" xml:space="preserve"><value>Date</value></data>
   <data name="CreditNote_Col_Amount" xml:space="preserve"><value>Amount</value></data>
-  <data name="CreditNote_MaxExceeded" xml:space="preserve"><value>Credit note amount cannot exceed the original invoice total ({0} {1}).</value></data>
-  <data name="CreditNote_Overpayment" xml:space="preserve"><value>This credit note creates a customer credit balance of {0} {1}. Consider refunding or applying it to a future invoice.</value></data>
+  <data name="CreditNote_MaxExceeded" xml:space="preserve"><value>Credit note amount cannot exceed the original invoice total ({0}).</value></data>
+  <data name="CreditNote_Overpayment" xml:space="preserve"><value>This credit note creates a customer credit balance of {0}. Consider refunding or applying it to a future invoice.</value></data>
 </root>

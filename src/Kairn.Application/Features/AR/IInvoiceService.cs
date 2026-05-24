@@ -16,4 +16,5 @@ public interface IInvoiceService
     Task<Result<InvoiceDto>> IssueCreditNoteAsync(IssueCreditNoteCommand cmd, CancellationToken ct = default);
     Task MarkAllOverdueAsync(CancellationToken ct = default);
     Task<(int Count, decimal TotalOutstanding)> GetOverdueSummaryAsync(Guid tenantId, CancellationToken ct = default);
+    Task<Result> UpdateDueDateAsync(Guid id, Guid tenantId, DateOnly newDueDate, CancellationToken ct = default);
 }

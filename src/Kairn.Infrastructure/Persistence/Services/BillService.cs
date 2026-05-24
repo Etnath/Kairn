@@ -190,7 +190,6 @@ public class BillService(AppDbContext db, ITaxPeriodChecker taxPeriods) : IBillS
         bill.UpdatedAt = DateTimeOffset.UtcNow;
 
         db.BillLines.RemoveRange(bill.Lines);
-        bill.Lines.Clear();
 
         foreach (var (l, i) in cmd.Lines.Select((l, i) => (l, i)))
         {

@@ -32,7 +32,7 @@
                         </MudStack>
                         <MudStack Spacing="0">
                             <MudText Typo="Typo.caption" Color="Color.Secondary">Solde dû</MudText>
-                            <MudText Typo="Typo.body2" Color="Color.Error"><b>@Invoice.Currency @Invoice.Outstanding.ToString("N2")</b></MudText>
+                            <MudText Typo="Typo.body2" Color="Color.Error"><b>@MoneyFormatter.Format(Invoice.Outstanding, Invoice.Currency)</b></MudText>
                         </MudStack>
                     </MudStack>
                 </MudStack>
