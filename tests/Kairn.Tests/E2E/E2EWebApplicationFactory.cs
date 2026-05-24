@@ -1,8 +1,11 @@
+using Kairn.Infrastructure.Persistence;
+using Kairn.Infrastructure.Persistence.Services;
 using Microsoft.AspNetCore.Hosting;
 using Microsoft.AspNetCore.Mvc.Testing;
 using Microsoft.AspNetCore.Server.Kestrel.Core;
-using Microsoft.Extensions.Configuration;
+using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.DependencyInjection;
+using Microsoft.Extensions.DependencyInjection.Extensions;
 using Microsoft.Extensions.Hosting;
 using Microsoft.Extensions.Options;
 using System.Net;
@@ -23,11 +26,21 @@ namespace Kairn.Tests.E2E;
 ///
 /// A free port is pre-allocated with TcpListener (then released) to avoid the
 /// IServerAddressesFeature not being populated with port-0 dynamic binding.
+///
+/// Database isolation: both builds share the same temp SQLite file. We replace only
+/// DbContextOptions&lt;AppDbContext&gt; and IDbContextFactory&lt;AppDbContext&gt; via ConfigureServices
+/// (which runs after Program.cs). AppDbContext itself is left in place — removing it strips
+/// EF Core internal registrations and prevents host startup.
 /// </summary>
 public sealed class E2EWebApplicationFactory : WebApplicationFactory<Program>
 {
     private IHost? _realHost;
     private readonly int _port = AllocateFreePort();
+
+    // Computed once so both builds (testHost + realHost) share the same SQLite file.
+    private readonly string _dbPath = Path.Combine(
+        Path.GetTempPath(), $"kairn-e2e-{Guid.NewGuid():N}.db");
+
     public string ServerUrl => $"http://127.0.0.1:{_port}";
 
     private static int AllocateFreePort()
@@ -41,14 +54,26 @@ public sealed class E2EWebApplicationFactory : WebApplicationFactory<Program>
 
     protected override void ConfigureWebHost(IWebHostBuilder builder)
     {
-        var dbPath = Path.Combine(
-            Path.GetTempPath(), $"kairn-e2e-{Guid.NewGuid():N}.db");
+        var connStr = $"Data Source={_dbPath}";
 
-        builder.ConfigureAppConfiguration((_, cfg) =>
-            cfg.AddInMemoryCollection(new Dictionary<string, string?>
-            {
-                ["ConnectionStrings:Default"] = $"Data Source={dbPath}"
-            }));
+        builder.ConfigureServices(services =>
+        {
+            // Replace only the DbContextOptions and IDbContextFactory registrations so
+            // both the scoped AppDbContext and the singleton DashboardService use the
+            // isolated temp SQLite file instead of kairn.db from appsettings.
+            // Do NOT remove AppDbContext itself — that strips EF Core internal registrations
+            // and prevents the host from starting.
+            services.RemoveAll<DbContextOptions<AppDbContext>>();
+            services.RemoveAll<IDbContextFactory<AppDbContext>>();
+
+            var opts = new DbContextOptionsBuilder<AppDbContext>()
+                .UseSqlite(connStr)
+                .Options;
+
+            services.AddScoped<DbContextOptions<AppDbContext>>(_ => opts);
+            services.AddSingleton<IDbContextFactory<AppDbContext>>(
+                new DashboardDbContextFactory(opts));
+        });
     }
 
     protected override IHost CreateHost(IHostBuilder builder)

@@ -75,12 +75,14 @@ public class F01GeneralLedgerE2ETest : IAsyncLifetime
             navHref:    "/settings",
             secondHref: "/settings/chart-of-accounts");
 
-        await page.WaitForSelectorAsync("text=Capital social");
+        // Wait for a seeded account name to appear in the DOM.
+        // IsInitiallyExpanded = true so rows are visible once OnInitializedAsync completes.
+        await page.WaitForSelectorAsync("text=Capital social", new() { Timeout = 15_000 });
 
         var content = await page.ContentAsync();
-        content.Should().Contain("Capital social",  "equity account from Swiss COA seed");
-        content.Should().Contain("Clients",         "receivables account code 411000");
-        content.Should().Contain("512000",          "main bank account code");
+        content.Should().Contain("Capital social", "equity account from French COA seed");
+        content.Should().Contain("Clients",        "receivables account code 411000");
+        content.Should().Contain("512000",         "main bank account code");
     }
 
     [Fact]
@@ -177,8 +179,16 @@ public class F01GeneralLedgerE2ETest : IAsyncLifetime
         var dialog = page.Locator("[role='dialog']");
         await dialog.GetByLabel("Description").FillAsync("E2E balanced entry");
 
-        // Line 1: account 706000 (Prestations de services), debit 100
+        // JournalEntryDialog.OnInitializedAsync:
+        //   1. _accounts = await AccountService.GetAllAsync(...)
+        //   2. _reference = await JournalEntryService.GenerateReferenceAsync(...)
+        //   3. _lines = [new LineModel(), new LineModel()]
+        // The autocomplete inputs only appear in the DOM once _lines is populated (step 3).
+        // Waiting for them confirms accounts are loaded and SearchFunc will return results.
         var accountInputs = page.Locator("[role='dialog'] .mud-autocomplete input");
+        await accountInputs.First.WaitForAsync(new() { State = WaitForSelectorState.Visible, Timeout = 10_000 });
+
+        // Line 1: account 706000 (Prestations de services), debit 100
         await accountInputs.First.FillAsync("706");
         await page.WaitForSelectorAsync(".mud-list-item");
         await page.Locator(".mud-list-item").First.ClickAsync();
