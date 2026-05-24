@@ -4,24 +4,26 @@ using Microsoft.EntityFrameworkCore;
 
 namespace Kairn.Infrastructure.Persistence.Services;
 
-public class DashboardService(AppDbContext db) : IDashboardService
+public class DashboardService(IDbContextFactory<AppDbContext> dbFactory) : IDashboardService
 {
     public async Task<DashboardKpis> GetKpisAsync(Guid tenantId, CancellationToken ct = default)
     {
+        await using var db = await dbFactory.CreateDbContextAsync(ct);
+
         var today     = DateOnly.FromDateTime(DateTime.UtcNow);
         var currFrom  = new DateOnly(today.Year, today.Month, 1);
         var currTo    = today;
         var priorTo   = currFrom.AddDays(-1);
         var priorFrom = new DateOnly(priorTo.Year, priorTo.Month, 1);
 
-        var (currRev,  currExp)  = await GetMonthlyPnlAsync(tenantId, currFrom,  currTo,  ct);
-        var (priorRev, priorExp) = await GetMonthlyPnlAsync(tenantId, priorFrom, priorTo, ct);
-        var currAr    = await GetCurrentArAsync(tenantId, ct);
-        var priorAr   = await GetArAsOfAsync(tenantId, priorTo, ct);
-        var currAp    = await GetCurrentApAsync(tenantId, ct);
-        var priorAp   = await GetApAsOfAsync(tenantId, priorTo, ct);
-        var currCash  = await GetCashBalanceAsync(tenantId, currTo,  ct);
-        var priorCash = await GetCashBalanceAsync(tenantId, priorTo, ct);
+        var (currRev,  currExp)  = await GetMonthlyPnlAsync(db, tenantId, currFrom,  currTo,  ct);
+        var (priorRev, priorExp) = await GetMonthlyPnlAsync(db, tenantId, priorFrom, priorTo, ct);
+        var currAr    = await GetCurrentArAsync(db, tenantId, ct);
+        var priorAr   = await GetArAsOfAsync(db, tenantId, priorTo, ct);
+        var currAp    = await GetCurrentApAsync(db, tenantId, ct);
+        var priorAp   = await GetApAsOfAsync(db, tenantId, priorTo, ct);
+        var currCash  = await GetCashBalanceAsync(db, tenantId, currTo,  ct);
+        var priorCash = await GetCashBalanceAsync(db, tenantId, priorTo, ct);
 
         return new DashboardKpis(
             MonthlyRevenue  : new KpiSnapshot(currRev,           priorRev),
@@ -33,10 +35,11 @@ public class DashboardService(AppDbContext db) : IDashboardService
         );
     }
 
-    private async Task<(decimal Revenue, decimal Expenses)> GetMonthlyPnlAsync(
-        Guid tenantId, DateOnly from, DateOnly to, CancellationToken ct)
+    private static async Task<(decimal Revenue, decimal Expenses)> GetMonthlyPnlAsync(
+        AppDbContext db, Guid tenantId, DateOnly from, DateOnly to, CancellationToken ct)
     {
-        var lineSums = await db.JournalLines
+        // Load to memory first — avoids SQLite translation issues with GroupBy + Sum(multiplication)
+        var rawLines = await db.JournalLines
             .Join(
                 db.JournalEntries.Where(e =>
                     e.TenantId == tenantId &&
@@ -45,7 +48,12 @@ public class DashboardService(AppDbContext db) : IDashboardService
                     e.Date <= to),
                 l => l.EntryId,
                 e => e.Id,
-                (l, _) => l)
+                (l, _) => new { l.AccountId, l.Debit, l.Credit, l.ExchangeRate })
+            .ToListAsync(ct);
+
+        if (rawLines.Count == 0) return (0m, 0m);
+
+        var lineSums = rawLines
             .GroupBy(l => l.AccountId)
             .Select(g => new
             {
@@ -53,9 +61,7 @@ public class DashboardService(AppDbContext db) : IDashboardService
                 TotalDebit  = g.Sum(l => l.Debit  * l.ExchangeRate),
                 TotalCredit = g.Sum(l => l.Credit * l.ExchangeRate),
             })
-            .ToListAsync(ct);
-
-        if (lineSums.Count == 0) return (0m, 0m);
+            .ToList();
 
         var accountIds = lineSums.Select(x => x.AccountId).ToList();
         var accounts = await db.Accounts
@@ -80,7 +86,7 @@ public class DashboardService(AppDbContext db) : IDashboardService
         return (revenue, expenses);
     }
 
-    private async Task<decimal> GetCurrentArAsync(Guid tenantId, CancellationToken ct)
+    private static async Task<decimal> GetCurrentArAsync(AppDbContext db, Guid tenantId, CancellationToken ct)
     {
         var invoices = await db.Invoices
             .Include(i => i.Lines)
@@ -99,7 +105,7 @@ public class DashboardService(AppDbContext db) : IDashboardService
             - i.CreditNotes.Sum(cn => cn.Lines.Sum(l => l.LineTotal))));
     }
 
-    private async Task<decimal> GetArAsOfAsync(Guid tenantId, DateOnly asOf, CancellationToken ct)
+    private static async Task<decimal> GetArAsOfAsync(AppDbContext db, Guid tenantId, DateOnly asOf, CancellationToken ct)
     {
         var invoices = await db.Invoices
             .Include(i => i.Lines)
@@ -123,7 +129,7 @@ public class DashboardService(AppDbContext db) : IDashboardService
         });
     }
 
-    private async Task<decimal> GetCurrentApAsync(Guid tenantId, CancellationToken ct)
+    private static async Task<decimal> GetCurrentApAsync(AppDbContext db, Guid tenantId, CancellationToken ct)
     {
         return await db.Bills
             .Where(b => b.TenantId == tenantId
@@ -133,7 +139,7 @@ public class DashboardService(AppDbContext db) : IDashboardService
             .SumAsync(b => b.GrandTotal - b.AmountPaid, ct);
     }
 
-    private async Task<decimal> GetApAsOfAsync(Guid tenantId, DateOnly asOf, CancellationToken ct)
+    private static async Task<decimal> GetApAsOfAsync(AppDbContext db, Guid tenantId, DateOnly asOf, CancellationToken ct)
     {
         var bills = await db.Bills
             .Include(b => b.Payments)
@@ -151,7 +157,7 @@ public class DashboardService(AppDbContext db) : IDashboardService
         });
     }
 
-    private async Task<decimal> GetCashBalanceAsync(Guid tenantId, DateOnly asOf, CancellationToken ct)
+    private static async Task<decimal> GetCashBalanceAsync(AppDbContext db, Guid tenantId, DateOnly asOf, CancellationToken ct)
     {
         var cashAccountIds = await db.Accounts
             .Where(a => a.TenantId == tenantId
@@ -163,7 +169,8 @@ public class DashboardService(AppDbContext db) : IDashboardService
 
         if (cashAccountIds.Count == 0) return 0m;
 
-        return await db.JournalLines
+        // Load to memory first — avoids SQLite translation issues with decimal arithmetic in SumAsync
+        var lines = await db.JournalLines
             .Join(
                 db.JournalEntries.Where(e =>
                     e.TenantId == tenantId &&
@@ -171,15 +178,19 @@ public class DashboardService(AppDbContext db) : IDashboardService
                     e.Date <= asOf),
                 l => l.EntryId,
                 e => e.Id,
-                (l, _) => l)
+                (l, _) => new { l.AccountId, l.Debit, l.Credit, l.ExchangeRate })
             .Where(l => cashAccountIds.Contains(l.AccountId))
-            .SumAsync(l => (l.Debit - l.Credit) * l.ExchangeRate, ct);
+            .ToListAsync(ct);
+
+        return lines.Sum(l => (l.Debit - l.Credit) * l.ExchangeRate);
     }
 
     // ── Chart data ───────────────────────────────────────────────────────────
 
     public async Task<DashboardChartData> GetChartDataAsync(Guid tenantId, CancellationToken ct = default)
     {
+        await using var db = await dbFactory.CreateDbContextAsync(ct);
+
         var today       = DateOnly.FromDateTime(DateTime.UtcNow);
         var periodStart = new DateOnly(today.Year, today.Month, 1).AddMonths(-11);
 
@@ -255,13 +266,14 @@ public class DashboardService(AppDbContext db) : IDashboardService
         }
         else
         {
-            var openingBalance = await db.JournalLines
+            var openingLines = await db.JournalLines
                 .Where(l => cashAccountIds.Contains(l.AccountId))
                 .Join(
                     db.JournalEntries.Where(e =>
                         e.TenantId == tenantId && !e.IsDeleted && e.Date < periodStart),
-                    l => l.EntryId, e => e.Id, (l, _) => l)
-                .SumAsync(l => (l.Debit - l.Credit) * l.ExchangeRate, ct);
+                    l => l.EntryId, e => e.Id, (l, _) => new { l.Debit, l.Credit, l.ExchangeRate })
+                .ToListAsync(ct);
+            var openingBalance = openingLines.Sum(l => (l.Debit - l.Credit) * l.ExchangeRate);
 
             var cashFlows = await db.JournalLines
                 .Where(l => cashAccountIds.Contains(l.AccountId))

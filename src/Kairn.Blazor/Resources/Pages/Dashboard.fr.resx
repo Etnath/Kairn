@@ -21,6 +21,7 @@
   <data name="Kpi_OutstandingAp" xml:space="preserve"><value>Dettes fournisseurs</value></data>
   <data name="Kpi_CashBalance" xml:space="preserve"><value>Solde de trésorerie</value></data>
   <data name="Charts_Title" xml:space="preserve"><value>Aperçu de la performance</value></data>
+  <data name="Kpi_LoadError" xml:space="preserve"><value>Impossible de charger les indicateurs. Veuillez rafraîchir la page.</value></data>
   <data name="Charts_Error" xml:space="preserve"><value>Impossible de charger les données graphiques.</value></data>
   <data name="Chart_RevExp" xml:space="preserve"><value>Chiffre d'affaires vs. Charges</value></data>
   <data name="Chart_Revenue" xml:space="preserve"><value>Chiffre d'affaires</value></data>

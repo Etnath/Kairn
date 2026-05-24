@@ -1,0 +1,11 @@
+<?xml version="1.0" encoding="utf-8"?>
+<root>
+  <resheader name="resmimetype"><value>text/microsoft-resx</value></resheader>
+  <resheader name="version"><value>2.0</value></resheader>
+  <data name="Draft" xml:space="preserve"><value>Draft</value></data>
+  <data name="Sent" xml:space="preserve"><value>Sent</value></data>
+  <data name="PartiallyPaid" xml:space="preserve"><value>Partially Paid</value></data>
+  <data name="Paid" xml:space="preserve"><value>Paid</value></data>
+  <data name="Overdue" xml:space="preserve"><value>Overdue</value></data>
+  <data name="Void" xml:space="preserve"><value>Void</value></data>
+</root>

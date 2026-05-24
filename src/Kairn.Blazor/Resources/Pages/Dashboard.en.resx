@@ -21,6 +21,7 @@
   <data name="Kpi_OutstandingAp" xml:space="preserve"><value>Outstanding AP</value></data>
   <data name="Kpi_CashBalance" xml:space="preserve"><value>Cash Balance</value></data>
   <data name="Charts_Title" xml:space="preserve"><value>Performance Overview</value></data>
+  <data name="Kpi_LoadError" xml:space="preserve"><value>Unable to load KPI data. Please refresh the page.</value></data>
   <data name="Charts_Error" xml:space="preserve"><value>Unable to load chart data.</value></data>
   <data name="Chart_RevExp" xml:space="preserve"><value>Revenue vs. Expenses</value></data>
   <data name="Chart_Revenue" xml:space="preserve"><value>Revenue</value></data>

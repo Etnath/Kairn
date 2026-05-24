@@ -1,4 +1,5 @@
 @using Kairn.Domain.Entities
+@inject IStringLocalizer<InvoiceStatusChip> L
 
 <span style="display:inline-flex;align-items:center;padding:2px 10px;border-radius:9999px;
              font-size:0.75rem;font-weight:500;line-height:1.6;white-space:nowrap;
@@ -33,12 +34,12 @@
 
     private string StatusLabel => Status switch
     {
-        InvoiceStatus.Draft         => "Draft",
-        InvoiceStatus.Sent          => "Sent",
-        InvoiceStatus.PartiallyPaid => "Partially Paid",
-        InvoiceStatus.Paid          => "Paid",
-        InvoiceStatus.Overdue       => "Overdue",
-        InvoiceStatus.Void          => "Void",
+        InvoiceStatus.Draft         => L["Draft"],
+        InvoiceStatus.Sent          => L["Sent"],
+        InvoiceStatus.PartiallyPaid => L["PartiallyPaid"],
+        InvoiceStatus.Paid          => L["Paid"],
+        InvoiceStatus.Overdue       => L["Overdue"],
+        InvoiceStatus.Void          => L["Void"],
         _                           => Status.ToString(),
     };
 }

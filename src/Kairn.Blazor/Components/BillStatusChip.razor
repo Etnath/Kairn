@@ -1,4 +1,5 @@
 @using Kairn.Domain.Entities
+@inject IStringLocalizer<BillStatusChip> L
 
 <span style="display:inline-flex;align-items:center;padding:2px 10px;border-radius:9999px;
              font-size:0.75rem;font-weight:500;line-height:1.6;white-space:nowrap;
@@ -37,14 +38,14 @@
 
     private string _label => Status switch
     {
-        BillStatus.Draft            => "Draft",
-        BillStatus.PendingApproval  => "Pending Approval",
-        BillStatus.Approved         => "Approved",
-        BillStatus.PartiallyPaid    => "Partially Paid",
-        BillStatus.Paid             => "Paid",
-        BillStatus.Overdue          => "Overdue",
-        BillStatus.Void             => "Void",
-        BillStatus.Rejected         => "Rejected",
+        BillStatus.Draft            => L["Draft"],
+        BillStatus.PendingApproval  => L["PendingApproval"],
+        BillStatus.Approved         => L["Approved"],
+        BillStatus.PartiallyPaid    => L["PartiallyPaid"],
+        BillStatus.Paid             => L["Paid"],
+        BillStatus.Overdue          => L["Overdue"],
+        BillStatus.Void             => L["Void"],
+        BillStatus.Rejected         => L["Rejected"],
         _                           => Status.ToString(),
     };
 }

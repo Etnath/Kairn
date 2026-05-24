@@ -29,15 +29,16 @@ public class InvoicePaymentService(AppDbContext db, ITaxPeriodChecker taxPeriods
 
         return await db.InvoicePayments
             .Where(p => p.TenantId == tenantId && p.Date >= from && p.Date <= to)
-            .Join(db.Invoices,  p => p.InvoiceId,   i => i.Id,  (p, i) => new { p, i })
-            .Join(db.Customers, x => x.i.CustomerId, c => c.Id, (x, c) => new RecetteEntryDto(
+            .Join(db.Invoices,  p => p.InvoiceId,    i => i.Id,  (p, i) => new { p, i })
+            .Join(db.Customers, x => x.i.CustomerId, c => c.Id,  (x, c) => new { x.p, x.i, c })
+            .OrderBy(x => x.p.Date)
+            .Select(x => new RecetteEntryDto(
                 x.p.Date,
                 x.i.Reference,
-                c.Name,
+                x.c.Name,
                 x.p.Amount,
                 x.p.Method,
                 x.p.Reference))
-            .OrderBy(r => r.Date)
             .ToListAsync(ct);
     }
 

@@ -59,24 +59,39 @@ try
 
     // ── Database ─────────────────────────────────────────────────────────────
     builder.Services.AddScoped<AuditLogInterceptor>();
-    builder.Services.AddScoped<ICurrentUserContext, CurrentUserContext>();
+    builder.Services.AddScoped<ICurrentUserContext, BlazorCurrentUserContext>();
     builder.Services.AddScoped<TenantProfileState>();
     builder.Services.AddHttpContextAccessor();
 
+    var connStr = builder.Configuration.GetConnectionString("Default");
     if (builder.Environment.IsDevelopment())
     {
         builder.Services.AddDbContext<AppDbContext>((sp, options) =>
-            options.UseSqlite(builder.Configuration.GetConnectionString("Default") ?? "Data Source=kairn.db")
+            options.UseSqlite(connStr ?? "Data Source=kairn.db")
                    .AddInterceptors(sp.GetRequiredService<AuditLogInterceptor>())
                    .ConfigureWarnings(w => w.Ignore(Microsoft.EntityFrameworkCore.Diagnostics.RelationalEventId.PendingModelChangesWarning)));
+
+        var dashboardOpts = new DbContextOptionsBuilder<AppDbContext>()
+            .UseSqlite(connStr ?? "Data Source=kairn.db")
+            .ConfigureWarnings(w => w.Ignore(Microsoft.EntityFrameworkCore.Diagnostics.RelationalEventId.PendingModelChangesWarning))
+            .Options;
+        builder.Services.AddSingleton<IDbContextFactory<AppDbContext>>(
+            new DashboardDbContextFactory(dashboardOpts));
     }
     else
     {
         builder.Services.AddDbContext<AppDbContext>((sp, options) =>
-            options.UseNpgsql(builder.Configuration.GetConnectionString("Default"),
+            options.UseNpgsql(connStr,
                        npgsql => npgsql.EnableRetryOnFailure(3).CommandTimeout(60))
                    .AddInterceptors(sp.GetRequiredService<AuditLogInterceptor>())
                    .ConfigureWarnings(w => w.Ignore(Microsoft.EntityFrameworkCore.Diagnostics.RelationalEventId.PendingModelChangesWarning)));
+
+        var dashboardOpts = new DbContextOptionsBuilder<AppDbContext>()
+            .UseNpgsql(connStr, npgsql => npgsql.EnableRetryOnFailure(3).CommandTimeout(60))
+            .ConfigureWarnings(w => w.Ignore(Microsoft.EntityFrameworkCore.Diagnostics.RelationalEventId.PendingModelChangesWarning))
+            .Options;
+        builder.Services.AddSingleton<IDbContextFactory<AppDbContext>>(
+            new DashboardDbContextFactory(dashboardOpts));
     }
 
     // ── Identity ─────────────────────────────────────────────────────────────
@@ -169,7 +184,7 @@ try
     builder.Services.AddScoped<IBudgetService, BudgetService>();
     builder.Services.AddSingleton<IBsExporter, BsExporter>();
     builder.Services.AddScoped<IFixedAssetService, FixedAssetService>();
-    builder.Services.AddScoped<IDashboardService, DashboardService>();
+    builder.Services.AddSingleton<IDashboardService, DashboardService>();
     builder.Services.AddScoped<IDashboardSettingsService, DashboardSettingsService>();
     builder.Services.AddScoped<IUserDashboardPreferencesService, UserDashboardPreferencesService>();
     builder.Services.AddScoped<IProductLineService, ProductLineService>();
@@ -271,9 +286,12 @@ try
     // PDF download endpoint
     app.MapGet("/api/invoices/{id:guid}/pdf", async (Guid id, IInvoiceService invoiceSvc, ICurrentUserContext user) =>
     {
+        var invoice = await invoiceSvc.GetByIdAsync(id, user.TenantId);
+        if (invoice is null) return Results.NotFound();
         var bytes = await invoiceSvc.GeneratePdfAsync(id, user.TenantId);
         if (bytes is null) return Results.NotFound();
-        return Results.File(bytes, "application/pdf", $"invoice-{id}.pdf");
+        var filename = $"{invoice.Reference}.pdf";
+        return Results.File(bytes, "application/pdf", filename);
     }).RequireAuthorization();
 
     await app.RunAsync();

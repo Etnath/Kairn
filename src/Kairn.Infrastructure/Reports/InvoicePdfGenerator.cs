@@ -43,8 +43,8 @@ public static class InvoicePdfGenerator
                                 c.Item().AlignRight().Text($"SIRET: {options.Siret}").FontSize(9).FontColor(Colors.Grey.Darken1);
                             if (ae && !string.IsNullOrWhiteSpace(options?.CompanyAddress))
                                 c.Item().AlignRight().Text(options.CompanyAddress).FontSize(9).FontColor(Colors.Grey.Darken1);
-                            c.Item().AlignRight().Text($"Date: {invoice.Date:dd/MM/yyyy}");
-                            c.Item().AlignRight().Text($"Due: {invoice.DueDate:dd/MM/yyyy}");
+                            c.Item().AlignRight().Text($"Date : {invoice.Date:dd/MM/yyyy}");
+                            c.Item().AlignRight().Text($"Échéance : {invoice.DueDate:dd/MM/yyyy}");
                             if (StatusLabel(invoice.Status) is { } label)
                             c.Item().PaddingTop(4).AlignRight()
                                     .Text(label)
@@ -61,7 +61,7 @@ public static class InvoicePdfGenerator
                     // Customer block
                     col.Item().Column(c =>
                     {
-                        c.Item().Text("Bill To").FontSize(9).FontColor(Colors.Grey.Darken1).Bold();
+                        c.Item().Text("Facturer à").FontSize(9).FontColor(Colors.Grey.Darken1).Bold();
                         c.Item().PaddingTop(2).Text(invoice.CustomerName).Bold();
                         if (!string.IsNullOrWhiteSpace(invoice.CustomerEmail))
                             c.Item().Text(invoice.CustomerEmail).FontColor(Colors.Grey.Darken2);
@@ -89,10 +89,10 @@ public static class InvoicePdfGenerator
                         table.Header(header =>
                         {
                             header.Cell().Element(HeaderCell).Text("Description").FontColor(Colors.White).Bold();
-                            header.Cell().Element(HeaderCell).AlignRight().Text("Qty").FontColor(Colors.White).Bold();
-                            header.Cell().Element(HeaderCell).AlignRight().Text("Unit Price").FontColor(Colors.White).Bold();
-                            header.Cell().Element(HeaderCell).AlignRight().Text("Disc %").FontColor(Colors.White).Bold();
-                            if (!ae) header.Cell().Element(HeaderCell).AlignRight().Text("Tax %").FontColor(Colors.White).Bold();
+                            header.Cell().Element(HeaderCell).AlignRight().Text("Qté").FontColor(Colors.White).Bold();
+                            header.Cell().Element(HeaderCell).AlignRight().Text("Prix unitaire").FontColor(Colors.White).Bold();
+                            header.Cell().Element(HeaderCell).AlignRight().Text("Remise %").FontColor(Colors.White).Bold();
+                            if (!ae) header.Cell().Element(HeaderCell).AlignRight().Text("TVA %").FontColor(Colors.White).Bold();
                             header.Cell().Element(HeaderCell).AlignRight().Text("Total").FontColor(Colors.White).Bold();
                         });
 
@@ -123,7 +123,7 @@ public static class InvoicePdfGenerator
                     {
                         totals.Item().Row(row =>
                         {
-                            row.RelativeItem().Text("Subtotal").FontColor(Colors.Grey.Darken1);
+                            row.RelativeItem().Text("Sous-total HT").FontColor(Colors.Grey.Darken1);
                             row.ConstantItem(100).AlignRight().Text($"{invoice.Currency} {invoice.Subtotal:N2}");
                         });
 
@@ -131,7 +131,7 @@ public static class InvoicePdfGenerator
                         {
                             totals.Item().Row(row =>
                             {
-                                row.RelativeItem().Text("Discount").FontColor(Colors.Grey.Darken1);
+                                row.RelativeItem().Text("Remise").FontColor(Colors.Grey.Darken1);
                                 row.ConstantItem(100).AlignRight()
                                     .Text($"- {invoice.Currency} {invoice.TotalDiscount:N2}")
                                     .FontColor(Colors.Green.Darken2);
@@ -142,7 +142,7 @@ public static class InvoicePdfGenerator
                         {
                             totals.Item().Row(row =>
                             {
-                                row.RelativeItem().Text("Tax (VAT)").FontColor(Colors.Grey.Darken1);
+                                row.RelativeItem().Text("TVA").FontColor(Colors.Grey.Darken1);
                                 row.ConstantItem(100).AlignRight().Text($"{invoice.Currency} {invoice.TotalTax:N2}");
                             });
                         }
@@ -151,7 +151,7 @@ public static class InvoicePdfGenerator
 
                         totals.Item().Row(row =>
                         {
-                            row.RelativeItem().Text("Grand Total").Bold();
+                            row.RelativeItem().Text("Total TTC").Bold();
                             row.ConstantItem(100).AlignRight()
                                 .Text($"{invoice.Currency} {(ae ? invoice.Subtotal - invoice.TotalDiscount : invoice.GrandTotal):N2}")
                                 .Bold().FontColor("#1565C0");
@@ -169,7 +169,7 @@ public static class InvoicePdfGenerator
                     {
                         col.Item().PaddingTop(20).Column(notes =>
                         {
-                            notes.Item().Text("Notes").Bold().FontSize(9).FontColor(Colors.Grey.Darken1);
+                            notes.Item().Text("Notes / Mentions légales").Bold().FontSize(9).FontColor(Colors.Grey.Darken1);
                             notes.Item().PaddingTop(4).Text(invoice.Notes).FontColor(Colors.Grey.Darken2);
                         });
                     }
@@ -178,7 +178,7 @@ public static class InvoicePdfGenerator
                 page.Footer().AlignCenter().Text(text =>
                 {
                     text.DefaultTextStyle(ts => ts.FontSize(8).FontColor(Colors.Grey.Medium));
-                    text.Span("Page "); text.CurrentPageNumber(); text.Span(" of "); text.TotalPages();
+                    text.Span("Page "); text.CurrentPageNumber(); text.Span(" sur "); text.TotalPages();
                 });
             });
         }).GeneratePdf();

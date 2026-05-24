@@ -1,6 +1,6 @@
 using Fluxor;
-using Kairn.Application.Common;
 using Kairn.Application.Features.Dashboard;
+using Microsoft.Extensions.Logging;
 
 namespace Kairn.Blazor.State;
 
@@ -17,12 +17,12 @@ public record DashboardState
 }
 
 // KPI actions
-public record LoadDashboardKpisAction;
+public record LoadDashboardKpisAction(Guid TenantId);
 public record DashboardKpisLoadedAction(DashboardKpis Kpis);
 public record DashboardKpisFailedAction;
 
 // Chart actions
-public record LoadDashboardChartsAction;
+public record LoadDashboardChartsAction(Guid TenantId);
 public record DashboardChartsLoadedAction(DashboardChartData Charts);
 public record DashboardChartsFailedAction;
 
@@ -53,32 +53,36 @@ public static class DashboardReducers
         state with { IsChartsLoading = false, HasChartsError = true };
 }
 
-public class DashboardEffects(IDashboardService dashboardService, ICurrentUserContext currentUser)
+public class DashboardEffects(
+    IDashboardService dashboardService,
+    ILogger<DashboardEffects> logger)
 {
-    [EffectMethod(typeof(LoadDashboardKpisAction))]
-    public async Task LoadKpisAsync(IDispatcher dispatcher)
+    [EffectMethod]
+    public async Task LoadKpisAsync(LoadDashboardKpisAction action, IDispatcher dispatcher)
     {
         try
         {
-            var kpis = await dashboardService.GetKpisAsync(currentUser.TenantId);
+            var kpis = await dashboardService.GetKpisAsync(action.TenantId);
             dispatcher.Dispatch(new DashboardKpisLoadedAction(kpis));
         }
-        catch
+        catch (Exception ex)
         {
+            logger.LogError(ex, "Failed to load dashboard KPIs for tenant {TenantId}", action.TenantId);
             dispatcher.Dispatch(new DashboardKpisFailedAction());
         }
     }
 
-    [EffectMethod(typeof(LoadDashboardChartsAction))]
-    public async Task LoadChartsAsync(IDispatcher dispatcher)
+    [EffectMethod]
+    public async Task LoadChartsAsync(LoadDashboardChartsAction action, IDispatcher dispatcher)
     {
         try
         {
-            var charts = await dashboardService.GetChartDataAsync(currentUser.TenantId);
+            var charts = await dashboardService.GetChartDataAsync(action.TenantId);
             dispatcher.Dispatch(new DashboardChartsLoadedAction(charts));
         }
-        catch
+        catch (Exception ex)
         {
+            logger.LogError(ex, "Failed to load dashboard charts for tenant {TenantId}", action.TenantId);
             dispatcher.Dispatch(new DashboardChartsFailedAction());
         }
     }

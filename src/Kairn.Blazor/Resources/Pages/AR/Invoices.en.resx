@@ -19,7 +19,7 @@
   <data name="Filter_From" xml:space="preserve"><value>From</value></data>
   <data name="Filter_To" xml:space="preserve"><value>To</value></data>
   <data name="Filter_Reset" xml:space="preserve"><value>Reset</value></data>
-  <data name="Filter_ShowAll" xml:space="preserve"><value>Show all</value></data>
+  <data name="Filter_ShowAll" xml:space="preserve"><value>Show voided</value></data>
 
   <!-- List columns -->
   <data name="Col_Reference" xml:space="preserve"><value>Reference</value></data>

@@ -1,6 +1,7 @@
 @page "/invoicing"
 @attribute [Authorize(Roles = "Admin,Bookkeeper,Viewer")]
 @inject IStringLocalizer<Invoices> L
+@inject IStringLocalizer<InvoiceStatusChip> StatusL
 @inject IInvoiceService InvoiceService
 @inject ICustomerService CustomerService
 @inject ICurrentUserContext CurrentUser
@@ -37,7 +38,7 @@
                    Clearable="true" Dense="true">
             @foreach (InvoiceStatus s in Enum.GetValues<InvoiceStatus>())
             {
-                <MudSelectItem T="InvoiceStatus?" Value="@((InvoiceStatus?)s)">@s</MudSelectItem>
+                <MudSelectItem T="InvoiceStatus?" Value="@((InvoiceStatus?)s)">@StatusL[s.ToString()]</MudSelectItem>
             }
         </MudSelect>
     </MudItem>

@@ -97,6 +97,13 @@
     </MudPaper>
 }
 
+@if (KpiState.Value.HasError)
+{
+    <MudAlert Severity="Severity.Warning" Class="mb-4" Dense="true">
+        @L["Kpi_LoadError"]
+    </MudAlert>
+}
+
 <MudGrid Class="mb-4">
     @if (_showMonthlyRevenue)
     {
@@ -531,7 +538,7 @@ else
     protected override async Task OnInitializedAsync()
     {
         KpiState.StateChanged += OnKpiStateChanged;
-        Dispatcher.Dispatch(new LoadDashboardKpisAction());
+        Dispatcher.Dispatch(new LoadDashboardKpisAction(CurrentUser.TenantId));
         _refreshTimer = new Timer(
             _ => InvokeAsync(RefreshAlertDataAsync),
             null,
@@ -558,7 +565,7 @@ else
     protected override Task OnAfterRenderAsync(bool firstRender)
     {
         if (firstRender)
-            Dispatcher.Dispatch(new LoadDashboardChartsAction());
+            Dispatcher.Dispatch(new LoadDashboardChartsAction(CurrentUser.TenantId));
         return Task.CompletedTask;
     }
 
@@ -589,7 +596,7 @@ else
 
     private async Task RefreshAlertDataAsync()
     {
-        Dispatcher.Dispatch(new LoadDashboardKpisAction());
+        Dispatcher.Dispatch(new LoadDashboardKpisAction(CurrentUser.TenantId));
         await LoadAlertDataAsync();
         StateHasChanged();
     }

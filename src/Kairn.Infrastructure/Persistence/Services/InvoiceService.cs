@@ -31,7 +31,7 @@ public class InvoiceService(AppDbContext db, ITaxPeriodChecker taxPeriods, ITena
         if (query.Status.HasValue)
             q = q.Where(i => i.Status == query.Status.Value);
         else if (query.ExcludeClosedStatuses)
-            q = q.Where(i => i.Status != InvoiceStatus.Void && i.Status != InvoiceStatus.Paid);
+            q = q.Where(i => i.Status != InvoiceStatus.Void);
         if (query.From.HasValue)
             q = q.Where(i => i.Date >= query.From.Value);
         if (query.To.HasValue)
